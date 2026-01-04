@@ -1,0 +1,86 @@
+services:
+  backend:
+    build: ./backend
+    container_name: meam-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://meam:meam_secret@db:5432/meam_db
+      # Optimize pyvips for low memory environment
+      - VIPS_DISC_THRESHOLD=100m
+      - VIPS_CONCURRENCY=2
+      # Public URLs for IIIF Manifest generation
+      # 用于 IIIF Manifest 生成的公共 URL
+      # Change 192.168.5.13 to your server IP
+      - API_PUBLIC_URL=http://192.168.5.13:3000/api
+      - CANTALOUPE_PUBLIC_URL=http://192.168.5.13:8182/iiif/2
+    volumes:
+      # Map NAS mount point directly
+      - /sunjing/project/文物库:/app/uploads
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: meam-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:16-alpine
+    container_name: meam-db
+    restart: always
+    environment:
+      - POSTGRES_USER=meam
+      - POSTGRES_PASSWORD=meam_secret
+      - POSTGRES_DB=meam_db
+    volumes:
+      # Use local SSD for DB performance as requested
+      # 按照要求使用本地 SSD 提升 DB 性能
+      - ./db_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # Optional: File browser to inspect uploaded assets
+  # 可选: 用于检查已上传资产的文件浏览器
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: meam-filebrowser
+    restart: always
+    ports:
+      - "8081:80"
+    volumes:
+      # Map NAS path to /srv
+      - /sunjing/project:/srv
+      # Local SSD for DB to avoid NFS locks
+      - ./filebrowser.db:/database/filebrowser.db
+    command: /filebrowser --noauth
+
+  # IIIF Server for high-resolution image serving
+  # 用于高分辨率图像服务的 IIIF 服务器
+  cantaloupe:
+    # Build locally to avoid docker hub issues
+    # 本地构建以避免 Docker Hub 问题
+    build: ./cantaloupe
+    image: meam-cantaloupe:local
+    container_name: meam-cantaloupe
+    restart: always
+    ports:
+      - "8182:8182"
+    volumes:
+      # Read images directly from NAS
+      - /sunjing/project/文物库:/var/lib/cantaloupe/images
+      - ./cantaloupe.properties:/etc/cantaloupe.properties
+    environment:
+      - CANTALOUPE_CONFIG=/etc/cantaloupe.properties
+      # Java Heap constraint for N100 (16GB total, leave room for others)
+      - JAVA_OPTS=-Xmx4g -Dcantaloupe.cache.server.source.filesystem.pathname=/var/lib/cantaloupe/images
+
+volumes:
+  meam_pg_data:
