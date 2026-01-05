@@ -1,7 +1,4 @@
-'/iiif': {
-    target: 'http://192.168.5.13:8182', // 指向服务器 IP
-    changeOrigin: true
-}{
+{
   "name": "meam-frontend",
   "private": true,
   "version": "0.0.0",
