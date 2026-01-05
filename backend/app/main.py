@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, UploadFile, File, HTTPException
+from fastapi import FastAPI, Depends, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -87,7 +87,7 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     return db_asset
 
 @app.get("/iiif/{asset_id}/manifest")
-def get_iiif_manifest(asset_id: int, db: Session = Depends(get_db)):
+def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get_db)):
     """
     Generate IIIF Presentation API 3.0 Manifest dynamically from Asset metadata.
     根据资产元数据动态生成 IIIF Presentation API 3.0 Manifest。
@@ -96,19 +96,55 @@ def get_iiif_manifest(asset_id: int, db: Session = Depends(get_db)):
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
 
-    # Base URLs from Environment Variables
-    # 从环境变量获取基础 URL
-    # API_PUBLIC_URL should point to the Nginx entry point (e.g., http://192.168.5.13:3000/api)
-    # CANTALOUPE_PUBLIC_URL should point to the Cantaloupe server (e.g., http://192.168.5.13:8182/iiif/2)
+    # Determine Base URLs dynamically from request headers if possible, otherwise fallback to env
+    # 尽可能从请求头动态确定基础 URL，否则回退到环境变量
     
-    api_base_url = os.getenv("API_PUBLIC_URL", "http://localhost:8000")
-    # Remove trailing slash if present
-    if api_base_url.endswith("/"):
-        api_base_url = api_base_url[:-1]
+    # 1. API Base URL (for Manifest ID, Canvas ID, etc.)
+    # 1. API 基础 URL (用于 Manifest ID, Canvas ID 等)
+    # Check for X-Forwarded-Host (from Nginx) or Host header
+    forwarded_host = request.headers.get("x-forwarded-host")
+    forwarded_proto = request.headers.get("x-forwarded-proto", "http")
+    
+    if forwarded_host:
+         # Behind Nginx Proxy
+         host = forwarded_host
+         scheme = forwarded_proto
+         # Assume /api prefix if proxied, but best to rely on env or consistent routing
+         # Nginx config usually proxies /api -> backend root.
+         # So manifest ID http://host/api/iiif/... maps to backend /iiif/...
+         api_base_url = f"{scheme}://{host}/api"
+    else:
+        # Direct access (e.g. localhost:8000) or Host header from Nginx
+        host = request.headers.get("host")
+        if not host:
+             host = "localhost:8000"
+        scheme = request.url.scheme
+        
+        # If Host indicates port 3000, we should assume we are behind Nginx but X-Forwarded-Host was missing
+        if ":3000" in host:
+            api_base_url = f"{scheme}://{host}/api"
+        else:
+            api_base_url = f"{scheme}://{host}"
 
-    cantaloupe_base_url = os.getenv("CANTALOUPE_PUBLIC_URL", "http://localhost:8182/iiif/2")
-    if cantaloupe_base_url.endswith("/"):
-        cantaloupe_base_url = cantaloupe_base_url[:-1]
+    # 2. Cantaloupe Base URL (for Image Service ID)
+    # 2. Cantaloupe 基础 URL (用于图像服务 ID)
+    # If we are behind Nginx (port 3000), we want to point to /iiif/2
+    # If direct access, we might need env var or default to 8182
+    
+    if forwarded_host:
+         # Assume Nginx routing: /iiif/2 -> Cantaloupe
+         cantaloupe_base_url = f"{scheme}://{host}/iiif/2"
+    else:
+        # If no X-Forwarded-Host, check if we have a direct Host header (e.g. from local dev)
+        # 如果没有 X-Forwarded-Host，检查是否有直接的 Host 头（例如来自本地开发）
+        host = request.headers.get("host")
+        if host and ":3000" in host:
+             # Heuristic: If Host port is 3000 (Nginx), assume we want /iiif/2
+             cantaloupe_base_url = f"{scheme}://{host}/iiif/2"
+        else:
+             # Fallback to env or assume localhost:8182 for dev
+             # 回退到环境变量或假设开发环境为 localhost:8182
+             cantaloupe_base_url = os.getenv("CANTALOUPE_PUBLIC_URL", "http://localhost:8182/iiif/2")
 
     
     # Construct Canvas ID and Image ID

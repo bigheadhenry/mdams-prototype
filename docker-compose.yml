@@ -14,7 +14,9 @@ services:
       # 用于 IIIF Manifest 生成的公共 URL
       # Change 192.168.5.13 to your server IP
       - API_PUBLIC_URL=http://192.168.5.13:3000/api
-      - CANTALOUPE_PUBLIC_URL=http://192.168.5.13:8182/iiif/2
+      # Use Nginx proxy for Cantaloupe to avoid direct port exposure and CORS issues
+      # 使用 Nginx 代理 Cantaloupe 以避免直接端口暴露和 CORS 问题
+      - CANTALOUPE_PUBLIC_URL=http://192.168.5.13:3000/iiif/2
     volumes:
       # Map NAS mount point directly
       - /sunjing/project/文物库:/app/uploads
