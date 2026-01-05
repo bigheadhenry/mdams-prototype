@@ -1,4 +1,4 @@
-FROM registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:11-ubuntu
+FROM eclipse-temurin:11-jre
 
 
 
