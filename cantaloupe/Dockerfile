@@ -1,4 +1,5 @@
-FROM eclipse-temurin:11-jre
+FROM registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:11-ubuntu
+
 
 
 ENV CANTALOUPE_VERSION=5.0.6
