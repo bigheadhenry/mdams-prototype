@@ -82,6 +82,8 @@ services:
       # Read images directly from NAS
       - /sunjing/project/文物库:/var/lib/cantaloupe/images
       - ./cantaloupe.properties:/etc/cantaloupe.properties
+      # Pass host entropy to container
+      - /dev/urandom:/dev/random:ro
     environment:
       - CANTALOUPE_CONFIG=/etc/cantaloupe.properties
       # Java Heap constraint for N100 (16GB total, leave room for others)
