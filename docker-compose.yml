@@ -86,7 +86,7 @@ services:
       - CANTALOUPE_CONFIG=/etc/cantaloupe.properties
       # Java Heap constraint for N100 (16GB total, leave room for others)
       # Add java.security.egd to fix slow startup due to entropy pool issues
-      - JAVA_OPTS=-Xmx4g -Dcantaloupe.cache.server.source.filesystem.pathname=/var/lib/cantaloupe/images -Djava.security.egd=file:/dev/./urandom
+      - JAVA_OPTS=-Xmx4g -Djava.security.egd=file:/dev/./urandom
 
 volumes:
   meam_pg_data:
