@@ -21,6 +21,7 @@ RUN mkdir -p /var/lib/cantaloupe/images \
     && mkdir -p /var/lib/cantaloupe/cache
 
 # Copy config
+# Ensure config is updated
 COPY cantaloupe.properties /etc/cantaloupe.properties
 
 # Expose port
