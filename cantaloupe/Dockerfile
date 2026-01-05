@@ -3,9 +3,14 @@ FROM eclipse-temurin:11-jre
 ENV CANTALOUPE_VERSION=5.0.6
 WORKDIR /opt
 
-# Optimize: Copy the UNZIPPED folder directly to avoid needing 'unzip' inside the image
-# User must unzip cantaloupe-5.0.6.zip locally to cantaloupe-5.0.6 folder before building
-COPY cantaloupe-${CANTALOUPE_VERSION} cantaloupe
+# Install unzip
+RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
+
+# Copy zip and unzip
+COPY cantaloupe-${CANTALOUPE_VERSION}.zip .
+RUN unzip cantaloupe-${CANTALOUPE_VERSION}.zip && \
+    mv cantaloupe-${CANTALOUPE_VERSION} cantaloupe && \
+    rm cantaloupe-${CANTALOUPE_VERSION}.zip
 
 WORKDIR /opt/cantaloupe
 
