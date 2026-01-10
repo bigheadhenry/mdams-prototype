@@ -5,8 +5,14 @@ FROM eclipse-temurin:11-jre
 ENV CANTALOUPE_VERSION=5.0.6
 WORKDIR /opt
 
-# Install unzip and font libraries required by Java 2D
-RUN apt-get update && apt-get install -y unzip fontconfig libfreetype6 && rm -rf /var/lib/apt/lists/*
+# Install unzip, font libraries, and GraphicsMagick/FFmpeg for better format support
+RUN apt-get update && apt-get install -y \
+    unzip \
+    fontconfig \
+    libfreetype6 \
+    graphicsmagick \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy zip and unzip
 COPY cantaloupe-${CANTALOUPE_VERSION}.zip .
