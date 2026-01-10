@@ -151,17 +151,6 @@ const App: React.FC = () => {
                   </Col>
                 </Row>
 
-                <div style={{ marginBottom: 16 }}>
-                  <Upload 
-                    customRequest={handleUpload} 
-                    showUploadList={false}
-                    accept=".jpg,.jpeg,.png,.gif,.bmp,.tif,.tiff"
-                    beforeUpload={beforeUpload}
-                  >
-                    <Button icon={<UploadOutlined />}>上传新资产</Button>
-                  </Upload>
-                </div>
-
                 <Table 
                   dataSource={assets} 
                   columns={columns} 
