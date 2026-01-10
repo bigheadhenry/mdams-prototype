@@ -117,15 +117,22 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
     # Check for X-Forwarded-Host (from Nginx) or Host header
     forwarded_host = request.headers.get("x-forwarded-host")
     forwarded_proto = request.headers.get("x-forwarded-proto", "http")
+    forwarded_prefix = request.headers.get("x-forwarded-prefix", "")
     
     if forwarded_host:
          # Behind Nginx Proxy
          host = forwarded_host
          scheme = forwarded_proto
-         # Assume /api prefix if proxied, but best to rely on env or consistent routing
-         # Nginx config usually proxies /api -> backend root.
-         # So manifest ID http://host/api/iiif/... maps to backend /iiif/...
-         api_base_url = f"{scheme}://{host}/api"
+         
+         # Use X-Forwarded-Prefix if available (e.g. /api)
+         if forwarded_prefix:
+             # Remove trailing slash from prefix if present
+             prefix = forwarded_prefix.rstrip('/')
+             api_base_url = f"{scheme}://{host}{prefix}"
+         else:
+             # Assume /api prefix if proxied, but best to rely on env or consistent routing
+             # Nginx config usually proxies /api -> backend root.
+             api_base_url = f"{scheme}://{host}/api"
     else:
         # Direct access (e.g. localhost:8000) or Host header from Nginx
         host = request.headers.get("host")
