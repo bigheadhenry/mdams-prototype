@@ -15,6 +15,11 @@ const IngestDemo: React.FC = () => {
   const [progress, setProgress] = useState<{ step: string; message: string }>({ step: '', message: '' });
   const [result, setResult] = useState<any>(null);
   const workerRef = useRef<Worker | null>(null);
+  const fileRef = useRef<File | null>(null);
+
+  useEffect(() => {
+    fileRef.current = file;
+  }, [file]);
 
   useEffect(() => {
     // Initialize worker
@@ -28,7 +33,13 @@ const IngestDemo: React.FC = () => {
                 setProgress({ step, message });
             } else if (type === 'complete') {
                 // Client-side processing done, now upload SIP
-                uploadSIP(result, file);
+                if (fileRef.current) {
+                    uploadSIP(result, fileRef.current);
+                } else {
+                    console.error("File is null when trying to upload SIP");
+                    setStatus('error');
+                    setProgress({ step: 'error', message: '文件引用丢失，请重新选择文件' });
+                }
             } else if (type === 'error') {
                 setStatus('error');
                 setProgress({ step: 'error', message: error });
@@ -70,7 +81,12 @@ const IngestDemo: React.FC = () => {
       let errorMsg = '上传失败';
       if (err.response) {
           // Server responded with a status code outside of 2xx
-          errorMsg = err.response.data?.detail || err.response.statusText;
+          const detail = err.response.data?.detail;
+          if (typeof detail === 'object') {
+            errorMsg = JSON.stringify(detail);
+          } else {
+            errorMsg = detail || err.response.statusText;
+          }
       } else if (err.request) {
           // The request was made but no response was received
           errorMsg = '无法连接到服务器';
@@ -109,13 +125,14 @@ const IngestDemo: React.FC = () => {
 
   const getCurrentStep = () => {
     if (status === 'idle') return -1;
-    if (status === 'error') return 1; 
-    if (status === 'success') return 3;
+    if (status === 'error') return 3; // Error state
+    if (status === 'success') return 4;
     
     switch (progress.step) {
       case 'starting': return 0;
       case 'metadata': return 1;
       case 'hashing': return 2;
+      case 'uploading': return 3;
       default: return 0;
     }
   };
@@ -180,7 +197,9 @@ const IngestDemo: React.FC = () => {
             <Descriptions.Item label="入库状态">
               <Tag color="green">SUCCESS</Tag> Fixity Check Passed
             </Descriptions.Item>
-            <Descriptions.Item label="服务端资产 ID">{result.serverVerification?.asset_id}</Descriptions.Item>
+            <Descriptions.Item label="服务端资产 ID">
+              <Paragraph copyable>{result.serverVerification?.asset_id}</Paragraph>
+            </Descriptions.Item>
             <Descriptions.Item label="文件名">{result.fileName}</Descriptions.Item>
             <Descriptions.Item label="SHA256 校验和">
               <Paragraph copyable code>{result.hash}</Paragraph>
