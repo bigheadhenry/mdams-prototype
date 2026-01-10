@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, Upload, Button, Steps, Descriptions, Alert, Spin, Tag, Typography, Divider, Collapse, message } from 'antd';
-import { UploadOutlined, FileTextOutlined, SafetyCertificateOutlined, CloudUploadOutlined, ExperimentOutlined, EyeOutlined } from '@ant-design/icons';
+import { UploadOutlined, FileTextOutlined, SafetyCertificateOutlined, CloudUploadOutlined, ExperimentOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 // @ts-ignore
 import HashWorker from '../workers/hashWorker.ts?worker';
 import axios from 'axios';
@@ -209,7 +209,7 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
         <div style={{ marginTop: 24 }}>
           <Alert message="处理完成" type="success" showIcon style={{ marginBottom: 16 }} />
           
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ textAlign: 'center', marginBottom: 24, display: 'flex', justifyContent: 'center', gap: '16px' }}>
              <Button 
                 type="primary" 
                 size="large"
@@ -217,6 +217,19 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
                 onClick={() => onViewManifest && onViewManifest(result.serverVerification?.asset_id)}
              >
                 查看 IIIF 预览 (Mirador)
+             </Button>
+             
+             <Button 
+                size="large"
+                icon={<DownloadOutlined />}
+                onClick={() => {
+                   const assetId = result.serverVerification?.asset_id;
+                   if (assetId) {
+                      window.location.href = `/api/assets/${assetId}/download-bag`;
+                   }
+                }}
+             >
+                下载 BagIt 包 (ZIP)
              </Button>
           </div>
 

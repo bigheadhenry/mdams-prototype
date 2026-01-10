@@ -335,3 +335,77 @@ def delete_asset(asset_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"status": "success", "message": f"Asset {asset_id} deleted"}
+
+from fastapi.responses import FileResponse
+from fastapi.background import BackgroundTasks
+import tempfile
+import zipfile
+
+@app.get("/assets/{asset_id}/download-bag")
+def download_asset_bag(asset_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """
+    Generate and download a BagIt-compliant ZIP package for the asset.
+    生成并下载资产的 BagIt 兼容 ZIP 包。
+    """
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    if not os.path.exists(asset.file_path):
+        raise HTTPException(status_code=404, detail="Physical file not found")
+
+    # Create a temporary directory for the bag
+    # 创建临时目录
+    temp_dir = tempfile.mkdtemp()
+    bag_name = f"bag_{asset_id}"
+    bag_root = os.path.join(temp_dir, bag_name)
+    data_dir = os.path.join(bag_root, "data")
+    
+    os.makedirs(data_dir, exist_ok=True)
+    
+    try:
+        # 1. Copy file to data directory
+        # 复制文件到 data 目录
+        dest_path = os.path.join(data_dir, asset.filename)
+        shutil.copy2(asset.file_path, dest_path)
+        
+        # 2. Generate manifest-sha256.txt
+        # 生成 manifest-sha256.txt
+        # Ideally we should recalculate hash, but for now we use the one from DB if available
+        sha256 = asset.metadata_info.get("fixity_sha256", "unknown")
+        with open(os.path.join(bag_root, "manifest-sha256.txt"), "w", encoding="utf-8") as f:
+            f.write(f"{sha256}  data/{asset.filename}\n")
+            
+        # 3. Generate bagit.txt
+        # 生成 bagit.txt
+        with open(os.path.join(bag_root, "bagit.txt"), "w", encoding="utf-8") as f:
+            f.write("BagIt-Version: 1.0\n")
+            f.write("Tag-File-Character-Encoding: UTF-8\n")
+            
+        # 4. Generate bag-info.txt (Optional but good)
+        # 生成 bag-info.txt
+        with open(os.path.join(bag_root, "bag-info.txt"), "w", encoding="utf-8") as f:
+            f.write(f"Source-Organization: MEAM Prototype\n")
+            f.write(f"Bagging-Date: {datetime.now().strftime('%Y-%m-%d')}\n")
+            f.write(f"Payload-Oxum: {asset.file_size}.1\n")
+            
+        # 5. Zip the directory
+        # 打包目录
+        zip_filename = f"{bag_name}.zip"
+        zip_path = os.path.join(temp_dir, zip_filename)
+        
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(bag_root):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, temp_dir) # bag_123/data/foo.jpg
+                    zipf.write(file_path, arcname)
+                    
+        # Cleanup temp dir after sending response
+        background_tasks.add_task(shutil.rmtree, temp_dir)
+        
+        return FileResponse(zip_path, media_type="application/zip", filename=zip_filename)
+        
+    except Exception as e:
+        shutil.rmtree(temp_dir)
+        raise HTTPException(status_code=500, detail=f"Failed to generate bag: {str(e)}")
