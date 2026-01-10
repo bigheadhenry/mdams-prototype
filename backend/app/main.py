@@ -91,7 +91,7 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
         file_size=file_size,
         mime_type=file.content_type,
         status="ready",
-        metadata_info={"width": width, "height": height}
+        metadata_info={"width": width, "height": height} # No original_metadata here
     )
     db.add(db_asset)
     db.commit()

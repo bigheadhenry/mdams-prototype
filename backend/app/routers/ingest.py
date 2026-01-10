@@ -88,10 +88,11 @@ async def ingest_sip(
             print(f"Error extracting dimensions: {e}")
 
         # Merge technical metadata
+        # Ensure we only store serializable types
         final_metadata = {
             "ingest_method": "sip_bagit",
             "fixity_sha256": server_hash,
-            "original_metadata": client_metadata,
+            # "original_metadata": client_metadata, # Disable saving original metadata blob to DB to prevent any chance of it leaking to Manifest
             "width": width,
             "height": height
         }
