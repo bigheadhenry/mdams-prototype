@@ -65,10 +65,19 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
     
     const formData = new FormData();
     formData.append('file', fileData);
-    formData.append('manifest', JSON.stringify(manifestData));
+    // Remove the previous append which might be causing issues if executed twice or incorrectly
+    // formData.append('manifest', JSON.stringify(manifestData));
 
     try {
-      const response = await axios.post('/api/ingest/sip', formData);
+      // Stringify metadata properly to avoid circular references or encoding issues
+      const manifestJson = JSON.stringify(manifestData);
+      formData.append('manifest', manifestJson);
+
+      const response = await axios.post('/api/ingest/sip', formData, {
+          headers: {
+              'Content-Type': 'multipart/form-data',
+          }
+      });
       
       setResult({
         ...manifestData,
