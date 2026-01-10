@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Upload, Button, Table, message, Card, Statistic, Row, Col, Tag, Modal } from 'antd';
-import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined } from '@ant-design/icons';
+import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import MiradorViewer from './MiradorViewer';
 import IngestDemo from './components/IngestDemo';
@@ -33,6 +33,17 @@ const App: React.FC = () => {
       console.warn('加载资产失败', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await axios.delete(`/api/assets/${id}`);
+      message.success('资产删除成功');
+      fetchAssets();
+    } catch (err) {
+      message.error('删除失败');
+      console.error(err);
     }
   };
 
@@ -100,17 +111,35 @@ const App: React.FC = () => {
       title: '操作',
       key: 'action',
       render: (_, record: Asset) => (
-        <Button 
-          icon={<EyeOutlined />} 
-          onClick={() => {
-            // Use relative path via Nginx proxy to avoid hardcoding IP
-            // 使用经由 Nginx 代理的相对路径，避免硬编码 IP
-            setCurrentManifest(`/api/iiif/${record.id}/manifest`);
-            setPreviewVisible(true);
-          }}
-        >
-          查看 (Mirador)
-        </Button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button 
+            icon={<EyeOutlined />} 
+            onClick={() => {
+              // Use relative path via Nginx proxy to avoid hardcoding IP
+              // 使用经由 Nginx 代理的相对路径，避免硬编码 IP
+              setCurrentManifest(`/api/iiif/${record.id}/manifest`);
+              setPreviewVisible(true);
+            }}
+          >
+            查看
+          </Button>
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => {
+              Modal.confirm({
+                title: '确认删除',
+                content: `确定要删除文件 ${record.filename} 吗？此操作不可恢复。`,
+                okText: '删除',
+                okType: 'danger',
+                cancelText: '取消',
+                onOk: () => handleDelete(record.id),
+              });
+            }}
+          >
+            删除
+          </Button>
+        </div>
       ),
     },
   ];

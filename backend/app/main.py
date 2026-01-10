@@ -306,3 +306,32 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
 def list_assets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     assets = db.query(Asset).offset(skip).limit(limit).all()
     return assets
+
+@app.delete("/assets/{asset_id}")
+def delete_asset(asset_id: int, db: Session = Depends(get_db)):
+    """
+    Delete an asset and its corresponding file.
+    删除资产及其对应的物理文件。
+    """
+    # 1. Find asset in DB
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    # 2. Delete physical file
+    try:
+        if os.path.exists(asset.file_path):
+            os.remove(asset.file_path)
+            print(f"Deleted file: {asset.file_path}")
+        else:
+            print(f"File not found on disk: {asset.file_path}")
+    except Exception as e:
+        # Log error but continue to delete DB record so state is consistent
+        print(f"Error deleting file {asset.file_path}: {e}")
+        # raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
+    # 3. Delete DB record
+    db.delete(asset)
+    db.commit()
+
+    return {"status": "success", "message": f"Asset {asset_id} deleted"}
