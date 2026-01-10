@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Upload, Button, Table, message, Card, Statistic, Row, Col, Tag, Modal } from 'antd';
-import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined } from '@ant-design/icons';
+import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import MiradorViewer from './MiradorViewer';
+import IngestDemo from './components/IngestDemo';
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -20,6 +21,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [currentManifest, setCurrentManifest] = useState('');
+  const [selectedKey, setSelectedKey] = useState('1');
 
   const fetchAssets = async () => {
     setLoading(true);
@@ -27,7 +29,8 @@ const App: React.FC = () => {
       const res = await axios.get('/api/assets');
       setAssets(res.data);
     } catch (err) {
-      message.error('Failed to load assets');
+      // Quiet fail if backend is down for UI demo
+      console.warn('加载资产失败', err);
     } finally {
       setLoading(false);
     }
@@ -44,11 +47,11 @@ const App: React.FC = () => {
 
     try {
       await axios.post('/api/upload', formData);
-      message.success(`${file.name} uploaded successfully`);
+      message.success(`${file.name} 上传成功`);
       onSuccess("Ok");
       fetchAssets();
     } catch (err) {
-      message.error(`${file.name} upload failed.`);
+      message.error(`${file.name} 上传失败`);
       onError({ err });
     }
   };
@@ -62,13 +65,13 @@ const App: React.FC = () => {
                     allowedExtensions.some(ext => fileName.endsWith(ext));
     
     if (!isImage) {
-      message.error('You can only upload supported image files (JPG, PNG, GIF, BMP, TIFF)!');
+      message.error('您只能上传支持的图像文件 (JPG, PNG, GIF, BMP, TIFF)!');
       return Upload.LIST_IGNORE;
     }
     
     const isLt100M = file.size / 1024 / 1024 < 100;
     if (!isLt100M) {
-      message.error('Image must be smaller than 100MB!');
+      message.error('图像大小必须小于 100MB!');
       return Upload.LIST_IGNORE;
     }
     return true;
@@ -76,25 +79,25 @@ const App: React.FC = () => {
 
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id' },
-    { title: 'Filename', dataIndex: 'filename', key: 'filename' },
+    { title: '文件名', dataIndex: 'filename', key: 'filename' },
     { 
-      title: 'Size', 
+      title: '大小', 
       dataIndex: 'file_size', 
       key: 'file_size',
       render: (val: number) => (val / 1024 / 1024).toFixed(2) + ' MB'
     },
-    { title: 'Type', dataIndex: 'mime_type', key: 'mime_type' },
+    { title: '类型', dataIndex: 'mime_type', key: 'mime_type' },
     { 
-      title: 'Status', 
+      title: '状态', 
       dataIndex: 'status', 
       key: 'status',
       render: (status: string) => (
         <Tag color={status === 'ready' ? 'green' : 'blue'}>{status.toUpperCase()}</Tag>
       )
     },
-    { title: 'Uploaded At', dataIndex: 'created_at', key: 'created_at' },
+    { title: '上传时间', dataIndex: 'created_at', key: 'created_at' },
     {
-      title: 'Action',
+      title: '操作',
       key: 'action',
       render: (_, record: Asset) => (
         <Button 
@@ -106,7 +109,7 @@ const App: React.FC = () => {
             setPreviewVisible(true);
           }}
         >
-          View in Mirador
+          查看 (Mirador)
         </Button>
       ),
     },
@@ -119,11 +122,13 @@ const App: React.FC = () => {
         <Menu
           theme="dark"
           mode="inline"
-          defaultSelectedKeys={['1']}
+          selectedKeys={[selectedKey]}
+          onClick={(e) => setSelectedKey(e.key)}
           items={[
-            { key: '1', icon: <DashboardOutlined />, label: 'Dashboard' },
-            { key: '2', icon: <DatabaseOutlined />, label: 'Assets' },
-            { key: '3', icon: <ShoppingCartOutlined />, label: 'Orders' },
+            { key: '1', icon: <DashboardOutlined />, label: '仪表盘' },
+            { key: '2', icon: <DatabaseOutlined />, label: '数字资产' },
+            { key: '3', icon: <ShoppingCartOutlined />, label: '订单管理' },
+            { key: '4', icon: <ExperimentOutlined />, label: '入库 PoC' },
           ]}
         />
       </Sider>
@@ -131,39 +136,52 @@ const App: React.FC = () => {
         <Header style={{ padding: 0, background: '#fff' }} />
         <Content style={{ margin: '24px 16px 0' }}>
           <div style={{ padding: 24, minHeight: 360, background: '#fff' }}>
-            <Row gutter={16} style={{ marginBottom: 24 }}>
-              <Col span={8}>
-                <Card>
-                  <Statistic title="Total Assets" value={assets.length} />
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card>
-                  <Statistic title="Storage Used" value="1.2 GB" precision={2} />
-                </Card>
-              </Col>
-            </Row>
+            {selectedKey === '1' && (
+              <>
+                <Row gutter={16} style={{ marginBottom: 24 }}>
+                  <Col span={8}>
+                    <Card>
+                      <Statistic title="资产总数" value={assets.length} />
+                    </Card>
+                  </Col>
+                  <Col span={8}>
+                    <Card>
+                      <Statistic title="已用存储" value="1.2 GB" precision={2} />
+                    </Card>
+                  </Col>
+                </Row>
 
-            <div style={{ marginBottom: 16 }}>
-              <Upload 
-                customRequest={handleUpload} 
-                showUploadList={false}
-                accept=".jpg,.jpeg,.png,.gif,.bmp,.tif,.tiff"
-                beforeUpload={beforeUpload}
-              >
-                <Button icon={<UploadOutlined />}>Upload New Asset</Button>
-              </Upload>
-            </div>
+                <div style={{ marginBottom: 16 }}>
+                  <Upload 
+                    customRequest={handleUpload} 
+                    showUploadList={false}
+                    accept=".jpg,.jpeg,.png,.gif,.bmp,.tif,.tiff"
+                    beforeUpload={beforeUpload}
+                  >
+                    <Button icon={<UploadOutlined />}>上传新资产</Button>
+                  </Upload>
+                </div>
 
-            <Table 
-              dataSource={assets} 
-              columns={columns} 
-              rowKey="id" 
-              loading={loading}
-            />
+                <Table 
+                  dataSource={assets} 
+                  columns={columns} 
+                  rowKey="id" 
+                  loading={loading}
+                />
+              </>
+            )}
+            
+            {selectedKey === '4' && <IngestDemo />}
+            
+            {(selectedKey === '2' || selectedKey === '3') && (
+               <div style={{ textAlign: 'center', padding: 50 }}>
+                 <Tag color="orange">建设中</Tag>
+                 <p>该模块尚未实现。</p>
+               </div>
+            )}
           </div>
         </Content>
-        <Footer style={{ textAlign: 'center' }}>MEAM Prototype ©2026 Created for SunJing Lab</Footer>
+        <Footer style={{ textAlign: 'center' }}>MEAM 原型系统 ©2026 为孙靖实验室创建</Footer>
 
         <Modal
           title="Mirador Viewer"
@@ -171,7 +189,7 @@ const App: React.FC = () => {
           onCancel={() => setPreviewVisible(false)}
           width={1000}
           footer={null}
-          destroyOnClose
+          destroyOnHidden={true}
         >
            {previewVisible && <MiradorViewer manifestId={currentManifest} />}
         </Modal>

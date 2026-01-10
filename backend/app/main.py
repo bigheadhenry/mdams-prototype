@@ -47,6 +47,8 @@ class AssetOut(BaseModel):
     class Config:
         orm_mode = True
 
+app.include_router(ingest_router)
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to MEAM Prototype API"}
