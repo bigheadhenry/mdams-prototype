@@ -112,59 +112,78 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
     # Determine Base URLs dynamically from request headers if possible, otherwise fallback to env
     # 尽可能从请求头动态确定基础 URL，否则回退到环境变量
     
-    # 1. API Base URL (for Manifest ID, Canvas ID, etc.)
-    # 1. API 基础 URL (用于 Manifest ID, Canvas ID 等)
-    # Check for X-Forwarded-Host (from Nginx) or Host header
-    forwarded_host = request.headers.get("x-forwarded-host")
-    forwarded_proto = request.headers.get("x-forwarded-proto", "http")
-    forwarded_prefix = request.headers.get("x-forwarded-prefix", "")
-    
-    if forwarded_host:
-         # Behind Nginx Proxy
-         host = forwarded_host
-         scheme = forwarded_proto
-         
-         # Use X-Forwarded-Prefix if available (e.g. /api)
-         if forwarded_prefix:
-             # Remove trailing slash from prefix if present
-             prefix = forwarded_prefix.rstrip('/')
-             api_base_url = f"{scheme}://{host}{prefix}"
-         else:
-             # Assume /api prefix if proxied, but best to rely on env or consistent routing
-             # Nginx config usually proxies /api -> backend root.
-             api_base_url = f"{scheme}://{host}/api"
+    # PRIORITY 1: Environment Variables (The most reliable source if configured)
+    # 优先级 1: 环境变量 (如果配置了，这是最可靠的来源)
+    env_api_url = os.getenv("API_PUBLIC_URL")
+    env_cantaloupe_url = os.getenv("CANTALOUPE_PUBLIC_URL")
+
+    # 1. API Base URL
+    if env_api_url:
+        api_base_url = env_api_url.rstrip('/')
     else:
-        # Direct access (e.g. localhost:8000) or Host header from Nginx
-        host = request.headers.get("host")
-        if not host:
-             host = "localhost:8000"
-        scheme = request.url.scheme
+        # Fallback to auto-detection
+        # 1. API Base URL (for Manifest ID, Canvas ID, etc.)
+        # 1. API 基础 URL (用于 Manifest ID, Canvas ID 等)
+        # Check for X-Forwarded-Host (from Nginx) or Host header
+        forwarded_host = request.headers.get("x-forwarded-host")
+        forwarded_proto = request.headers.get("x-forwarded-proto", "http")
+        forwarded_prefix = request.headers.get("x-forwarded-prefix", "")
         
-        # If Host indicates port 3000, we should assume we are behind Nginx but X-Forwarded-Host was missing
-        if ":3000" in host:
-            api_base_url = f"{scheme}://{host}/api"
+        if forwarded_host:
+             # Behind Nginx Proxy
+             host = forwarded_host
+             scheme = forwarded_proto
+             
+             # Use X-Forwarded-Prefix if available (e.g. /api)
+             if forwarded_prefix:
+                 # Remove trailing slash from prefix if present
+                 prefix = forwarded_prefix.rstrip('/')
+                 api_base_url = f"{scheme}://{host}{prefix}"
+             else:
+                 # Assume /api prefix if proxied, but best to rely on env or consistent routing
+                 # Nginx config usually proxies /api -> backend root.
+                 api_base_url = f"{scheme}://{host}/api"
         else:
-            api_base_url = f"{scheme}://{host}"
+            # Direct access (e.g. localhost:8000) or Host header from Nginx
+            host = request.headers.get("host")
+            if not host:
+                 host = "localhost:8000"
+            scheme = request.url.scheme
+            
+            # If Host indicates port 3000, we should assume we are behind Nginx but X-Forwarded-Host was missing
+            if ":3000" in host:
+                api_base_url = f"{scheme}://{host}/api"
+            else:
+                api_base_url = f"{scheme}://{host}"
 
     # 2. Cantaloupe Base URL (for Image Service ID)
-    # 2. Cantaloupe 基础 URL (用于图像服务 ID)
-    # If we are behind Nginx (port 3000), we want to point to /iiif/2
-    # If direct access, we might need env var or default to 8182
-    
-    if forwarded_host:
-         # Assume Nginx routing: /iiif/2 -> Cantaloupe
-         cantaloupe_base_url = f"{scheme}://{host}/iiif/2"
+    if env_cantaloupe_url:
+        cantaloupe_base_url = env_cantaloupe_url.rstrip('/')
     else:
-        # If no X-Forwarded-Host, check if we have a direct Host header (e.g. from local dev)
-        # 如果没有 X-Forwarded-Host，检查是否有直接的 Host 头（例如来自本地开发）
-        host = request.headers.get("host")
-        if host and ":3000" in host:
-             # Heuristic: If Host port is 3000 (Nginx), assume we want /iiif/2
+        # Fallback to auto-detection
+        forwarded_host = request.headers.get("x-forwarded-host")
+        forwarded_proto = request.headers.get("x-forwarded-proto", "http")
+        
+        # 2. Cantaloupe 基础 URL (用于图像服务 ID)
+        # If we are behind Nginx (port 3000), we want to point to /iiif/2
+        # If direct access, we might need env var or default to 8182
+        
+        if forwarded_host:
+             host = forwarded_host
+             scheme = forwarded_proto
+             # Assume Nginx routing: /iiif/2 -> Cantaloupe
              cantaloupe_base_url = f"{scheme}://{host}/iiif/2"
         else:
-             # Fallback to env or assume localhost:8182 for dev
-             # 回退到环境变量或假设开发环境为 localhost:8182
-             cantaloupe_base_url = os.getenv("CANTALOUPE_PUBLIC_URL", "http://localhost:8182/iiif/2")
+            # If no X-Forwarded-Host, check if we have a direct Host header (e.g. from local dev)
+            # 如果没有 X-Forwarded-Host，检查是否有直接的 Host 头（例如来自本地开发）
+            host = request.headers.get("host")
+            if host and ":3000" in host:
+                 # Heuristic: If Host port is 3000 (Nginx), assume we want /iiif/2
+                 cantaloupe_base_url = f"{scheme}://{host}/iiif/2"
+            else:
+                 # Fallback to env or assume localhost:8182 for dev
+                 # 回退到环境变量或假设开发环境为 localhost:8182
+                 cantaloupe_base_url = "http://localhost:8182/iiif/2"
 
     print(f"DEBUG: Manifest ID Base: {api_base_url}")
     print(f"DEBUG: Cantaloupe Base: {cantaloupe_base_url}")
