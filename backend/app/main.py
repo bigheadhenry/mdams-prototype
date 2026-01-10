@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from .database import engine, Base, get_db
 from .models import Asset
+from .routers.ingest import router as ingest_router
 import shutil
 import os
 from datetime import datetime
