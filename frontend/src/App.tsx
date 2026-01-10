@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Upload, Button, Table, message, Card, Statistic, Row, Col, Tag, Modal } from 'antd';
-import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import MiradorViewer from './MiradorViewer';
 import IngestDemo from './components/IngestDemo';
@@ -122,6 +122,14 @@ const App: React.FC = () => {
             }}
           >
             查看
+          </Button>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={() => {
+              window.location.href = `/api/assets/${record.id}/download-bag`;
+            }}
+          >
+            下载
           </Button>
           <Button
             danger
