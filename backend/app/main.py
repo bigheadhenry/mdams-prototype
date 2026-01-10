@@ -51,6 +51,32 @@ class AssetOut(BaseModel):
 
 app.include_router(ingest_router)
 
+@app.get("/debug/files")
+def list_uploaded_files():
+    """
+    Debug endpoint to list files in the upload directory and their permissions.
+    """
+    try:
+        files = []
+        for filename in os.listdir(UPLOAD_DIR):
+            filepath = os.path.join(UPLOAD_DIR, filename)
+            stat = os.stat(filepath)
+            files.append({
+                "filename": filename,
+                "size": stat.st_size,
+                "permissions": oct(stat.st_mode)[-3:],
+                "uid": stat.st_uid,
+                "gid": stat.st_gid
+            })
+        return {
+            "upload_dir": UPLOAD_DIR,
+            "abs_path": os.path.abspath(UPLOAD_DIR),
+            "files": files,
+            "dir_permissions": oct(os.stat(UPLOAD_DIR).st_mode)[-3:]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to MEAM Prototype API"}
