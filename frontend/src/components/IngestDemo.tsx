@@ -156,16 +156,17 @@ const IngestDemo: React.FC = () => {
         </Button>
       )}
 
-      {(status === 'processing' || status === 'success' || status === 'error') && (
+      {(status === 'processing' || status === 'uploading' || status === 'success' || status === 'error') && (
         <div style={{ marginTop: 24 }}>
           <Steps current={getCurrentStep()} status={status === 'error' ? 'error' : 'process'}>
             <Step title="读取文件" description="加载到内存" />
             <Step title="提取元数据" description="Exif/XMP/IPTC" />
             <Step title="计算完整性" description="SHA256 哈希" />
+            <Step title="服务端校验" description="BagIt Fixity" />
           </Steps>
           
           <div style={{ marginTop: 16, textAlign: 'center' }}>
-            {status === 'processing' && <Spin tip={progress.message} />}
+            {(status === 'processing' || status === 'uploading') && <Spin tip={progress.message} />}
             {status === 'error' && <Alert message="错误" description={progress.message} type="error" />}
           </div>
         </div>
