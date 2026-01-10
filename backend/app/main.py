@@ -159,6 +159,9 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
              # 回退到环境变量或假设开发环境为 localhost:8182
              cantaloupe_base_url = os.getenv("CANTALOUPE_PUBLIC_URL", "http://localhost:8182/iiif/2")
 
+    print(f"DEBUG: Manifest ID Base: {api_base_url}")
+    print(f"DEBUG: Cantaloupe Base: {cantaloupe_base_url}")
+    print(f"DEBUG: Request Headers: {request.headers}")
     
     # Construct Canvas ID and Image ID
     # 构建 Canvas ID 和 Image ID
