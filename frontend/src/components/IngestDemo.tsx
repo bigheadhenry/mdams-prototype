@@ -66,7 +66,19 @@ const IngestDemo: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       setStatus('error');
-      const errorMsg = err.response?.data?.detail || '上传失败';
+      // Fix: Handle Axios error response structure correctly
+      let errorMsg = '上传失败';
+      if (err.response) {
+          // Server responded with a status code outside of 2xx
+          errorMsg = err.response.data?.detail || err.response.statusText;
+      } else if (err.request) {
+          // The request was made but no response was received
+          errorMsg = '无法连接到服务器';
+      } else {
+          // Something happened in setting up the request
+          errorMsg = err.message;
+      }
+      
       setProgress({ step: 'error', message: `服务端校验失败: ${errorMsg}` });
       message.error(`入库失败: ${errorMsg}`);
     }
