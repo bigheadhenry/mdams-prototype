@@ -89,6 +89,9 @@ services:
       # Java Heap constraint for N100 (16GB total, leave room for others)
       # Add java.security.egd to fix slow startup due to entropy pool issues
       - JAVA_OPTS=-Xmx4g -Djava.security.egd=file:/dev/./urandom
+      # Ensure UTF-8 support for filenames
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
 
 volumes:
   meam_pg_data:
