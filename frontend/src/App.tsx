@@ -69,9 +69,9 @@ const App: React.FC = () => {
       return Upload.LIST_IGNORE;
     }
     
-    const isLt100M = file.size / 1024 / 1024 < 100;
+    const isLt100M = file.size / 1024 / 1024 < 1000;
     if (!isLt100M) {
-      message.error('图像大小必须小于 100MB!');
+      message.error('图像大小必须小于 1000MB!');
       return Upload.LIST_IGNORE;
     }
     return true;
@@ -171,7 +171,14 @@ const App: React.FC = () => {
               </>
             )}
             
-            {selectedKey === '4' && <IngestDemo />}
+            {selectedKey === '4' && (
+              <IngestDemo 
+                onViewManifest={(assetId) => {
+                  setCurrentManifest(`/api/iiif/${assetId}/manifest`);
+                  setPreviewVisible(true);
+                }}
+              />
+            )}
             
             {(selectedKey === '2' || selectedKey === '3') && (
                <div style={{ textAlign: 'center', padding: 50 }}>

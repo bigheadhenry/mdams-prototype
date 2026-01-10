@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import List
 from pydantic import BaseModel
 from urllib.parse import quote
+from PIL import Image
 
 # Initialize DB tables
 # 初始化数据库表
@@ -76,12 +77,21 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     
     # 3. Create DB record
     # 3. 创建数据库记录
+    # Extract dimensions
+    width, height = 0, 0
+    try:
+        with Image.open(file_location) as img:
+            width, height = img.size
+    except Exception:
+        pass
+
     db_asset = Asset(
         filename=file.filename,
         file_path=file_location,
         file_size=file_size,
         mime_type=file.content_type,
-        status="ready"
+        status="ready",
+        metadata_info={"width": width, "height": height}
     )
     db.add(db_asset)
     db.commit()
@@ -190,8 +200,8 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
                 # 目前如果未知则默认为占位符或 0（Mirador 通常能优雅处理 0，或者我们会查询 Cantaloupe info.json）
                 # TODO: Extract real dimensions using libvips during upload
                 # 待办: 上传时使用 libvips 提取真实尺寸
-                "height": 1000, 
-                "width": 1000,
+                "height": asset.metadata_info.get("height", 1000) if asset.metadata_info else 1000, 
+                "width": asset.metadata_info.get("width", 1000) if asset.metadata_info else 1000,
                 "items": [
                     {
                         "id": annotation_page_id,

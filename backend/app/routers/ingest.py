@@ -7,6 +7,7 @@ import hashlib
 import json
 import shutil
 from datetime import datetime
+from PIL import Image
 
 router = APIRouter(
     prefix="/ingest",
@@ -78,11 +79,21 @@ async def ingest_sip(
         # 5. Save to Database
         file_size = os.path.getsize(file_location)
         
+        # Extract dimensions
+        width, height = 0, 0
+        try:
+            with Image.open(file_location) as img:
+                width, height = img.size
+        except Exception as e:
+            print(f"Error extracting dimensions: {e}")
+
         # Merge technical metadata
         final_metadata = {
             "ingest_method": "sip_bagit",
             "fixity_sha256": server_hash,
-            "original_metadata": client_metadata
+            "original_metadata": client_metadata,
+            "width": width,
+            "height": height
         }
         
         db_asset = Asset(

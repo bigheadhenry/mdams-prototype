@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, Upload, Button, Steps, Descriptions, Alert, Spin, Tag, Typography, Divider, Collapse, message } from 'antd';
-import { UploadOutlined, FileTextOutlined, SafetyCertificateOutlined, CloudUploadOutlined, ExperimentOutlined } from '@ant-design/icons';
+import { UploadOutlined, FileTextOutlined, SafetyCertificateOutlined, CloudUploadOutlined, ExperimentOutlined, EyeOutlined } from '@ant-design/icons';
 // @ts-ignore
 import HashWorker from '../workers/hashWorker.ts?worker';
 import axios from 'axios';
@@ -9,7 +9,11 @@ const { Step } = Steps;
 const { Paragraph, Text } = Typography;
 const { Panel } = Collapse;
 
-const IngestDemo: React.FC = () => {
+interface IngestDemoProps {
+  onViewManifest?: (assetId: number) => void;
+}
+
+const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [progress, setProgress] = useState<{ step: string; message: string }>({ step: '', message: '' });
@@ -193,6 +197,17 @@ const IngestDemo: React.FC = () => {
         <div style={{ marginTop: 24 }}>
           <Alert message="处理完成" type="success" showIcon style={{ marginBottom: 16 }} />
           
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+             <Button 
+                type="primary" 
+                size="large"
+                icon={<EyeOutlined />}
+                onClick={() => onViewManifest && onViewManifest(result.serverVerification?.asset_id)}
+             >
+                查看 IIIF 预览 (Mirador)
+             </Button>
+          </div>
+
           <Descriptions title="生成的 SIP 元数据" bordered column={1}>
             <Descriptions.Item label="入库状态">
               <Tag color="green">SUCCESS</Tag> Fixity Check Passed
