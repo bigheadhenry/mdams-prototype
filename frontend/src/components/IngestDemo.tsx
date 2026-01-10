@@ -83,7 +83,10 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
       setStatus('error');
       // Fix: Handle Axios error response structure correctly
       let errorMsg = '上传失败';
-      if (err.response) {
+      if (err instanceof SyntaxError) {
+          errorMsg = '服务器返回了无效的响应格式 (JSON 解析失败)';
+          console.error('JSON Parse Error:', err);
+      } else if (err.response) {
           // Server responded with a status code outside of 2xx
           const detail = err.response.data?.detail;
           if (typeof detail === 'object') {
