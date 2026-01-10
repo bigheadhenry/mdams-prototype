@@ -233,9 +233,12 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
     }
     
     # Inject extra metadata if available
-    # 如果有额外元数据则注入
     if asset.metadata_info:
         for key, value in asset.metadata_info.items():
+             # Skip original_metadata blob to keep Manifest clean and avoid parsing issues
+             if key == "original_metadata":
+                 continue
+                 
              manifest["metadata"].append({
                  "label": {"en": [key]},
                  "value": {"en": [str(value)]}
