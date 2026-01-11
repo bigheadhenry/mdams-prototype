@@ -6,6 +6,7 @@
 * **部署环境**: 家庭实验室服务器 (`sunjing-server-eq12`), Linux/Docker 环境
 * **文档中心**:
   * [🚀 快速开始 & 工作流指南 (Workflow Guide)](docs/WORKFLOW_GUIDE.md)
+  * [🤖 AI 辅助开发与部署指南 (AI Setup Guide)](docs/AI_DEVELOPMENT_GUIDE.md)
   * [🏗️ 系统架构设计 (System Architecture)](docs/SYSTEM_ARCHITECTURE.md)
   * [📦 数据传输架构解析 (Data Ingest Architecture)](docs/DATA_INGEST_ARCHITECTURE.md)
   * [🍈 Cantaloupe 部署笔记 (Cantaloupe Notes)](docs/CANTALOUPE_DEPLOY_NOTES.md)
