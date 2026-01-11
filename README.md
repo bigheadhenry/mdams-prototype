@@ -4,6 +4,12 @@
 
 * **项目名称**: MEAM (博物馆展览资产管理系统) 原型
 * **部署环境**: 家庭实验室服务器 (`sunjing-server-eq12`), Linux/Docker 环境
+* **文档中心**:
+  * [🚀 快速开始 & 工作流指南 (Workflow Guide)](docs/WORKFLOW_GUIDE.md)
+  * [🏗️ 系统架构设计 (System Architecture)](docs/SYSTEM_ARCHITECTURE.md)
+  * [📦 数据传输架构解析 (Data Ingest Architecture)](docs/DATA_INGEST_ARCHITECTURE.md)
+  * [🍈 Cantaloupe 部署笔记 (Cantaloupe Notes)](docs/CANTALOUPE_DEPLOY_NOTES.md)
+  * [🐳 Windows Docker 安装指南](docs/INSTALL_DOCKER_WINDOWS.md)
 * **核心目标**:
   1. 建立统一的数字资产库，支持超大分辨率图像 (BigTIFF/PSB) 的存储与预览。
   2. 提供数字资源录入模块，提供录入界面，帮助完成数据录入，图像与数据匹配，以及图片自动加工缩略图等业务工作。
