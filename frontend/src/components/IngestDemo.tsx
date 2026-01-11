@@ -242,6 +242,11 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
     }
   };
 
+  const isPreviewSupported = (fileName: string) => {
+      const ext = fileName.split('.').pop()?.toLowerCase();
+      return ['tif', 'tiff', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'jp2'].includes(ext || '');
+  };
+
   return (
     <Card 
       title={<><ExperimentOutlined /> 客户端入库处理 (PoC)</>} 
@@ -298,11 +303,22 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
         <div style={{ marginTop: 24 }}>
           <Alert message="处理完成" type="success" showIcon style={{ marginBottom: 16 }} />
           
+          {!isPreviewSupported(result.fileName) && (
+              <Alert 
+                  message="格式不支持在线预览" 
+                  description={`当前文件格式 (.${result.fileName.split('.').pop()}) 已成功归档存储，但系统暂不支持在线预览。请下载 BagIt 包查看原件。`}
+                  type="warning" 
+                  showIcon 
+                  style={{ marginBottom: 16 }}
+              />
+          )}
+
           <div style={{ textAlign: 'center', marginBottom: 24, display: 'flex', justifyContent: 'center', gap: '16px' }}>
              <Button 
                 type="primary" 
                 size="large"
                 icon={<EyeOutlined />}
+                disabled={!isPreviewSupported(result.fileName)}
                 onClick={() => onViewManifest && onViewManifest(result.serverVerification?.asset_id)}
              >
                 查看 IIIF 预览 (Mirador)
