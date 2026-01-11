@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Upload, Button, Table, message, Card, Statistic, Row, Col, Tag, Modal } from 'antd';
-import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
+import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined, DeleteOutlined, DownloadOutlined, ReloadOutlined, LoadingOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import MiradorViewer from './MiradorViewer';
 import IngestDemo from './components/IngestDemo';
@@ -23,8 +23,23 @@ const App: React.FC = () => {
   const [currentManifest, setCurrentManifest] = useState('');
   const [selectedKey, setSelectedKey] = useState('1');
 
-  const fetchAssets = async () => {
-    setLoading(true);
+  // Auto-refresh timer for processing assets
+  useEffect(() => {
+    let interval: any;
+    // Check if any asset is processing
+    const hasProcessing = assets.some(a => a.status === 'processing');
+    
+    if (hasProcessing) {
+        interval = setInterval(() => {
+            fetchAssets(true); // silent refresh
+        }, 3000);
+    }
+    
+    return () => clearInterval(interval);
+  }, [assets]);
+
+  const fetchAssets = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await axios.get('/api/assets');
       setAssets(res.data);
@@ -32,7 +47,7 @@ const App: React.FC = () => {
       // Quiet fail if backend is down for UI demo
       console.warn('加载资产失败', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -103,7 +118,9 @@ const App: React.FC = () => {
       dataIndex: 'status', 
       key: 'status',
       render: (status: string) => (
-        <Tag color={status === 'ready' ? 'green' : 'blue'}>{status.toUpperCase()}</Tag>
+        <Tag icon={status === 'processing' ? <LoadingOutlined /> : undefined} color={status === 'ready' ? 'green' : 'blue'}>
+            {status.toUpperCase()}
+        </Tag>
       )
     },
     { title: '上传时间', dataIndex: 'created_at', key: 'created_at' },
@@ -114,6 +131,8 @@ const App: React.FC = () => {
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button 
             icon={<EyeOutlined />} 
+            disabled={record.status === 'processing'}
+            title={record.status === 'processing' ? '正在转码中，请稍候...' : '查看图像'}
             onClick={() => {
               // Use relative path via Nginx proxy to avoid hardcoding IP
               // 使用经由 Nginx 代理的相对路径，避免硬编码 IP
@@ -185,6 +204,9 @@ const App: React.FC = () => {
                     <Card>
                       <Statistic title="已用存储" value="1.2 GB" precision={2} />
                     </Card>
+                  </Col>
+                  <Col span={8} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                     <Button icon={<ReloadOutlined />} onClick={() => fetchAssets()}>刷新列表</Button>
                   </Col>
                 </Row>
 

@@ -244,7 +244,8 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
 
   const isPreviewSupported = (fileName: string) => {
       const ext = fileName.split('.').pop()?.toLowerCase();
-      return ['tif', 'tiff', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'jp2'].includes(ext || '');
+      // PSB is supported via backend conversion
+      return ['tif', 'tiff', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'jp2', 'psb'].includes(ext || '');
   };
 
   return (
@@ -308,6 +309,16 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
                   message="格式不支持在线预览" 
                   description={`当前文件格式 (.${result.fileName.split('.').pop()}) 已成功归档存储，但系统暂不支持在线预览。请下载 BagIt 包查看原件。`}
                   type="warning" 
+                  showIcon 
+                  style={{ marginBottom: 16 }}
+              />
+          )}
+
+          {result.fileName.toLowerCase().endsWith('.psb') && (
+              <Alert 
+                  message="PSB 文件正在转码中" 
+                  description="您上传的 PSB 文件已进入后台处理队列，将自动转换为 BigTIFF 格式以便在线预览。请稍候在仪表盘查看生成的图像。"
+                  type="info" 
                   showIcon 
                   style={{ marginBottom: 16 }}
               />
