@@ -9,7 +9,17 @@ RUN apt-get update && apt-get install -y \
     libvips-dev \
     libvips-tools \
     build-essential \
+    imagemagick \
     && rm -rf /var/lib/apt/lists/*
+
+# Fix: Relax ImageMagick security policy for large images (PSB/TIFF)
+# 修复: 放宽 ImageMagick 的安全策略以支持超大图像
+RUN sed -i 's/policy domain="resource" name="memory" value="256MiB"/policy domain="resource" name="memory" value="4GiB"/' /etc/ImageMagick-6/policy.xml && \
+    sed -i 's/policy domain="resource" name="map" value="512MiB"/policy domain="resource" name="map" value="8GiB"/' /etc/ImageMagick-6/policy.xml && \
+    sed -i 's/policy domain="resource" name="width" value="16KP"/policy domain="resource" name="width" value="128KP"/' /etc/ImageMagick-6/policy.xml && \
+    sed -i 's/policy domain="resource" name="height" value="16KP"/policy domain="resource" name="height" value="128KP"/' /etc/ImageMagick-6/policy.xml && \
+    sed -i 's/policy domain="resource" name="area" value="128MB"/policy domain="resource" name="area" value="8GB"/' /etc/ImageMagick-6/policy.xml && \
+    sed -i 's/policy domain="resource" name="disk" value="1GiB"/policy domain="resource" name="disk" value="16GiB"/' /etc/ImageMagick-6/policy.xml
 
 WORKDIR /app
 
