@@ -227,7 +227,9 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
     # Cantaloupe serves images by filename.
     # Cantaloupe 通过文件名提供图像服务。
     # Ensure filename is URL encoded for the manifest
-    image_service_id = f"{cantaloupe_base_url}/{quote(asset.filename)}"
+    # Use the actual file path on disk (basename) to support converted files (e.g., PSB -> TIFF)
+    actual_filename = os.path.basename(asset.file_path) if asset.file_path else asset.filename
+    image_service_id = f"{cantaloupe_base_url}/{quote(actual_filename)}"
 
     # Basic Manifest Structure (IIIF Presentation 3.0)
     # 基础 Manifest 结构 (IIIF Presentation 3.0)
