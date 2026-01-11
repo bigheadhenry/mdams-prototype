@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, Upload, Button, Steps, Descriptions, Alert, Spin, Tag, Typography, Divider, Collapse, message } from 'antd';
-import { UploadOutlined, FileTextOutlined, SafetyCertificateOutlined, CloudUploadOutlined, ExperimentOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Card, Upload, Button, Steps, Descriptions, Alert, Spin, Tag, Typography, Divider, Collapse, message, Modal } from 'antd';
+import { UploadOutlined, FileTextOutlined, SafetyCertificateOutlined, CloudUploadOutlined, ExperimentOutlined, EyeOutlined, DownloadOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 // @ts-ignore
 import HashWorker from '../workers/hashWorker.ts?worker';
 import axios from 'axios';
+import { checkFileLayers } from '../utils/fileCheck';
 
 const { Step } = Steps;
 const { Paragraph, Text } = Typography;
@@ -116,15 +117,59 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
     }
   };
 
-  const handleFileSelect = (info: any) => {
+  const handleFileSelect = async (info: any) => {
     // We only take the last selected file
     const selectedFile = info.file.originFileObj || info.file;
     // Basic validation
     if (selectedFile) {
-        setFile(selectedFile);
-        setStatus('idle');
-        setResult(null);
-        setProgress({ step: '', message: '' });
+        // Layer Check logic
+        try {
+            const checkResult = await checkFileLayers(selectedFile);
+            
+            if (checkResult.isLargeFile) {
+                // Non-blocking warning for large files
+                Modal.warning({
+                    title: '文件过大',
+                    icon: <ExclamationCircleOutlined />,
+                    content: checkResult.message,
+                });
+                setFile(selectedFile);
+                setStatus('idle');
+                setResult(null);
+                setProgress({ step: '', message: '' });
+            } else if (checkResult.hasLayers) {
+                // Blocking confirm for files with layers
+                Modal.confirm({
+                    title: '检测到图层',
+                    icon: <ExclamationCircleOutlined />,
+                    content: checkResult.message,
+                    okText: '仍然使用',
+                    cancelText: '取消',
+                    onOk() {
+                        setFile(selectedFile);
+                        setStatus('idle');
+                        setResult(null);
+                        setProgress({ step: '', message: '' });
+                    },
+                    onCancel() {
+                        message.info('已取消选择');
+                    },
+                });
+            } else {
+                // No layers, proceed
+                setFile(selectedFile);
+                setStatus('idle');
+                setResult(null);
+                setProgress({ step: '', message: '' });
+            }
+        } catch (e) {
+            // If check fails, just proceed
+            console.error(e);
+            setFile(selectedFile);
+            setStatus('idle');
+            setResult(null);
+            setProgress({ step: '', message: '' });
+        }
     }
     return false; // Prevent auto upload
   };
