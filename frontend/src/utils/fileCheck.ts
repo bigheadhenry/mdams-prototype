@@ -1,4 +1,6 @@
 import { readPsd } from 'ag-psd';
+// @ts-ignore
+import UTIF from 'utif';
 
 export interface LayerCheckResult {
   hasLayers: boolean;
@@ -33,6 +35,7 @@ export async function checkFileLayers(file: File): Promise<LayerCheckResult> {
       // Logic: If children exists and length > 0, it might have layers.
       // But standard flattened PSDs might still have 1 'Background' layer.
       const layers = psd.children || [];
+      console.log('PSD/PSB Analysis:', { layers, width: psd.width, height: psd.height });
       
       // If there are multiple layers, or 1 layer that isn't just "Background"
       // Note: This is a heuristic.
@@ -51,10 +54,26 @@ export async function checkFileLayers(file: File): Promise<LayerCheckResult> {
     }
   }
 
-  // 3. Check TIFF (Not implemented in frontend due to complexity)
+  // 3. Check TIFF
   if (name.endsWith('.tif') || name.endsWith('.tiff')) {
-    // Ideally we'd use UTIF.js here, but for now we skip
-    return { hasLayers: false };
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      // UTIF.decode(buffer) returns an array of IFDs (pages)
+      const ifds = UTIF.decode(arrayBuffer);
+      console.log('TIFF Analysis:', ifds);
+      
+      if (ifds && ifds.length > 1) {
+         return {
+            hasLayers: true,
+            message: `检测到 TIFF 文件包含 ${ifds.length} 个页面/图层。建议合并图层后上传。`
+         };
+      }
+      return { hasLayers: false };
+    } catch (e) {
+      console.warn('TIFF Parse error (possibly BigTIFF or corrupted):', e);
+      // UTIF usually throws on BigTIFF or unsupported formats
+      return { hasLayers: false };
+    }
   }
 
   return { hasLayers: false };

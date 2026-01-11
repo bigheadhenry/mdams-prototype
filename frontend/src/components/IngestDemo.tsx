@@ -125,7 +125,7 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
       });
       
       setResult({
-        ...manifestData,
+        ...cleanManifest,
         serverVerification: response.data
       });
       setStatus('success');
