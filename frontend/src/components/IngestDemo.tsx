@@ -60,18 +60,62 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
     };
   }, []);
 
+  const sanitizeMetadata = (metadata: any): any => {
+    if (!metadata) return {};
+    const sanitized: any = {};
+    
+    // Whitelist approach is safer, but Blacklist/Truncate is more flexible for PoC
+    // Here we truncate long strings and remove binary buffers
+    for (const [key, value] of Object.entries(metadata)) {
+        if (value instanceof Uint8Array || value instanceof ArrayBuffer || (value as any)?.type === 'Buffer') {
+            sanitized[key] = '[Binary Data Removed]';
+        } else if (typeof value === 'string') {
+            // Truncate strings longer than 20KB (e.g. base64 thumbnails or XML dumps)
+            if (value.length > 20480) {
+                sanitized[key] = value.substring(0, 20480) + '...[Truncated]';
+            } else {
+                sanitized[key] = value;
+            }
+        } else if (typeof value === 'object' && value !== null) {
+            // Recursive sanitization for nested objects (limit depth to avoid stack overflow)
+            // For simplicity in PoC, we just JSON stringify/parse to remove functions/buffers, 
+            // but for deep objects we might skip. 
+            // Here we just keep it if it's small enough.
+            try {
+                const str = JSON.stringify(value);
+                if (str.length > 20480) {
+                     sanitized[key] = '[Object too large]';
+                } else {
+                     sanitized[key] = value;
+                }
+            } catch (e) {
+                sanitized[key] = '[Circular/Error]';
+            }
+        } else {
+            sanitized[key] = value;
+        }
+    }
+    return sanitized;
+  };
+
   const uploadSIP = async (manifestData: any, fileData: File) => {
     setStatus('uploading');
     setProgress({ step: 'uploading', message: '正在上传 SIP 包并进行服务端校验...' });
     
     const formData = new FormData();
     formData.append('file', fileData);
-    // Remove the previous append which might be causing issues if executed twice or incorrectly
-    // formData.append('manifest', JSON.stringify(manifestData));
-
+    
     try {
+      // Sanitize metadata to avoid "Invalid string length" error on large XMP/Exif blobs
+      const cleanMetadata = sanitizeMetadata(manifestData.metadata);
+      
+      const cleanManifest = {
+          ...manifestData,
+          metadata: cleanMetadata
+      };
+
       // Stringify metadata properly to avoid circular references or encoding issues
-      const manifestJson = JSON.stringify(manifestData);
+      const manifestJson = JSON.stringify(cleanManifest);
       formData.append('manifest', manifestJson);
 
       const response = await axios.post('/api/ingest/sip', formData, {
