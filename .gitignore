@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Data directories (Local)
+db_data/
+uploads/
+cantaloupe/cantaloupe-5.0.6/
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+dist/
+build/
+*.tar
+*.tar.gz
+*.zip
+
+# Logs
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# Temporary Scripts
+upload_to_server.bat
