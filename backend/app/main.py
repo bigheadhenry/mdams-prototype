@@ -322,14 +322,27 @@ def delete_asset(asset_id: int, db: Session = Depends(get_db)):
 
     # 2. Delete physical file
     try:
+        # Delete the main file (which might be the converted one)
         if os.path.exists(asset.file_path):
             os.remove(asset.file_path)
             print(f"Deleted file: {asset.file_path}")
         else:
             print(f"File not found on disk: {asset.file_path}")
+            
+        # Also delete original file if it exists and is different from main file
+        # (e.g. delete the PSB source if we are deleting the asset)
+        if asset.metadata_info:
+            original_path = asset.metadata_info.get("original_file_path")
+            if original_path and original_path != asset.file_path:
+                if os.path.exists(original_path):
+                    os.remove(original_path)
+                    print(f"Deleted original file: {original_path}")
+                else:
+                    print(f"Original file not found on disk: {original_path}")
+                    
     except Exception as e:
         # Log error but continue to delete DB record so state is consistent
-        print(f"Error deleting file {asset.file_path}: {e}")
+        print(f"Error deleting files for asset {asset_id}: {e}")
         # raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
 
     # 3. Delete DB record
