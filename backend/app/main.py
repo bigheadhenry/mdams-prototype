@@ -368,15 +368,67 @@ def download_asset_bag(asset_id: int, background_tasks: BackgroundTasks, db: Ses
     try:
         # 1. Copy file to data directory
         # 复制文件到 data 目录
-        dest_path = os.path.join(data_dir, asset.filename)
+        
+        # Determine actual file name on disk
+        # 确定磁盘上的实际文件名
+        actual_filename = os.path.basename(asset.file_path)
+        dest_path = os.path.join(data_dir, actual_filename)
         shutil.copy2(asset.file_path, dest_path)
+        
+        # If the file was converted (e.g. PSB -> TIFF), we should ideally include the original too if available.
+        # But for this prototype, we just package what's currently the 'active' file.
+        # However, to be strict about BagIt and preservation, if we converted it, we should probably:
+        # a) Package the TIFF as the "preservation copy" (if we consider it so)
+        # b) OR package the original PSB (if we still have it)
+        
+        # Current logic: asset.file_path points to the TIFF after conversion.
+        # asset.metadata_info['original_file_path'] points to the PSB.
+        
+        # Let's include BOTH if they differ, to ensure full preservation.
+        # 如果文件已转换（例如 PSB -> TIFF），我们最好也包含原始文件。
+        # 当前逻辑：asset.file_path 指向转换后的 TIFF。
+        # asset.metadata_info['original_file_path'] 指向原始 PSB。
+        # 让我们同时包含两者（如果不同），以确保完整保存。
+        
+        original_file_path = asset.metadata_info.get("original_file_path") if asset.metadata_info else None
+        
+        manifest_entries = []
+        manifest_entries.append(f"{asset.metadata_info.get('fixity_sha256', 'unknown')}  data/{actual_filename}")
+
+        if original_file_path and os.path.exists(original_file_path) and original_file_path != asset.file_path:
+             original_basename = os.path.basename(original_file_path)
+             dest_original_path = os.path.join(data_dir, original_basename)
+             shutil.copy2(original_file_path, dest_original_path)
+             # We don't have SHA256 for the converted file readily available without calc, 
+             # but we have it for the original from ingest.
+             # Note: The fixity_sha256 in DB is for the ORIGINAL file.
+             manifest_entries.append(f"{asset.metadata_info.get('fixity_sha256', 'unknown')}  data/{original_basename}")
+             
+             # If we are including both, we should clarify which checksum belongs to which.
+             # For this PoC, we assume the checksum in DB belongs to the original file.
+             # The converted file's checksum is not yet calculated/stored.
+             # So we mark the converted file as 'generated-file' in manifest? 
+             # Or just recalculate it now.
+             
+             # Simple approach: Recalculate hash for the converted file
+             import hashlib
+             def calculate_sha256(filepath):
+                sha256_hash = hashlib.sha256()
+                with open(filepath, "rb") as f:
+                    for byte_block in iter(lambda: f.read(4096), b""):
+                        sha256_hash.update(byte_block)
+                return sha256_hash.hexdigest()
+             
+             converted_hash = calculate_sha256(asset.file_path)
+             # Update the entry for the converted file with correct hash
+             manifest_entries[0] = f"{converted_hash}  data/{actual_filename}"
+
         
         # 2. Generate manifest-sha256.txt
         # 生成 manifest-sha256.txt
-        # Ideally we should recalculate hash, but for now we use the one from DB if available
-        sha256 = asset.metadata_info.get("fixity_sha256", "unknown")
         with open(os.path.join(bag_root, "manifest-sha256.txt"), "w", encoding="utf-8") as f:
-            f.write(f"{sha256}  data/{asset.filename}\n")
+            for entry in manifest_entries:
+                f.write(f"{entry}\n")
             
         # 3. Generate bagit.txt
         # 生成 bagit.txt
@@ -390,6 +442,8 @@ def download_asset_bag(asset_id: int, background_tasks: BackgroundTasks, db: Ses
             f.write(f"Source-Organization: MEAM Prototype\n")
             f.write(f"Bagging-Date: {datetime.now().strftime('%Y-%m-%d')}\n")
             f.write(f"Payload-Oxum: {asset.file_size}.1\n")
+            if original_file_path:
+                 f.write(f"Original-File: {os.path.basename(original_file_path)}\n")
             
         # 5. Zip the directory
         # 打包目录
