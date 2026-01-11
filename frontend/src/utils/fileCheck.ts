@@ -62,12 +62,28 @@ export async function checkFileLayers(file: File): Promise<LayerCheckResult> {
       const ifds = UTIF.decode(arrayBuffer);
       console.log('TIFF Analysis:', ifds);
       
+      // Check 1: Multi-page TIFF
       if (ifds && ifds.length > 1) {
          return {
             hasLayers: true,
             message: `检测到 TIFF 文件包含 ${ifds.length} 个页面/图层。建议合并图层后上传。`
          };
       }
+
+      // Check 2: Photoshop Layers in single-page TIFF
+      // Tag 37724 (0x935C) is ImageSourceData (Adobe Photoshop layers)
+      if (ifds && ifds.length > 0) {
+        const firstIfd = ifds[0];
+        // UTIF stores tags as properties of the IFD object using 't' + TagID
+        // e.g. Tag 37724 is stored as property "t37724"
+        if (firstIfd.t37724) {
+           return {
+             hasLayers: true,
+             message: '检测到 TIFF 文件包含隐藏的 Photoshop 图层数据 (Tag 37724)。这可能会导致图像处理失败，建议合并图层。'
+           };
+        }
+      }
+
       return { hasLayers: false };
     } catch (e) {
       console.warn('TIFF Parse error (possibly BigTIFF or corrupted):', e);
