@@ -7,6 +7,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://meam:meam_secret@db:5432/meam_db
+      - REDIS_URL=redis://redis:6379/0
       # Optimize pyvips for low memory environment
       - VIPS_DISC_THRESHOLD=100m
       - VIPS_CONCURRENCY=2
@@ -22,6 +23,33 @@ services:
       - /sunjing/project/文物库:/app/uploads
     depends_on:
       - db
+      - redis
+
+  celery_worker:
+    build: ./backend
+    container_name: meam-worker
+    restart: always
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1
+    environment:
+      - DATABASE_URL=postgresql://meam:meam_secret@db:5432/meam_db
+      - REDIS_URL=redis://redis:6379/0
+      # Optimize pyvips for low memory environment
+      - VIPS_DISC_THRESHOLD=100m
+      - VIPS_CONCURRENCY=2
+    volumes:
+      # Map NAS mount point directly
+      - /sunjing/project/文物库:/app/uploads
+    depends_on:
+      - db
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: meam-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
 
   frontend:
     build: ./frontend

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Asset
+from ..tasks import convert_psb_to_bigtiff
 import os
 import hashlib
 import json
@@ -79,13 +80,20 @@ async def ingest_sip(
         # 5. Save to Database
         file_size = os.path.getsize(file_location)
         
+        # Check if PSB
+        is_psb = file.filename.lower().endswith('.psb')
+        initial_status = "processing" if is_psb else "ready"
+        
         # Extract dimensions
+        # For PSB, we skip this in the main thread to avoid delay/memory issues,
+        # and let the background task handle it.
         width, height = 0, 0
-        try:
-            with Image.open(file_location) as img:
-                width, height = img.size
-        except Exception as e:
-            print(f"Error extracting dimensions: {e}")
+        if not is_psb:
+            try:
+                with Image.open(file_location) as img:
+                    width, height = img.size
+            except Exception as e:
+                print(f"Error extracting dimensions: {e}")
 
         # Merge technical metadata
         # Ensure we only store serializable types
@@ -102,13 +110,18 @@ async def ingest_sip(
             file_path=file_location,
             file_size=file_size,
             mime_type=file.content_type,
-            status="ready",
+            status=initial_status,
             metadata_info=final_metadata
         )
         
         db.add(db_asset)
         db.commit()
         db.refresh(db_asset)
+        
+        # Trigger background conversion for PSB
+        if is_psb:
+            convert_psb_to_bigtiff.delay(db_asset.id, file_location)
+
         
         return {
             "status": "success",
