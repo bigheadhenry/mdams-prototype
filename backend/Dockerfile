@@ -14,19 +14,27 @@ RUN apt-get update && apt-get install -y \
 
 # Fix: Relax ImageMagick security policy for large images (PSB/TIFF)
 # 修复: 放宽 ImageMagick 的安全策略以支持超大图像
-# 自动检测并修改 policy.xml
+# 自动检测并修改 policy.xml，并打印修改后的配置以供调试
 RUN export POLICY_PATH=$(find /etc -name "policy.xml" | grep "ImageMagick" | head -n 1) && \
     if [ -z "$POLICY_PATH" ]; then \
         echo "Error: ImageMagick policy.xml not found!"; \
         exit 1; \
     else \
         echo "Found ImageMagick policy at: $POLICY_PATH"; \
-        sed -i 's/policy domain="resource" name="memory" value="256MiB"/policy domain="resource" name="memory" value="4GiB"/' "$POLICY_PATH" && \
-        sed -i 's/policy domain="resource" name="map" value="512MiB"/policy domain="resource" name="map" value="8GiB"/' "$POLICY_PATH" && \
-        sed -i 's/policy domain="resource" name="width" value="16KP"/policy domain="resource" name="width" value="128KP"/' "$POLICY_PATH" && \
-        sed -i 's/policy domain="resource" name="height" value="16KP"/policy domain="resource" name="height" value="128KP"/' "$POLICY_PATH" && \
-        sed -i 's/policy domain="resource" name="area" value="128MB"/policy domain="resource" name="area" value="8GB"/' "$POLICY_PATH" && \
-        sed -i 's/policy domain="resource" name="disk" value="1GiB"/policy domain="resource" name="disk" value="16GiB"/' "$POLICY_PATH"; \
+        # Backup original policy
+        cp "$POLICY_PATH" "$POLICY_PATH.bak"; \
+        \
+        # Use a more robust sed pattern that handles optional spaces and quotes
+        # Increase memory limit to 8GiB (N100 has 16GB)
+        sed -i 's/domain="resource" name="memory" value="[^"]*"/domain="resource" name="memory" value="8GiB"/' "$POLICY_PATH" && \
+        sed -i 's/domain="resource" name="map" value="[^"]*"/domain="resource" name="map" value="16GiB"/' "$POLICY_PATH" && \
+        sed -i 's/domain="resource" name="width" value="[^"]*"/domain="resource" name="width" value="256KP"/' "$POLICY_PATH" && \
+        sed -i 's/domain="resource" name="height" value="[^"]*"/domain="resource" name="height" value="256KP"/' "$POLICY_PATH" && \
+        sed -i 's/domain="resource" name="area" value="[^"]*"/domain="resource" name="area" value="16GB"/' "$POLICY_PATH" && \
+        sed -i 's/domain="resource" name="disk" value="[^"]*"/domain="resource" name="disk" value="32GiB"/' "$POLICY_PATH"; \
+        \
+        echo "--- Updated Policy Settings ---"; \
+        grep -E "memory|map|width|height|area|disk" "$POLICY_PATH"; \
     fi
 
 WORKDIR /app
