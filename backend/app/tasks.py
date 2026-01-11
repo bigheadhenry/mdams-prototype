@@ -29,10 +29,21 @@ def convert_psb_to_bigtiff(self, asset_id: int, original_path: str):
         
         # Save as BigTIFF with JPEG compression, Tiled, Pyramid
         # This is standard for IIIF compatibility
+        # Updated for better Photoshop compatibility:
+        # 1. Use 256x256 tiles (default might be 128)
+        # 2. Use Q=90 for high quality
+        # 3. Use deflate (zip) compression instead of jpeg to avoid "65535 limit" error in some viewers
+        #    Some older Photoshop versions or viewers struggle with JPEG-in-TIFF for very large images
+        #    deflate is lossless and widely supported, though larger file size.
+        #    BUT user specifically mentioned "Photoshop 只能解码宽度或高度不超过65535像素的jpeg编码的图像"
+        #    This suggests the JPEG compression table inside TIFF is hitting a limit.
+        #    Switching to 'deflate' or 'lzw' should fix this while keeping BigTIFF.
         image.write_to_file(
             output_path, 
-            compression="jpeg", 
+            compression="deflate", 
             tile=True, 
+            tile_width=256,
+            tile_height=256,
             pyramid=True, 
             bigtiff=True
         )
