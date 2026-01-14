@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     libvips-tools \
     build-essential \
     imagemagick \
+    libimage-exiftool-perl \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix: Relax ImageMagick security policy for large images (PSB/TIFF)

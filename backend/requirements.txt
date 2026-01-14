@@ -9,3 +9,4 @@ Pillow==10.2.0
 pyvips==2.2.3
 celery==5.3.6
 redis==5.0.1
+PyExifTool==0.5.6

@@ -1,4 +1,4 @@
-import exifr from 'exifr';
+// import exifr from 'exifr'; // Removed in favor of backend ExifTool extraction
 
 // Define the shape of the message we expect
 interface WorkerMessage {
@@ -17,23 +17,8 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
     // In a production environment, use a streaming hasher (like hash-wasm) and read chunks.
     const arrayBuffer = await file.arrayBuffer();
     
-    // 2. Extract Metadata (Exif/XMP)
-    // We do this before hashing because exifr only needs the header, but here we pass the buffer
-    self.postMessage({ type: 'progress', step: 'metadata', message: '正在提取元数据...' });
-    let metadata = null;
-    try {
-      // Parse all available tags
-      metadata = await exifr.parse(arrayBuffer, {
-        tiff: true,
-        xmp: true,
-        icc: true,
-        iptc: true,
-        exif: true,
-      });
-    } catch (err) {
-      console.warn('Metadata extraction failed', err);
-      // Non-fatal
-    }
+    // 2. Extract Metadata (Skipped - Handled by Backend)
+    const metadata = {};
 
     // 3. Calculate SHA256 Hash
     self.postMessage({ type: 'progress', step: 'hashing', message: '正在计算 SHA256...' });

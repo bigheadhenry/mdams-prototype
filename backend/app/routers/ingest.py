@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Asset
 from ..tasks import convert_psb_to_bigtiff
+from ..utils.metadata import extract_metadata
 import os
 import hashlib
 import json
@@ -84,23 +85,44 @@ async def ingest_sip(
         is_psb = file.filename.lower().endswith('.psb')
         initial_status = "processing" if is_psb else "ready"
         
+        # Extract Metadata using ExifTool
+        exif_metadata = extract_metadata(file_location)
+
         # Extract dimensions
-        # For PSB, we skip this in the main thread to avoid delay/memory issues,
-        # and let the background task handle it.
+        # 1. Try Pillow for non-PSB (fastest for standard formats)
         width, height = 0, 0
         if not is_psb:
             try:
                 with Image.open(file_location) as img:
                     width, height = img.size
             except Exception as e:
-                print(f"Error extracting dimensions: {e}")
+                print(f"Error extracting dimensions with Pillow: {e}")
+
+        # 2. Fallback/Primary for PSB: Use ExifTool dimensions if Pillow skipped or failed
+        if width == 0 or height == 0:
+            try:
+                # Check 'File' group (standard location for ImageWidth/ImageHeight in ExifTool JSON)
+                file_group = exif_metadata.get('File', {})
+                width = file_group.get('ImageWidth', 0)
+                height = file_group.get('ImageHeight', 0)
+                
+                # If still 0, check Composite:ImageSize
+                if width == 0 or height == 0:
+                    composite_group = exif_metadata.get('Composite', {})
+                    image_size = composite_group.get('ImageSize') # e.g. "1024x768"
+                    if image_size and 'x' in str(image_size):
+                        w, h = str(image_size).split('x')
+                        width = int(w)
+                        height = int(h)
+            except Exception as e:
+                print(f"Error extracting dimensions with ExifTool: {e}")
 
         # Merge technical metadata
         # Ensure we only store serializable types
         final_metadata = {
             "ingest_method": "sip_bagit",
             "fixity_sha256": server_hash,
-            # "original_metadata": client_metadata, # Disable saving original metadata blob to DB to prevent any chance of it leaking to Manifest
+            "exif_metadata": exif_metadata,
             "width": width,
             "height": height
         }
