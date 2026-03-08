@@ -9,6 +9,8 @@ backend/__pycache__/
 
 # Data directories (Local)
 db_data/
+filebrowser.db/
+filebrowser.db
 uploads/
 cantaloupe/cantaloupe-5.0.6/
 
