@@ -98,30 +98,83 @@ The prototype should describe BagIt support carefully: it demonstrates preservat
 
 ---
 
-## 4. Metadata Standards and Structured Description
+## 4. PREMIS
 
 ### Role in MDAMS
-The prototype currently appears to support metadata capture/extraction more than formal, exhaustive metadata-standard implementation.
+PREMIS is the strongest preservation-metadata reference now identified for the project.
+
+It contributes to:
+- object/event/agent/rights-oriented preservation modeling;
+- conceptual interpretation of ingest and processing actions as preservation events;
+- stronger vocabulary for fixity, integrity, authenticity, and long-term management.
+
+### In the Prototype
+PREMIS influence is not yet formalized, but partial alignment is visible through:
+- asset-centered records;
+- fixity generation and verification;
+- metadata extraction actions;
+- processing/conversion actions;
+- timestamps and operational status changes.
+
+### Why It Matters
+PREMIS helps explain that the prototype is not merely storing files and metadata, but is moving toward a preservation-aware model in which digital objects, actions, and provenance can be interpreted more systematically.
+
+### Current Boundary
+The prototype should not yet claim full PREMIS implementation. The most accurate description is that current workflow behaviors can be interpreted as proto-PREMIS structures and could later be formalized more explicitly.
+
+---
+
+## 5. NISO Z39.87
+
+### Role in MDAMS
+NISO Z39.87 is the strongest technical-metadata reference currently identified for digital still images in the prototype.
+
+It contributes to:
+- a more disciplined way of thinking about image technical metadata;
+- interoperability and continuing access for still-image assets;
+- future refinement of ingest-time technical metadata profiling.
+
+### In the Prototype
+Its influence is currently partial and indirect, but highly relevant to:
+- image metadata extraction;
+- image-oriented asset characterization;
+- large-image workflows and derivative generation.
+
+### Why It Matters
+NISO Z39.87 gives a standards-based way to talk about technical image metadata, reducing reliance on ad hoc extracted fields and improving the research credibility of image-focused metadata design.
+
+### Current Boundary
+The prototype does not yet expose a formal Z39.87 crosswalk or profile. It should currently be described as image-technical-metadata aware, with a clear future path toward stronger standards alignment.
+
+---
+
+## 6. Metadata Standards and Structured Description
+
+### Role in MDAMS
+The prototype currently supports metadata capture/extraction more than exhaustive implementation of domain schemas.
 
 ### In the Prototype
 Relevant aspects include:
 - descriptive metadata fields;
 - technical metadata extraction;
-- structured representation of asset information.
+- structured representation of asset information;
+- preservation-oriented metadata potential through PREMIS-aligned concepts.
 
 ### Current Research Position
-At this stage, the project should emphasize metadata role differentiation rather than overclaiming complete support for every museum metadata schema. Formal mapping can be expanded later if needed.
+At this stage, the project should emphasize metadata role differentiation rather than overclaiming complete support for every museum metadata schema. PREMIS and NISO Z39.87 now provide stronger concrete anchors for future formalization.
 
 ---
 
-## 5. Practical Interpretation
+## 7. Practical Interpretation
 
 The standards strategy of MDAMS Prototype can be summarized as follows:
 
 - **IIIF**: practical access-layer implementation target;
 - **OAIS**: conceptual lifecycle and preservation reference;
 - **BagIt**: practical packaging/export reference;
-- **metadata standards**: structured influence area, still open for deeper formalization.
+- **PREMIS**: preservation-metadata reference with partial current alignment;
+- **NISO Z39.87**: technical-image-metadata reference with partial current alignment;
+- **metadata standards more broadly**: structured influence area, still open for deeper formalization.
 
 This combination is strong enough to support a meaningful research argument while remaining feasible for a prototype.
 

@@ -139,6 +139,8 @@ Selective standards alignment preserves domain relevance without overwhelming th
 - IIIF should remain the clearest access-layer implementation target.
 - OAIS should be discussed mainly as a conceptual reference model.
 - BagIt should remain a practical packaging/export reference.
+- PREMIS should be treated as the most promising preservation-metadata framework for formalizing current workflow events and object state later.
+- NISO Z39.87 should be treated as the most promising technical-image-metadata reference for image asset profiling later.
 - Research writing should distinguish implemented features from conceptual influence.
 
 ---
