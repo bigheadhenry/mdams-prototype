@@ -1,93 +1,113 @@
-# Current Project Facts for Research Use
+# 当前项目事实（供研究写作用）
 
-## Purpose
+## 目的
 
-This document captures the current observed facts of the MDAMS Prototype that can be directly reused in research writing.
+本文档用于记录 MDAMS Prototype 当前已经确认的项目事实，这些内容可以直接转化为后续研究写作中的证据与描述素材。
 
-It is intentionally grounded in the current repository state and existing project documentation, rather than ideal future design.
+文档内容有意以当前仓库状态和现有项目文档为基础，而不是把未来理想设计当作现实。
 
-## Current Project Position
+## 当前项目定位
 
-MDAMS Prototype is currently best understood as a high-value technical prototype for museum / exhibition digital resource scenarios, rather than as a complete production-grade DAMS.
+MDAMS Prototype 当前最适合被理解为一个**面向博物馆/展陈数字资源场景的高价值技术原型**，而不是一个完整生产级 DAMS。
 
-Its strongest validated direction is the core chain connecting:
-- asset ingest;
-- metadata/fixity processing;
-- large-image handling;
-- IIIF-oriented access;
-- export/package output;
-- and containerized deployment in a real experimental environment.
+当前最强、最稳定、最有研究意义的方向，是围绕以下主链条形成的可演示能力：
+- 资产采集；
+- 元数据/完整性校验处理；
+- 大图像处理；
+- IIIF 导向访问；
+- 导出/打包输出；
+- 以及真实实验环境中的容器化部署。
 
-## Current Implemented Capabilities
+## 当前已实现能力
 
-Based on the repository documentation, the current implemented scope includes:
+根据仓库文档与已审阅内容，当前实现范围包括：
 
-### Backend-side capabilities
-- basic file upload;
-- SIP-style ingest interface;
-- SHA256 fixity generation/verification;
-- asset listing and deletion;
-- dynamic IIIF Manifest generation;
-- BagIt ZIP package download;
-- asynchronous PSB-to-BigTIFF conversion;
-- image metadata extraction.
+### 后端侧能力
+- 基本文件上传；
+- 类 SIP 的 ingest 接口；
+- SHA256 fixity 生成/校验；
+- 资产列表与删除；
+- 动态 IIIF Manifest 生成；
+- BagIt ZIP 包下载；
+- PSB 到 BigTIFF 的异步转换；
+- 图像元数据提取。
 
-### Frontend-side capabilities
-- dashboard/basic admin entry;
-- asset table browsing;
-- upload flow;
-- delete and download actions;
-- Mirador integration for preview;
-- ingest-oriented demo flow.
+### 前端侧能力
+- dashboard / 基本管理入口；
+- 资产表格浏览；
+- 上传流程；
+- 删除与下载操作；
+- Mirador 集成预览；
+- 面向 ingest 的 demo 流程。
 
-### Deployment/infrastructure capabilities
-- Docker Compose-based deployment structure;
-- backend/frontend/database/redis/worker/cantaloupe/filebrowser service composition;
-- accommodation for lab-like deployment constraints such as local Linux server and NAS/NFS-related storage realities.
+### 部署与基础设施能力
+- 基于 Docker Compose 的部署结构；
+- backend / frontend / database / redis / worker / cantaloupe / filebrowser 等服务编排；
+- 能适应本地 Linux 服务器、NAS/NFS 等实验环境中的实际部署约束。
 
-## Current Strongest Demonstrable Workflow
+## 当前最强可演示工作流
 
-The current demonstrable workflow can be described as:
+当前最有代表性的演示链条可以表述为：
 
-1. upload a digital file;
-2. create or update an asset record;
-3. generate fixity and extract technical metadata;
-4. trigger asynchronous processing when needed;
-5. produce IIIF-facing access output;
-6. preview through Mirador;
-7. export as a BagIt-oriented package.
+1. 上传一个数字文件；
+2. 创建或更新资产记录；
+3. 生成 fixity 并提取技术元数据；
+4. 在需要时触发异步处理；
+5. 产出面向 IIIF 的访问表示；
+6. 通过 Mirador 进行预览；
+7. 以 BagIt 导向的方式导出打包结果。
 
-This workflow is especially meaningful for large-image scenarios such as PSB / BigTIFF handling.
+这条工作流对 PSB / BigTIFF 等大图像场景尤其有意义。
 
-## Current Architectural Facts
+## 当前架构事实
 
-Based on project documentation, the main architecture currently consists of:
+根据项目文档，当前主要架构包括：
 
-- **Frontend**: React + Vite + TypeScript + Ant Design
-- **Backend**: FastAPI + SQLAlchemy
-- **Task Processing**: Celery + Redis
-- **Database**: PostgreSQL
-- **IIIF Image Service**: Cantaloupe
-- **Viewer**: Mirador
-- **Deployment**: Docker Compose
+- **前端**：React + Vite + TypeScript + Ant Design
+- **后端**：FastAPI + SQLAlchemy
+- **任务处理**：Celery + Redis
+- **数据库**：PostgreSQL
+- **IIIF 图像服务**：Cantaloupe
+- **查看器**：Mirador
+- **部署方式**：Docker Compose
 
-## Current Data-Model Fact
+## 当前数据模型事实
 
-The currently documented implementation centers on an `Asset` entity as the core structured record, with fields such as file name, relative file path, file size, MIME type, metadata JSON, timestamps, and status.
+目前已记录的实现以 `Asset` 实体为核心结构化记录，其字段包括但不限于：
+- 文件名；
+- 相对文件路径；
+- 文件大小；
+- MIME type；
+- metadata JSON；
+- 时间戳；
+- 状态字段。
 
-This is important for research because it shows that the implementation already has an asset-centered tendency, even if the conceptual model still needs further clarification and enrichment.
+这对研究很重要，因为它说明当前实现已经表现出明显的“以资产为中心”的倾向，即使概念模型仍需继续澄清与丰富。
 
-## Current Major Gaps
+## 当前主要缺口
 
-The current project documentation also makes clear that the following are not yet mature:
-- richer cataloging / descriptive models;
-- derivative relationship modeling;
-- advanced search and filtering;
-- asset detail presentation;
-- request / delivery workflows;
-- user and permission systems;
-- clearer modular backend structure in later phases.
+虽然原型已经具备较强的技术链路，但仍存在若干明显缺口：
+- 核心对象模型尚未完全清晰化；
+- 设计决策与实现之间的映射尚未全部显性化；
+- 标准对齐更多是选择性与局部性的，而不是完整 formal compliance；
+- 可观测性、测试、错误反馈与运维支撑仍可加强；
+- 元数据模型尚未系统化细分为多个层次或 profile；
+- 产品边界与研究边界仍需持续写清楚。
 
-## Current Stage Conclusion
+## 当前最值得强调的研究事实
 
-The current prototype has moved beyond idea-stage experimentation. It already supports a meaningful technical narrative and a demonstrable workflow. However, its present research value lies less in institutional completeness and more in its ability to validate a coherent museum-oriented digital asset management chain under realistic engineering constraints.
+从研究表达角度，当前最值得抓住的事实包括：
+
+1. 该原型不是抽象设想，而是有真实仓库、真实架构、真实工作流的系统；
+2. 它的重点不在“功能无限扩张”，而在形成一条稳定、可解释、可演示的核心链路；
+3. 它已经与 IIIF、BagIt、OAIS、PREMIS、NISO Z39.87 等标准/框架形成不同层级的关联；
+4. 它更适合被解释为一个具有保存意识的数字资产管理原型，而不是普通上传下载平台；
+5. 它具有继续扩展为更强研究案例与更稳工程系统的基础。
+
+## 当前工作判断
+
+基于现有事实，MDAMS 的下一阶段研究表达不应再停留在“系统做了哪些功能”，而应进一步回答：
+- 为什么围绕这条工作流组织系统；
+- 为什么以数字资产作为核心对象；
+- 为什么采用选择性标准对齐；
+- 如何把当前实现解释为一个有研究意义的原型案例。

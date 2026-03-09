@@ -1,185 +1,137 @@
-# MDAMS Standards Mapping (Draft)
+# MDAMS 标准映射（草案）
 
-## Purpose
+## 目的
 
-This document explains how major standards, frameworks, or reference models relate to MDAMS Prototype.
+本文档用于说明主要标准、框架或参考模型与 MDAMS Prototype 的关系。
 
-Its purpose is not to claim full formal compliance everywhere. Instead, it clarifies how the prototype selectively adopts ideas, structures, and implementation targets that are useful for a museum-oriented digital asset management system.
+它的目标不是宣称系统已经对所有标准实现完整合规，而是解释：当前原型如何有选择地吸收这些标准/框架中对博物馆数字资产管理真正有用的部分。
 
-## Mapping Principle
+## 映射原则
 
-At the prototype stage, standards should be used in a selective and conceptually meaningful way.
+在原型阶段，标准应当被**选择性、分层次地采用**，而不是机械追求“全面合规”。
 
-The project should avoid two extremes:
-- ignoring standards entirely and becoming a generic file application;
-- over-implementing standards so early that the prototype becomes too heavy to stabilize.
-
-Therefore, MDAMS currently follows a **reference-alignment strategy**:
-- implement where directly valuable;
-- borrow concepts where full implementation is premature;
-- document boundaries explicitly.
+因此，本文档特别区分：
+- 直接实现的标准层；
+- 概念借鉴的框架层；
+- 部分对齐但尚未 formalize 的层；
+- 未来扩展参考层。
 
 ---
 
 ## 1. IIIF
 
-### Role in MDAMS
-IIIF is the clearest access-layer standard influence in the current prototype.
+### 在 MDAMS 中的角色
+IIIF 是当前最明确的访问/展示互操作标准参照。
 
-It contributes to:
-- image delivery conventions;
-- manifest-based representation of viewable resources;
-- interoperability with compatible viewers;
-- clearer separation between stored source files and access representations.
+### 在原型中的体现
+- 动态生成 IIIF Manifest；
+- 通过 Cantaloupe 提供图像服务；
+- 通过 Mirador 提供浏览/预览能力；
+- 明确区分“资产管理对象”与“访问表示”。
 
-### In the Prototype
-IIIF appears primarily through:
-- manifest generation;
-- image service exposure;
-- viewer integration patterns;
-- public URL and proxy path design.
-
-### Why It Matters
-IIIF helps the prototype demonstrate that access to museum digital objects is not limited to raw file download. It supports the argument that the system produces structured, interoperable access representations.
-
-### Current Boundary
-The prototype should not overclaim comprehensive IIIF implementation. The current emphasis is on demonstrating a workable IIIF-oriented access path, not exhausting the full IIIF ecosystem.
+### 当前研究判断
+IIIF 是当前 MDAMS 中**最强的直接实现型标准对齐层**，适合在研究中作为系统可演示性的关键证据之一。
 
 ---
 
-## 2. OAIS
+## 2. BagIt
 
-### Role in MDAMS
-OAIS functions mainly as a conceptual reference model rather than a fully implemented standard.
+### 在 MDAMS 中的角色
+BagIt 是当前最明确的打包/导出标准参照。
 
-It informs:
-- thinking about ingest;
-- differentiation between managed information objects and raw files;
-- preservation-aware workflow thinking;
-- the idea that digital objects move through lifecycle stages;
-- packaging/export awareness.
+### 在原型中的体现
+- 存在 BagIt ZIP 导出；
+- 导出并非简单文件下载，而是更接近结构化打包输出；
+- 与完整性校验和保存导向思路具有天然关联。
 
-### In the Prototype
-OAIS influence is visible in:
-- ingest-oriented framing;
-- preservation-oriented export thinking;
-- process/lifecycle awareness;
-- discussion of SIP/AIP-like ideas.
-
-### Why It Matters
-OAIS gives the prototype an archival/preservation logic beyond ordinary web file handling. It helps explain why fixity, metadata, and export/package concerns belong in the same system.
-
-### Current Boundary
-The prototype is not a full OAIS repository implementation. OAIS should be referenced as a conceptual guide, not claimed as fully realized institutional preservation infrastructure.
+### 当前研究判断
+BagIt 是当前第二个最明确的直接实现型标准对齐点，应被描述为 preservation-aware export 的实际实现基础之一。
 
 ---
 
-## 3. BagIt
+## 3. OAIS
 
-### Role in MDAMS
-BagIt contributes the clearest packaging/export reference in the current system.
+### 在 MDAMS 中的角色
+OAIS 更适合作为概念性保存框架，而不是当前原型的直接实现标准。
 
-It informs:
-- packaging of digital asset content;
-- export as a preservation-oriented operation rather than simple download;
-- inclusion of payload and associated metadata/checksum logic.
+### 在原型中的体现
+- ingest / workflow / lifecycle 的组织方式；
+- 保存导向的工作链条；
+- 包装、管理与访问之间的区分；
+- SIP-like 的语言和思维方式。
 
-### In the Prototype
-BagIt influence appears in:
-- BagIt ZIP export;
-- export/package thinking tied to asset preservation and transfer;
-- practical demonstration of structured packaging.
-
-### Why It Matters
-BagIt provides a tangible bridge between prototype implementation and preservation-aware practice. It helps show that the system handles digital assets as more than ad hoc uploaded files.
-
-### Current Boundary
-The prototype should describe BagIt support carefully: it demonstrates preservation-oriented export logic, but does not by itself establish a full preservation environment.
+### 当前研究判断
+当前最稳妥的说法是：MDAMS **受 OAIS 思维启发**，但并不宣称自己已经是一个完整 OAIS 仓储系统。
 
 ---
 
 ## 4. PREMIS
 
-### Role in MDAMS
-PREMIS is the strongest preservation-metadata reference now identified for the project.
+### 在 MDAMS 中的角色
+PREMIS 是当前最重要的保存元数据参考框架。
 
-It contributes to:
-- object/event/agent/rights-oriented preservation modeling;
-- conceptual interpretation of ingest and processing actions as preservation events;
-- stronger vocabulary for fixity, integrity, authenticity, and long-term management.
+它有助于：
+- 用对象/事件/代理/权利的方式理解保存元数据；
+- 把采集、校验、处理等动作解释为保存事件；
+- 为 fixity、完整性、真实性、长期管理提供更稳定的表达词汇。
 
-### In the Prototype
-PREMIS influence is not yet formalized, but partial alignment is visible through:
-- asset-centered records;
-- fixity generation and verification;
-- metadata extraction actions;
-- processing/conversion actions;
-- timestamps and operational status changes.
+### 在原型中的体现
+PREMIS 影响尚未正式化，但已经能看到部分对齐迹象：
+- 资产中心记录可视作 proto-object；
+- fixity 生成/校验可视作 proto-event；
+- 元数据提取、转换、导出等动作可视作 proto-event；
+- 时间戳与状态变化体现出初步过程痕迹。
 
-### Why It Matters
-PREMIS helps explain that the prototype is not merely storing files and metadata, but is moving toward a preservation-aware model in which digital objects, actions, and provenance can be interpreted more systematically.
+### 当前研究判断
+当前不应宣称完整实现 PREMIS，但可以有把握地说：
 
-### Current Boundary
-The prototype should not yet claim full PREMIS implementation. The most accurate description is that current workflow behaviors can be interpreted as proto-PREMIS structures and could later be formalized more explicitly.
+> MDAMS 已经具备明显的 proto-PREMIS 特征，尤其在事件与对象状态层面。
 
 ---
 
 ## 5. NISO Z39.87
 
-### Role in MDAMS
-NISO Z39.87 is the strongest technical-metadata reference currently identified for digital still images in the prototype.
+### 在 MDAMS 中的角色
+NISO Z39.87 是当前最重要的数字静态图像技术元数据参考标准。
 
-It contributes to:
-- a more disciplined way of thinking about image technical metadata;
-- interoperability and continuing access for still-image assets;
-- future refinement of ingest-time technical metadata profiling.
+### 在原型中的体现
+- 图像元数据提取；
+- 图像导向的资产处理；
+- 大图像（如 PSB / BigTIFF）场景；
+- 与 IIIF 图像访问链条相关的图像技术特征。
 
-### In the Prototype
-Its influence is currently partial and indirect, but highly relevant to:
-- image metadata extraction;
-- image-oriented asset characterization;
-- large-image workflows and derivative generation.
-
-### Why It Matters
-NISO Z39.87 gives a standards-based way to talk about technical image metadata, reducing reliance on ad hoc extracted fields and improving the research credibility of image-focused metadata design.
-
-### Current Boundary
-The prototype does not yet expose a formal Z39.87 crosswalk or profile. It should currently be described as image-technical-metadata aware, with a clear future path toward stronger standards alignment.
+### 当前研究判断
+当前原型已经是“图像技术元数据感知”的系统，但仍缺少显式的 Z39.87 profile 或 crosswalk。因而最准确的说法是：
+- 当前为**部分对齐**；
+- 后续可进一步 formalize。
 
 ---
 
-## 6. Metadata Standards and Structured Description
+## 6. 更广义的元数据标准与结构化描述
 
-### Role in MDAMS
-The prototype currently supports metadata capture/extraction more than exhaustive implementation of domain schemas.
+### 在 MDAMS 中的角色
+当前原型已经支持元数据采集/提取，但尚未对所有领域标准建立完整 schema 级映射。
 
-### In the Prototype
-Relevant aspects include:
-- descriptive metadata fields;
-- technical metadata extraction;
-- structured representation of asset information;
-- preservation-oriented metadata potential through PREMIS-aligned concepts.
+### 在原型中的体现
+- 描述性元数据字段；
+- 技术性元数据提取；
+- 结构化资产信息表示；
+- 保存导向元数据的潜力。
 
-### Current Research Position
-At this stage, the project should emphasize metadata role differentiation rather than overclaiming complete support for every museum metadata schema. PREMIS and NISO Z39.87 now provide stronger concrete anchors for future formalization.
+### 当前研究判断
+当前研究表达应强调“元数据角色区分”与“选择性标准对齐”，而不是过早宣称对所有博物馆元数据标准的全面实现。
 
 ---
 
-## 7. Practical Interpretation
+## 7. 实际解释
 
-The standards strategy of MDAMS Prototype can be summarized as follows:
+MDAMS Prototype 当前的标准策略可以概括为：
 
-- **IIIF**: practical access-layer implementation target;
-- **OAIS**: conceptual lifecycle and preservation reference;
-- **BagIt**: practical packaging/export reference;
-- **PREMIS**: preservation-metadata reference with partial current alignment;
-- **NISO Z39.87**: technical-image-metadata reference with partial current alignment;
-- **metadata standards more broadly**: structured influence area, still open for deeper formalization.
+- **IIIF**：访问层的直接实现目标；
+- **BagIt**：导出/打包层的直接实现目标；
+- **OAIS**：概念性保存框架；
+- **PREMIS**：保存元数据层的部分对齐目标；
+- **NISO Z39.87**：图像技术元数据层的部分对齐目标；
+- **更广义元数据标准**：作为后续深化 formalization 的空间。
 
-This combination is strong enough to support a meaningful research argument while remaining feasible for a prototype.
-
-## Research Implication
-
-This mapping supports a key claim of the research track:
-
-> A useful museum digital asset management prototype can be strengthened by selective, role-aware integration of standards and reference frameworks, without requiring full institutional-scale implementation at the earliest stage.
+这种分层解释比简单宣称“系统遵循多个标准”更准确，也更适合研究写作。

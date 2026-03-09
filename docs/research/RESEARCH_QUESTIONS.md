@@ -1,43 +1,115 @@
-# MDAMS Research Questions
+# MDAMS 研究问题（草案）
 
-## Main Research Question
+## 目的
 
-How can a museum-oriented digital asset management prototype be designed and implemented so that it supports a coherent core workflow from ingest to access and preservation-oriented export while remaining technically feasible as a modern web prototype?
+本文档用于整理 MDAMS 研究子项目当前最重要的一组研究问题。
 
-## Sub-questions
+这些问题不一定全部进入最终论文，但它们有助于：
+- 给项目建立研究方向；
+- 指导文档整理；
+- 帮助后续从工程实现中提炼研究论点。
 
-### RQ1. Domain and Scope
-What are the essential functional and conceptual requirements of a museum digital asset management prototype, and how should its scope be constrained at the prototype stage?
+---
 
-### RQ2. Conceptual Modeling
-What should be treated as the system's primary managed object, and how should assets, files, metadata, derivatives, access representations, and export packages relate to one another?
+## RQ1：在博物馆/展陈数字资源场景下，一个数字资产管理原型最小需要支持哪些核心工作流？
 
-### RQ3. Architecture and Implementation
-How can a modern web architecture support the core MDAMS workflow, including ingest, metadata extraction, fixity generation, asynchronous processing, IIIF access, and export?
+### 关注点
+- 上传/采集
+- 元数据提取
+- 校验值生成与完整性确认
+- 异步处理
+- 访问表示生成
+- 导出/打包
 
-### RQ4. Standards Alignment
-How can ideas or components from standards/frameworks such as IIIF, OAIS, and BagIt be integrated into a lightweight prototype without overloading the system with premature complexity?
+### 为什么重要
+这个问题决定 MDAMS 不应该被泛化为“什么都做”的大系统，而应该围绕一个可解释、可演示、可评估的核心工作流来构建。
 
-### RQ5. Prototype Validation
-What criteria should be used to evaluate whether the prototype successfully demonstrates the core value of a museum digital asset management system?
+---
 
-### RQ6. Trade-offs and Limitations
-What tensions emerge between domain fidelity, engineering simplicity, and prototype feasibility during implementation, and how should these be discussed as research findings rather than treated only as technical debt?
+## RQ2：MDAMS 应该把什么视为系统中的核心管理对象？
 
-## Working Hypothesis
+### 当前倾向
+- 不是单个文件本身；
+- 不是完整藏品管理系统意义上的一切对象；
+- 而是以 **数字资产（digital asset）** 作为核心管理对象。
 
-A useful MDAMS prototype does not need to implement a full production-scale museum information system. It is sufficient, at the prototype stage, to establish a stable and explainable core chain linking:
+### 为什么重要
+这个问题决定后续的数据模型、功能组织、标准映射和论文表达方式。
 
-- ingest,
-- metadata/fixity processing,
-- derivative/access generation,
-- IIIF-facing presentation,
-- and preservation-oriented export.
+---
 
-## Notes
+## RQ3：IIIF、BagIt、OAIS、PREMIS、NISO Z39.87 等标准/框架应当如何进入 MDAMS？
 
-These questions are intentionally framed to support both:
-- architectural/design reflection;
-- and future formal academic writing.
+### 关注点
+- 哪些是直接实现目标；
+- 哪些是概念框架；
+- 哪些是部分对齐；
+- 哪些是未来扩展参考。
 
-They may be refined as the prototype evolves.
+### 为什么重要
+这关系到项目如何在“工程可行性”与“标准完整性”之间取得平衡，也关系到论文中如何避免过度宣称。
+
+---
+
+## RQ4：一个面向数字保存意识的原型，如何在不完全实现正式保存系统的前提下，仍体现保存导向？
+
+### 当前线索
+- fixity
+- 处理事件
+- 导出包
+- 生命周期视角
+- 保存元数据潜力
+
+### 为什么重要
+这有助于解释：MDAMS 虽然不是完整 OAIS 仓储，但并不是一个普通文件上传/下载系统，而是一个具有保存意识的数字资产原型。
+
+---
+
+## RQ5：MDAMS 的研究表达应如何把工程实现与概念建模结合起来？
+
+### 关注点
+- 不能只写功能清单；
+- 也不能只写抽象理论；
+- 需要把架构、工作流、标准、设计决策和研究问题串起来。
+
+### 为什么重要
+这是论文能否成立的关键：需要证明这个原型既不是纯工程笔记，也不是脱离实现的概念空谈。
+
+---
+
+## RQ6：如何评估 MDAMS 这样的原型是否“足够有价值”？
+
+### 可能维度
+- 是否有稳定可演示主线；
+- 是否有清晰对象模型；
+- 是否有标准参照；
+- 是否有研究可解释性；
+- 是否具备继续扩展的空间。
+
+### 为什么重要
+研究型原型的评价标准，不应完全等同于成熟商业系统的功能覆盖率。
+
+---
+
+## 当前优先级判断
+
+现阶段最关键的研究问题优先级可以暂定为：
+
+1. **RQ1**：核心工作流是什么
+2. **RQ2**：核心对象是什么
+3. **RQ3**：标准如何进入系统
+4. **RQ4**：保存导向如何体现
+5. **RQ5**：如何形成有效研究表达
+6. **RQ6**：如何评估原型价值
+
+---
+
+## 当前工作建议
+
+围绕这组研究问题，后续文档优先补强：
+- 项目事实；
+- 概念模型；
+- 标准映射；
+- 设计决策；
+- 评估框架；
+- 参考文献与注释书目。

@@ -1,114 +1,123 @@
-# MDAMS Concept Model (Draft)
+# MDAMS 概念模型（草案）
 
-## Purpose
+## 目的
 
-This document defines the current conceptual model for MDAMS Prototype at the product/architecture level. It is intended to guide future implementation, documentation, and academic writing.
+本文档用于定义 MDAMS Prototype 当前在产品/架构层面的概念模型。
 
-## Core Position
+它的作用不是替代数据库 schema，而是为后续实现、文档整理与论文写作提供一个更稳定的概念层结构。
 
-The prototype should treat the **digital asset** as the primary managed object.
+## 核心立场
 
-The system is not centered on isolated files, nor on an all-encompassing museum collection-management model. It is centered on a manageable digital asset that can move through ingest, verification, access, and export.
+当前原型应把 **数字资产（digital asset）** 视为系统中的主要管理对象。
 
-## Core Entities
+系统不应以孤立文件为中心，也不应一开始就扩张为包罗万象的博物馆藏品管理体系；它应围绕一个可管理的数字资产对象，支撑其采集、校验、访问与导出的全过程。
 
-### 1. Asset
-The main managed object in the system.
+## 核心实体
 
-An asset represents a logically coherent digital object or digital resource package that the system ingests, processes, and makes available.
+### 1. 资产（Asset）
+系统中的核心管理对象。
 
-Typical responsibilities:
-- identity within the system;
-- linkage to one or more files;
-- descriptive and technical metadata association;
-- process status;
-- access and export relationships.
+资产代表一个在逻辑上相对完整的数字对象，或一个可被系统采集、处理、访问与导出的数字资源单元。
 
-### 2. File Object
-A file physically associated with an asset.
+典型职责：
+- 在系统内具有身份标识；
+- 关联一个或多个文件；
+- 关联描述性与技术性元数据；
+- 具有处理状态；
+- 关联访问表示与导出表示。
 
-Possible subtypes:
-- original file;
-- normalized file;
-- derivative/access file;
-- auxiliary file.
+### 2. 文件对象（File Object）
+与资产相关联的物理文件对象。
 
-Typical responsibilities:
-- storage path/reference;
-- format and size;
-- checksum/fixity value;
-- relationship to processing stage.
+可能子类型：
+- 原始文件；
+- 规范化文件；
+- 衍生/访问文件；
+- 辅助文件。
 
-### 3. Metadata Record
-Metadata associated with the asset and/or its files.
+典型职责：
+- 存储路径/引用；
+- 格式与大小；
+- checksum/fixity 值；
+- 与处理阶段的关系。
 
-Possible categories:
-- descriptive metadata;
-- technical metadata;
-- structural metadata;
-- administrative metadata.
+### 3. 元数据记录（Metadata Record）
+与资产及其文件相关联的元数据。
 
-The prototype does not need full formal standard implementation everywhere, but it should clearly distinguish metadata roles.
+可能类别：
+- 描述性元数据；
+- 技术性元数据；
+- 结构性元数据；
+- 管理性元数据。
 
-### 4. Process Event
-A recorded event in the asset lifecycle.
+当前原型不必在所有地方一次性实现完整标准，但应清楚区分不同元数据角色。
 
-Examples:
-- ingest started;
-- file analyzed;
-- checksum generated;
-- derivative generated;
-- manifest created;
-- export package generated.
+### 4. 过程事件（Process Event）
+资产生命周期中被记录的事件。
 
-This entity is important for both observability and research discussion.
+例如：
+- 开始采集；
+- 文件分析完成；
+- checksum 生成；
+- 衍生文件生成；
+- manifest 创建；
+- 导出包生成。
 
-### 5. Access Representation
-A representation intended for viewing or external access.
+这个实体对系统可观测性与研究表达都非常重要。
 
-Examples:
-- IIIF manifest;
-- preview image;
-- viewer-ready derivative.
+### 5. 访问表示（Access Representation）
+面向浏览或外部访问的表示层对象。
 
-This is distinct from the original preservation-oriented file.
+例如：
+- IIIF Manifest；
+- 预览图；
+- viewer-ready 衍生文件。
 
-### 6. Export Package
-A packaging/export representation of the asset.
+它应与原始保存导向文件区分开。
 
-Examples:
-- BagIt ZIP;
-- preservation-oriented bundle;
-- ingest/export package snapshot.
+### 6. 导出包（Export Package）
+面向打包/转移/导出的表示对象。
 
-## Relationship Sketch
+例如：
+- BagIt ZIP；
+- 未来可能的结构化交付包。
 
-Asset
-- has one or more File Objects
-- has one or more Metadata Records
-- has zero or more Process Events
-- has zero or more Access Representations
-- has zero or more Export Packages
+它不是资产本体，而是资产在某种导出语境下的封装结果。
 
-File Objects may:
-- produce derivative File Objects;
-- contribute technical metadata;
-- feed Access Representations;
-- be included in Export Packages.
+## 实体关系（工作解释）
 
-## Conceptual Boundaries
+当前可以用如下方式理解主要关系：
 
-### What this model is trying to avoid
-- treating every uploaded file as a complete product object;
-- collapsing preservation, access, and metadata concerns into a single undifferentiated record;
-- overcommitting to a fully institutional collection-management ontology too early.
+- 一个 **资产** 可以关联多个 **文件对象**；
+- 一个 **资产** 可以关联一组 **元数据记录**；
+- 一个 **资产** 在生命周期中会产生多个 **过程事件**；
+- 一个 **资产** 可以生成一个或多个 **访问表示**；
+- 一个 **资产** 可以导出为一个 **导出包**；
+- **访问表示** 与 **导出包** 都不是资产本体，而是资产的不同外部表达。
 
-### What this model is trying to support
-- a stable core workflow;
-- clear product terminology;
-- explainable architecture;
-- future extension toward richer museum-domain modeling.
+## 为什么采用这种模型
 
-## Current Working Implication
+这种概念模型有几个优势：
 
-UI, API, and documentation should gradually move toward asset-centered language and structure, even if the underlying implementation remains partially file-driven during the prototype stage.
+1. 它比“文件上传系统”更强，因为它能解释元数据、过程、访问和导出之间的关系；
+2. 它比“完整藏品管理系统”更聚焦，更符合当前原型范围；
+3. 它有利于与 IIIF、BagIt、OAIS、PREMIS 等标准/框架建立更清晰的对应；
+4. 它能直接服务后续论文写作中的对象建模与系统说明部分。
+
+## 当前边界
+
+当前概念模型仍是工作草案，尚未完全细化：
+- 文件对象是否需要更细的类型体系；
+- 元数据记录是否需要拆分为多个显式实体；
+- 过程事件是否需要正式事件词表；
+- 访问表示与导出包是否需要独立数据库层建模。
+
+这些问题可以随着后续实现与研究深化再进一步展开。
+
+## 当前判断
+
+从产品与研究两个角度看，**资产（Asset）作为核心对象** 仍是当前最稳妥的方向。
+
+在此基础上，MDAMS 可以被解释为：
+
+> 一个以数字资产为核心，贯穿采集、校验、处理、访问与导出的博物馆/展陈数字资源管理原型。

@@ -1,171 +1,109 @@
-# MDAMS Design Decisions Log
+# MDAMS 设计决策记录
 
-## Purpose
+## 目的
 
-This file records important design and architecture decisions that should support both implementation continuity and future academic writing.
+本文档用于记录那些既影响系统实现、又影响后续研究写作的重要设计决策。
 
-Each entry should ideally answer:
-- What decision was made?
-- Why was it made?
-- What alternatives were considered?
-- What are the implications?
-- Which research question(s) does it inform?
-
----
-
-## Decision Template
-
-### Decision Title
-- Date:
-- Status: proposed / adopted / revised / deprecated
-- Related modules:
-- Related research question(s):
-
-#### Context
-
-#### Decision
-
-#### Alternatives Considered
-
-#### Rationale
-
-#### Implications
+每一条设计决策尽量回答：
+- 做了什么决定；
+- 为什么这样做；
+- 还有哪些替代方案；
+- 该决策会带来什么影响；
+- 它支撑了哪些研究问题。
 
 ---
 
-## Initial Seed Decisions
+## 决策 1：优先稳定“可演示的核心工作流”
+- 日期：2026-03-08
+- 状态：已采用
+- 相关研究问题：RQ1、RQ5、RQ6
 
-### Core product emphasis on the demoable core workflow
-- Date: 2026-03-08
-- Status: adopted
-- Related modules: overall product scope, workflow design, docs
-- Related research question(s): RQ1, RQ5, RQ6
+### 背景
+项目已经包含多个较有分量的功能模块，但原型阶段的时间与精力有限。如果继续扩大功能面，系统会更难解释、验证和展示。
 
-#### Context
-The project already contains multiple substantial functions, but prototype energy is limited. Expanding the feature surface further would make the system harder to explain, stabilize, and evaluate.
+### 决策
+优先稳定一条可演示的核心工作流，而不是继续横向扩张功能面。
 
-#### Decision
-Prioritize stabilization of the demoable core workflow rather than broadening the feature set.
+### 备选方案
+- 继续扩展更多业务模块；
+- 优先做 UI 美化；
+- 优先补外围功能。
 
-#### Alternatives Considered
-- Continue expanding product breadth.
-- Invest first in UI beautification.
-- Focus first on peripheral business modules.
+### 理由
+一个研究型原型首先需要“可解释、可演示、可评估”，而不是“功能看起来很多”。
 
-#### Rationale
-A research-capable prototype must demonstrate a coherent core value chain. Without a stable core workflow, both implementation and academic explanation become fragmented.
-
-#### Implications
-- The project roadmap should prefer core-chain reliability over feature breadth.
-- Evaluation should focus on end-to-end workflow success.
-- New features should be judged by whether they strengthen the core research argument.
+### 影响
+- 研究表达将围绕主链路组织；
+- 后续开发更强调稳定性与说明性；
+- 论文更容易形成清晰结构。
 
 ---
 
-### Conservative configuration refactor policy
-- Date: 2026-03-08
-- Status: adopted
-- Related modules: docker-compose, .env.example, deployment
-- Related research question(s): RQ3, RQ6
+## 决策 2：以数字资产（Asset）作为核心对象
+- 日期：2026-03-09
+- 状态：已采用
+- 相关研究问题：RQ2、RQ5
 
-#### Context
-The project had partially externalized configuration but still contained important hardcoded runtime values. However, the IIIF/Manifest/Nginx pathing structure was known to be fragile.
+### 背景
+如果系统以单个文件为中心，会过于薄弱；如果以完整藏品管理体系为中心，又会超出当前原型范围。
 
-#### Decision
-Externalize configuration conservatively while avoiding casual changes to IIIF/Manifest/Nginx behavior.
+### 决策
+将数字资产作为系统中的核心管理对象。
 
-#### Alternatives Considered
-- Aggressive full configuration cleanup.
-- Immediate restructuring of public URL logic.
-- Path/layout simplification without validating implications.
+### 备选方案
+- 以文件为中心；
+- 以完整馆藏管理对象为中心；
+- 以项目/批次为中心。
 
-#### Rationale
-The prototype needed better configurability, but stability of the demonstrable workflow had higher priority than config purity.
+### 理由
+资产模型更适合连接文件、元数据、处理状态、访问表示与导出包，也更符合当前实现事实。
 
-#### Implications
-- Configuration improvements should be incremental and validated.
-- Architecture documentation should distinguish between intentional design and fragile implementation constraints.
-
----
-
-### Treat the digital asset as the primary managed object
-- Date: 2026-03-09
-- Status: proposed
-- Related modules: product model, API semantics, UI structure, research docs
-- Related research question(s): RQ1, RQ2, RQ5
-
-#### Context
-The implementation contains files, metadata, derivatives, manifests, and export-oriented outputs, but without a sufficiently explicit product-level object hierarchy, the system risks appearing file-centric or feature-fragmented.
-
-#### Decision
-Use the digital asset as the main conceptual product object, and organize files, metadata, processing results, IIIF-facing representations, and export packages around it.
-
-#### Alternatives Considered
-- Treat uploaded file as the main object.
-- Treat collection or museum object as the immediate primary object.
-- Keep object semantics implicit and implementation-driven.
-
-#### Rationale
-An asset-centered framing best matches the prototype's current strengths: ingest, processing, metadata association, access representation, and export. It also offers the clearest bridge between engineering design and museum-domain interpretation.
-
-#### Implications
-- Future documentation and UI naming should gradually become more asset-centered.
-- API and workflow descriptions should distinguish asset-level operations from file-level operations.
-- This decision helps stabilize the conceptual model for both implementation and academic writing.
+### 影响
+- 概念模型更清晰；
+- 数据模型与工作流更容易统一；
+- 更适合后续标准映射与论文写作。
 
 ---
 
-### Adopt selective standards alignment rather than full standards implementation
-- Date: 2026-03-09
-- Status: adopted
-- Related modules: IIIF integration, export design, research framing
-- Related research question(s): RQ4, RQ6
+## 决策 3：采用选择性标准对齐，而不是追求全面合规
+- 日期：2026-03-09
+- 状态：已采用
+- 相关研究问题：RQ3、RQ4、RQ5
 
-#### Context
-The prototype draws value from standards and frameworks such as IIIF, OAIS, and BagIt, but a prototype-stage system cannot sustainably implement every standard in exhaustive depth.
+### 背景
+IIIF、BagIt、OAIS、PREMIS、NISO Z39.87 等标准/框架都与项目相关，但原型阶段不适合一次性做全面实现。
 
-#### Decision
-Adopt a role-aware standards strategy: implement directly where practical value is high, borrow concepts where conceptual framing is useful, and explicitly document current boundaries.
+### 决策
+对不同标准采取不同层级的进入方式：
+- IIIF：直接实现；
+- BagIt：直接实现；
+- OAIS：概念借鉴；
+- PREMIS：部分对齐；
+- NISO Z39.87：部分对齐。
 
-#### Alternatives Considered
-- Pursue stronger formal compliance claims early.
-- Avoid explicit standards framing and present the system as generic DAM functionality.
-- Attempt broad standards coverage before stabilizing the core workflow.
+### 备选方案
+- 宣称全面标准化；
+- 完全不谈标准；
+- 只保留单一标准路径。
 
-#### Rationale
-Selective standards alignment preserves domain relevance without overwhelming the prototype with premature complexity. It also provides a stronger and more honest research argument.
+### 理由
+选择性对齐既保留工程可行性，也增强研究解释力，并能避免过度宣称。
 
-#### Implications
-- IIIF should remain the clearest access-layer implementation target.
-- OAIS should be discussed mainly as a conceptual reference model.
-- BagIt should remain a practical packaging/export reference.
-- PREMIS should be treated as the most promising preservation-metadata framework for formalizing current workflow events and object state later.
-- NISO Z39.87 should be treated as the most promising technical-image-metadata reference for image asset profiling later.
-- Research writing should distinguish implemented features from conceptual influence.
+### 影响
+- IIIF 会继续作为最清晰的访问层实现目标；
+- BagIt 会继续作为导出/打包层的重要依据；
+- OAIS 主要作为概念框架；
+- PREMIS 将是后续 formalize 保存事件与对象状态的优先框架；
+- NISO Z39.87 将是后续 formalize 图像技术元数据的优先框架。
 
 ---
 
-### Development and research must be synchronized as parallel tracks
-- Date: 2026-03-09
-- Status: adopted
-- Related modules: docs, roadmap, research workflow
-- Related research question(s): RQ5, RQ6
+## 当前总结
 
-#### Context
-The project is now mature enough that implementation work generates research material, but without explicit synchronization, key knowledge risks remaining scattered across chat, code, and memory.
+到目前为止，MDAMS 的关键设计决策已经形成一条较清楚的逻辑链：
 
-#### Decision
-Treat development and research-writing as synchronized parallel tracks. Major changes in implementation should produce research traces, and research clarification should feed back into development priorities and terminology.
+1. 不追求无边界扩张，而是围绕主链路组织系统；
+2. 不把文件当作唯一中心，而是以数字资产为核心对象；
+3. 不追求全面标准合规，而是采用分层、选择性的标准对齐策略。
 
-#### Alternatives Considered
-- Postpone writing until the prototype is mostly complete.
-- Keep academic reflection separate from implementation records.
-- Write only a final summary after development stabilizes.
-
-#### Rationale
-Parallel synchronization reduces knowledge loss, improves conceptual clarity, and increases the eventual quality of thesis/paper output.
-
-#### Implications
-- Development milestones should map to research questions and evidence types.
-- Design rationale should be captured while decisions are fresh.
-- Validation and failure events should be recorded not only as engineering facts but also as research material.
+这三条决策共同支撑了当前原型的工程路线与研究路线。

@@ -1,80 +1,37 @@
-# External Review Notes — 2026-03-09
+# 外部资料审阅笔记（2026-03-09）
 
-## Scope of This Pass
+## 本轮目标
 
-This pass focused on establishing a first credible external reference base for the MDAMS research track, covering:
-- official technical standards/specifications;
-- academic research leads;
-- IIIF practice/adoption leads;
-- research methodology leads.
+本轮外部资料审阅的目标，是为 MDAMS 研究子项目确认第一批可信、可引用、与当前原型直接相关的标准与参考材料。
 
-## What Was Successfully Verified
+## 已确认资料
 
 ### 1. IIIF Presentation API 3.0
-Verified via official IIIF search result and direct fetch.
+- 已确认官方规范页面可访问；
+- 明确其是访问/展示互操作规范，而不是完整的发现/采集元数据框架；
+- 对 MDAMS 的 manifest 生成与访问表示层具有直接支撑意义。
 
-Key confirmed points:
-- stable version shown as 3.0.0;
-- designed for rich online viewing of compound digital objects;
-- explicitly not intended to provide harvesting/discovery metadata;
-- defines core classes such as Manifest, Canvas, Collection, Range, AnnotationPage, and Annotation.
+### 2. BagIt / RFC 8493
+- 已确认 RFC 页面可访问；
+- 明确其适合作为数字内容打包与传输的标准基础；
+- 对 MDAMS 当前导出链路的研究表达很重要。
 
-Research implication:
-- supports a clean argument that IIIF in MDAMS belongs primarily to the access/presentation layer.
+### 3. OAIS 相关入口
+- 已确认 OAIS 官方/标准入口存在；
+- 目前更适合作为概念框架使用；
+- 仍需后续更深入提炼以支撑更细节论证。
 
-### 2. BagIt RFC 8493
-Verified via RFC Editor search result and direct fetch.
+## 本轮结论
 
-Key confirmed points:
-- BagIt is a hierarchical file layout convention for storage and transfer of arbitrary digital content;
-- emphasizes payload + tag files;
-- highlights strong integrity assurances and direct file access;
-- notes wide use in preservation-related organizations.
+本轮已经足以支撑一个初步判断：
+- MDAMS 并不是凭空拼接功能；
+- 它已经与若干关键标准/框架建立了实际关系；
+- 这种关系呈现明显分层：有的直接实现，有的概念借鉴，有的后续再 formalize。
 
-Research implication:
-- strongly supports MDAMS BagIt export as preservation-oriented packaging rather than generic file download.
+## 下一步建议
 
-### 3. OAIS entry points
-Official and standards-related OAIS entry points were located.
-
-Key confirmed points:
-- OAIS is clearly an authoritative reference-model context;
-- further extraction is still needed for better citation-quality notes.
-
-Research implication:
-- OAIS can already be used as a conceptual framing source, but should not yet be quoted in detail without a second pass.
-
-## What Was Found But Not Yet Fully Retrieved
-
-### Academic leads
-- Digital Asset Management Systems in Museums
-- DAM Becky, Look at That Asset
-- Advancing cultural heritage: a decadal review of digital ...
-- Design Science in Information Systems Research
-- The design science research process ...
-
-### IIIF practice/adoption leads
-- Practical applications of IIIF report
-- Navigating IIIF in Art Research
-- Evolving Standards in Digital Cultural Heritage / IIIF 3D
-
-## Current Retrieval Constraints Observed
-
-- Some academic sources are blocked by 403 or publisher restrictions in direct fetch mode.
-- This means next retrieval passes may need:
-  - alternate copies;
-  - abstract-page fetching;
-  - bibliographic entry capture first, full text later.
-
-## Immediate Research Benefit
-
-Even this first pass already improves the research subproject in two ways:
-
-1. It confirms that the project's standards framing is not speculative.
-2. It identifies a realistic external review agenda for the next stage.
-
-## Recommended Next Pass
-
-1. prioritize accessible open sources from repositories, Zenodo, institutional repositories, and arXiv-like mirrors;
-2. collect bibliographic metadata for blocked publisher pages;
-3. build annotated entries tied to specific MDAMS research questions.
+下一轮资料审阅可进一步补强：
+- PREMIS 与保存事件建模；
+- NISO Z39.87 与图像技术元数据；
+- 文化遗产/博物馆 DAMS 研究与案例；
+- 设计科学/原型研究方法。

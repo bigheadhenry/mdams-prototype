@@ -1,237 +1,164 @@
-# Annotated Bibliography (Working Draft)
+# 注释书目（工作稿）
 
-## Purpose
+## 目的
 
-This document begins converting the external source pool into an annotated bibliography that can directly support the MDAMS paper/research track.
+本文档用于把外部资料池逐步转化为可直接支撑 MDAMS 研究写作的注释书目。
 
-Each entry records:
-- source identification;
-- access status;
-- key observed points;
-- relevance to MDAMS;
-- possible research-question linkage.
+每条记录尽量包含：
+- 资料识别信息；
+- 获取/验证状态；
+- 关键观察点；
+- 与 MDAMS 的相关性；
+- 可能对应的研究问题。
 
-This is a working draft, not a final citation-formatted bibliography.
+这是工作稿，不是最终格式化参考文献表。
 
 ---
 
-## 1. IIIF Consortium. *Presentation API 3.0*.
+## 1. IIIF Consortium. *Presentation API 3.0*
 - URL: https://iiif.io/api/presentation/3.0/
-- Type: official technical specification
-- Access status: directly fetched and verified
+- 类型：官方技术规范
+- 获取状态：已直接抓取并确认
 
-### Key observed points
-- Stable version shown as 3.0.0.
-- Designed to support rich online viewing environments for compound digital objects.
-- Explicitly does not aim to provide metadata for harvesting and discovery.
-- Defines core structures including Collection, Manifest, Canvas, Range, AnnotationPage, and Annotation.
+### 关键观察点
+- 稳定版本显示为 3.0.0；
+- 面向复合数字对象的在线展示环境；
+- 明确不以 metadata harvesting/discovery 为主要目标；
+- 核心结构包括 Collection、Manifest、Canvas、Range、AnnotationPage、Annotation。
 
-### Relevance to MDAMS
-- Strong foundation for the prototype's manifest-generation and access/presentation layer.
-- Helps justify a conceptual separation between asset management, descriptive metadata work, and end-user presentation.
-- Useful when explaining why IIIF is important but not sufficient as the whole metadata architecture.
+### 与 MDAMS 的相关性
+- 为当前原型的 manifest 生成与访问表示层提供直接基础；
+- 有助于说明“资产管理”与“面向用户展示”的概念分离；
+- 也有助于说明 IIIF 很重要，但它并不能替代完整元数据架构。
 
-### Likely research linkage
-- RQ on standards alignment.
-- RQ on why the prototype centers interoperability through IIIF access rather than attempting universal metadata standardization.
+### 可能对应的研究问题
+- RQ3：标准如何进入系统；
+- RQ5：如何把互操作访问层纳入研究表达。
 
 ---
 
-## 2. Kunze et al. *RFC 8493: The BagIt File Packaging Format (V1.0).* RFC Editor.
+## 2. Kunze et al. *RFC 8493: The BagIt File Packaging Format (V1.0).* RFC Editor
 - URL: https://www.rfc-editor.org/rfc/rfc8493
-- Type: official technical standard / RFC
-- Access status: directly fetched and verified
+- 类型：官方技术标准 / RFC
+- 获取状态：已直接抓取并确认
 
-### Key observed points
-- BagIt is defined as hierarchical file layout conventions for storage and transfer of arbitrary digital content.
-- A bag includes payload files and metadata tag files.
-- The RFC highlights strong integrity assurances and direct file access.
-- The specification notes broad use by preservation-oriented organizations.
+### 关键观察点
+- BagIt 被定义为任意数字内容的层级文件打包约定；
+- bag 同时包含 payload files 与 metadata tag files；
+- 强调完整性保证与直接文件访问；
+- 被保存导向机构广泛采用。
 
-### Relevance to MDAMS
-- Strong standards basis for the prototype's BagIt ZIP export.
-- Supports interpretation of export as preservation-aware packaging rather than simple download bundling.
-- Aligns well with fixity workflows and chain-of-custody thinking.
+### 与 MDAMS 的相关性
+- 为当前原型的 BagIt ZIP 导出提供标准基础；
+- 支撑把“导出”解释为保存导向打包，而不是普通下载；
+- 与 fixity 和 chain-of-custody 思路天然契合。
 
-### Likely research linkage
-- RQ on preservation-oriented design.
-- RQ on why export/package structure matters in a museum-oriented digital asset workflow.
+### 可能对应的研究问题
+- RQ3：标准如何进入系统；
+- RQ4：如何体现保存导向。
 
 ---
 
-## 3. OAIS Reference Model / ISO 14721 entry points.
+## 3. OAIS Reference Model / ISO 14721 相关入口
 - URLs:
   - http://www.oais.info/
   - https://www.iso.org/standard/87471.html
   - https://ccsds.org/Pubs/650x0m3.pdf
-- Type: reference-model / standards-family entry
-- Access status:
-  - OAIS info page fetched
-  - CCSDS PDF confirmed reachable by HEAD request
-  - ISO entry located via search
+- 类型：参考模型 / 标准体系入口
+- 获取状态：入口已确认，仍需更深入二次阅读
 
-### Key observed points
-- OAIS is clearly established as a reference-model context for archival information systems.
-- Official or standards-adjacent entry points are available.
-- A fuller second-pass extraction is still needed before using detailed quotations.
+### 关键观察点
+- OAIS 明确是档案信息系统/数字保存的参考模型语境；
+- 官方及标准相关入口可获得；
+- 当前仍需后续提炼更细节内容再用于具体论证。
 
-### Relevance to MDAMS
-- Useful as conceptual framing for ingest, packaging, archival information objects, lifecycle thinking, and preservation-aware workflows.
-- Helps position MDAMS as informed by preservation concepts without claiming complete OAIS implementation.
+### 与 MDAMS 的相关性
+- 有助于为 ingest、打包、生命周期与保存导向工作流提供概念框架；
+- 有助于说明 MDAMS 受保存理念影响，但并不宣称完整 OAIS 实现。
 
-### Likely research linkage
-- RQ on conceptual architecture.
-- RQ on how archival/preservation thinking shapes system boundaries and workflow design.
+### 可能对应的研究问题
+- RQ3；
+- RQ4；
+- RQ5。
 
 ---
 
-## 4. Crockett, Emily. *“DAM Becky, Look at That Asset”: Digital Asset Management in Cultural Heritage Institutions.* 2020.
-- Repository page: https://cdr.lib.unc.edu/concern/masters_papers/v118rk462
-- DOI: https://doi.org/10.17615/4vcy-ym50
-- Download URL discovered: https://cdr.lib.unc.edu/downloads/k643b662s?locale=en
-- Type: academic master's paper / cultural heritage DAM study
-- Access status:
-  - bibliographic page fetched successfully
-  - PDF download reachable
-  - current environment did not produce clean extracted text from PDF in this pass
+## 4. PREMIS Editorial Committee. *PREMIS Data Dictionary for Preservation Metadata, version 3.0*
+- 来源：用户提供 PDF 材料
+- 类型：保存元数据标准 / 数据字典
+- 获取状态：已提取并完成第一轮阅读
 
-### Key observed points
-- Confirmed title, author, year, and DOI.
-- Directly focused on digital asset management in cultural heritage institutions.
-- High-probability relevance even before full-text extraction because of exact thematic overlap.
+### 关键观察点
+- 版本 3.0，前言时间为 2015 年；
+- 结构围绕 Objects、Events、Agents、Rights；
+- 包含 implementation considerations；
+- 专题涉及 format information、environment、fixity、integrity、authenticity、digital signatures 等。
 
-### Relevance to MDAMS
-- Likely one of the most directly relevant research sources for positioning MDAMS in relation to museum/cultural-heritage DAM practice.
-- Should help compare general DAM expectations with the preservation/interoperability emphases in MDAMS.
+### 与 MDAMS 的相关性
+- 与当前 ingest、fixity、处理事件、衍生生成、导出等流程高度相关；
+- 非常适合用于解释系统如何逐步形成保存元数据意识；
+- 即使尚未正式实现 PREMIS，也可用于说明当前 proto-PREMIS 特征。
 
-### Likely research linkage
-- RQ on domain problem framing.
-- RQ on why cultural heritage DAM differs from generic enterprise DAM.
-
-### Follow-up needed
-- Do a dedicated PDF text-extraction pass to capture argument structure, scope, and conclusions.
+### 可能对应的研究问题
+- RQ3；
+- RQ4；
+- RQ5。
 
 ---
 
-## 5. Padfield et al. *Practical applications of IIIF as a building block towards a digital National Collection.*
-- URL: https://zenodo.org/records/6884885
-- Type: project/final report page
-- Access status: directly fetched and verified
+## 5. NISO. *ANSI/NISO Z39.87-2006 (R2017): Data Dictionary – Technical Metadata for Digital Still Images*
+- 来源：用户提供 PDF 材料
+- 类型：技术元数据标准
+- 获取状态：已提取并完成第一轮阅读
 
-### Key observed points
-- Describes a project exploring how IIIF can connect digitised content across institutional silos.
-- Highlights opportunities for describing, presenting, and re-using digital resources at scale.
-- Frames IIIF as part of a realistic and sustainable approach to connecting large numbers of collections at national scale.
-- Notes lower barriers to uptake, re-interpretation, and collaborative online resource building.
+### 关键观察点
+- 面向 raster digital images 的技术元数据；
+- 强调开发、交换、解释、互操作、长期管理与持续访问；
+- 前部内容涉及 digital object information、identifiers、file size、format designation 等。
 
-### Relevance to MDAMS
-- Strong practice-oriented evidence that IIIF has cross-institutional value beyond a narrow viewer integration story.
-- Useful for arguing that interoperability and reuse are practical institutional concerns, not only technical ideals.
-- Can help nuance the relationship between presentation, aggregation, reuse, and discovery.
+### 与 MDAMS 的相关性
+- 为 still image 资产的技术元数据设计提供了强标准基础；
+- 特别适合支撑大图像与图像导向资产处理场景；
+- 有助于把当前“图像元数据提取”提升为“标准映射可能性”。
 
-### Likely research linkage
-- RQ on interoperability strategy.
-- RQ on why standards-based access matters for future reuse and cross-collection integration.
-
----
-
-## 6. *The Practical Applications of IIIF: Project Outcomes and Future Directions.*
-- URL: https://zenodo.org/records/6587144
-- Type: project outcomes / webinar materials repository
-- Access status: directly fetched and verified
-
-### Key observed points
-- Provides demonstrator-oriented evidence of IIIF use in practice.
-- Includes examples such as Simple Site, Simple Discovery, IIIF Collection Explorer, Tudor Paintings Research Project/InvenioRDM repository pilot, and Digirati Manifest Editor.
-- Indicates an ecosystem of tools and implementations rather than isolated specification use.
-
-### Relevance to MDAMS
-- Valuable as practice evidence showing what kinds of real systems and demonstrators grow around IIIF.
-- Supports positioning MDAMS not as an isolated prototype but as part of a broader standards-driven ecosystem.
-- Useful when discussing future extensibility and ecosystem compatibility.
-
-### Likely research linkage
-- RQ on implementation/ecosystem context.
-- RQ on how prototype choices relate to existing IIIF-enabled infrastructures and tools.
+### 可能对应的研究问题
+- RQ3；
+- RQ5；
+- RQ6。
 
 ---
 
-## 7. PREMIS Editorial Committee. *PREMIS Data Dictionary for Preservation Metadata, version 3.0.*
-- Standard page noted in document: http://www.loc.gov/standards/premis
-- Type: preservation metadata standard / data dictionary
-- Access status: user-provided PDF extracted and partially reviewed
+## 6. Moore, Rountrey, and Scates Kettler (eds.). *3D Data Creation to Curation: Community Standards for 3D Data Preservation*
+- 来源：用户提供 PDF 材料
+- 类型：社区标准 / 编辑文集
+- 获取状态：已提取并完成第一轮阅读
 
-### Key observed points
-- Version 3.0, dated June 2015 and revised November 2015.
-- Structured around Objects, Events, Agents, and Rights.
-- Includes implementation considerations and special topics such as format information, environment, fixity, integrity, authenticity, and digital signatures.
-- Presents itself as a practical resource for implementing preservation metadata.
+### 关键观察点
+- 覆盖 best practices、storage、metadata、legal issues、access；
+- 以从 creation 到 curation 的全生命周期视角组织；
+- 对复杂数字对象的保存与访问具有方法论启发。
 
-### Relevance to MDAMS
-- Very strong fit for preservation-oriented conceptual modeling.
-- Especially relevant to ingest processing, event recording, fixity workflows, derivative-generation provenance, and rights-related preservation context.
-- Helps describe current MDAMS mechanisms as proto-preservation-metadata structures even if the system does not yet implement PREMIS formally.
+### 与 MDAMS 的相关性
+- 当前不是最核心标准，但对未来扩展到复杂数字对象或 3D 资产很有启发；
+- 也有助于说明保存、元数据、权利、访问本身就是连在一起的工作流。
 
-### Likely research linkage
-- RQ on preservation-oriented system design.
-- RQ on how operational workflow events can be represented or interpreted as preservation metadata.
+### 可能对应的研究问题
+- RQ3；
+- RQ6。
 
 ---
 
-## 8. NISO. *ANSI/NISO Z39.87-2006 (R2017): Data Dictionary – Technical Metadata for Digital Still Images.*
-- Type: technical metadata standard
-- Access status: user-provided PDF extracted and partially reviewed
+## 当前综合观察
 
-### Key observed points
-- Defines metadata elements for raster digital images.
-- Explicitly supports development, exchange, interpretation, interoperability, long-term management, and continuing access.
-- Includes early sections on digital object information, identifiers, file size, format designation, and format registry.
+当前注释书目已经能支撑一个更稳的研究表达：
+- **IIIF** 负责访问表示与互操作；
+- **BagIt** 负责导出打包；
+- **OAIS** 提供概念性保存框架；
+- **PREMIS** 提供保存元数据框架；
+- **NISO Z39.87** 提供图像技术元数据基础；
+- **CS3DP** 提供未来复杂对象扩展视角。
 
-### Relevance to MDAMS
-- Strong candidate standard for image technical metadata profiling in the prototype.
-- Particularly relevant where the system manages still-image masters, derivatives, and image-serving workflows.
-- Could inform a more disciplined ingest metadata profile for digital still images.
-
-### Likely research linkage
-- RQ on asset-level technical metadata design.
-- RQ on how image-focused technical metadata can be standardized in a museum-oriented prototype.
-
----
-
-## 9. Moore, Rountrey, and Scates Kettler (eds.). *3D Data Creation to Curation: Community Standards for 3D Data Preservation.*
-- Type: community standard / edited volume
-- Access status: user-provided PDF extracted and partially reviewed
-
-### Key observed points
-- Covers best practices, management and storage, metadata requirements, legal issues, and access for 3D data.
-- Explicitly addresses metadata requirements in relation to the digital asset life cycle.
-- Treats 3D preservation as an end-to-end workflow from creation to curation.
-
-### Relevance to MDAMS
-- Not yet a core standard for the current prototype scope, but highly useful as a future-facing expansion reference.
-- Shows how preservation, metadata, rights, access, and lifecycle concerns can be integrated for complex media types.
-
-### Likely research linkage
-- RQ on future extensibility.
-- RQ on how the current prototype might generalize beyond still-image-centered workflows.
-
----
-
-## Current Working Observations Across Sources
-
-The current annotated set suggests a coherent external framing for MDAMS:
-- **IIIF** supports access representation and interoperability;
-- **BagIt** supports structured preservation/export packaging;
-- **OAIS** supports conceptual lifecycle and archival framing;
-- **PREMIS** supports preservation metadata entities and event-oriented modeling;
-- **NISO Z39.87** supports technical metadata for digital still images;
-- **Cultural-heritage DAM literature** supports domain-specific problem framing;
-- **IIIF practice reports** help move the argument from standards theory to institutional applicability;
-- **CS3DP** offers a future-facing expansion perspective for more complex asset types.
-
-## Immediate Next Steps
-
-1. Extract full text or at least substantial sections from Crockett's paper.
-2. Add at least 2 more directly relevant academic sources on museum/cultural-heritage DAMS.
-3. Add at least 1 methodology source for design science / prototype research.
-4. Convert these entries later into citation-style bibliography plus thematic synthesis notes.
+这说明 MDAMS 的研究表达可以不再停留于“系统做了哪些功能”，而能进一步讨论：
+- 为什么这些标准以不同层级进入系统；
+- 为什么当前原型应采用选择性对齐而不是全面合规；
+- 为什么这条路径对研究型原型是合理的。

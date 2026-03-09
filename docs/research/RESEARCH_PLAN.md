@@ -1,89 +1,122 @@
-# MDAMS Research Track Plan
+# MDAMS 研究计划
 
-## Purpose
+## 1. 背景
 
-This research track runs in parallel with the MDAMS Prototype development track. Its purpose is to systematically convert design decisions, implementation experience, standard adaptation, and validation results into reusable research outputs.
+MDAMS Prototype 不仅是一个工程实现项目，也具备较强的研究潜力。
 
-In short, the development track answers **"Can we build and stabilize the prototype?"** while the research track answers **"What knowledge does this prototype generate about museum digital asset management system design?"**
+它涉及的核心问题包括：
+- 博物馆/展陈数字资源如何进行结构化管理；
+- 数字资产如何贯穿采集、处理、校验、访问与导出；
+- 如何把 IIIF、BagIt、OAIS、PREMIS 等标准/框架转化为原型系统中的可操作能力；
+- 如何在有限范围内构建一个“可演示、可分析、可扩展”的数字资产管理原型。
 
-## Positioning
+因此，有必要并行建立一条研究子项目线，把工程实践中的知识、决策和证据沉淀为可用于论文写作与研究表达的材料。
 
-MDAMS Prototype is not treated here as a generic file management system. It is treated as a practice-based prototype for museum and cultural heritage digital asset management, with emphasis on:
+## 2. 总体目标
 
-- ingest of digital resources;
-- metadata organization and extraction;
-- fixity and integrity verification;
-- derivative generation;
-- IIIF-based access;
-- preservation-oriented export.
+本研究子项目的总体目标是：
 
-The research track therefore focuses on the relationship between:
+> 将 MDAMS Prototype 发展为一个既有工程实现价值、又能支撑研究/论文表达的数字资产管理原型案例。
 
-- domain requirements,
-- conceptual modeling,
-- architecture design,
-- standards alignment,
-- prototype implementation,
-- and practical validation.
+具体来说，研究目标包括：
+1. 清晰界定项目的问题域与原型边界；
+2. 提炼当前系统的核心概念模型；
+3. 梳理主要标准/框架与项目的对应关系；
+4. 记录重要设计决策及其理由；
+5. 建立可持续扩充的参考资料与注释书目；
+6. 形成可直接转化为论文正文的中间文档。
 
-## Core Goal
+## 3. 研究方法取向
 
-To produce a coherent body of research material that can support one or more of the following:
+当前最适合 MDAMS 的研究方法取向包括：
+- **设计科学/原型研究（design science / prototype-oriented research）**；
+- **实践驱动的系统设计反思**；
+- **标准映射与实现分析**；
+- **面向文化遗产/数字保存场景的案例研究表达**。
 
-- thesis chapters;
-- conference or workshop papers;
-- project research reports;
-- architecture/design reflection documents;
-- future implementation guidelines.
+这意味着研究不应只讨论“理论上应该怎样”，也不应只罗列工程细节，而是要解释：
+- 为什么这样设计；
+- 这些设计如何回应实际问题；
+- 它们与现有标准/框架之间是什么关系；
+- 当前原型已经做到什么程度，还缺什么。
 
-## Parallel Work Structure
+## 4. 研究对象定位
 
-### Development Track
-Focus:
-- making the prototype run;
-- stabilizing the core workflow;
-- clarifying architecture and data flow;
-- fixing integration and deployment issues.
+当前阶段，MDAMS 最适合被描述为：
+- 面向博物馆/展陈数字资源场景的数字资产管理原型；
+- 以数字资产为中心，而不是以孤立文件或完整藏品管理体系为中心；
+- 重点支持采集、校验、处理、访问与导出这一条可演示主链路；
+- 具有保存意识，但暂不宣称自己是完整 OAIS 仓储或完整标准实现系统。
 
-### Research Track
-Focus:
-- extracting the research problem from practice;
-- recording design rationale and trade-offs;
-- mapping prototype decisions to standards and concepts;
-- building an evaluable narrative around the prototype.
+## 5. 当前核心研究任务
 
-## Immediate Research Theme
+### 任务 A：整理当前项目事实
+目标：把仓库、文档、功能与部署结构中的已知事实转化为研究素材。
 
-Current working theme:
+### 任务 B：建立概念模型
+目标：明确 asset、file object、metadata、process event、access representation、export package 等核心概念之间的关系。
 
-> Exploring the design and implementation of a museum digital asset management prototype oriented toward ingest, verification, access, and preservation-aware export.
+### 任务 C：建立标准映射
+目标：解释 IIIF、BagIt、OAIS、PREMIS、NISO Z39.87 等如何与项目对应。
 
-## Deliverables
+### 任务 D：记录设计决策
+目标：把当前系统为何优先核心工作流、为何以数字资产为中心、为何采取选择性标准对齐等问题写清楚。
 
-This track should gradually produce:
+### 任务 E：建立参考资料体系
+目标：逐步补充技术标准、学术文献、行业案例与方法论资料。
 
-1. a research question set;
-2. a concept model for the system;
-3. a standards mapping note;
-4. an implementation decision log;
-5. an evaluation framework;
-6. a paper/thesis outline;
-7. reusable text blocks for formal academic writing.
+### 任务 F：服务后续论文写作
+目标：形成可直接复用到论文/研究报告中的中文材料。
 
-## Relationship to the Main Project
+## 6. 分阶段推进建议
 
-The research track is not a separate abstract exercise. It must stay synchronized with the real MDAMS codebase and deployment reality.
+### 第一阶段：把现有事实写实
+重点：
+- 项目事实；
+- 概念模型；
+- 设计决策；
+- 标准映射；
+- 初步参考材料。
 
-This means:
-- major development milestones should create research notes;
-- architectural changes should update conceptual and methodological descriptions;
-- demo validation should become evaluation evidence;
-- deployment and integration problems should feed the discussion/limitations sections.
+### 第二阶段：把标准与实现做细粒度对应
+重点：
+- PREMIS 事件映射；
+- 图像技术元数据 crosswalk；
+- IIIF Manifest 输出 profile；
+- BagIt 导出结构分析；
+- OAIS 范围界定图。
 
-## Current Priority
+### 第三阶段：转向论文表达
+重点：
+- 问题提出；
+- 相关工作；
+- 方法与原型说明；
+- 评估与讨论；
+- 结论与局限。
 
-At the current stage, the research track should not aim for polished final prose. It should first ensure that the project's core concepts, research problem, and evidence structure are clearly organized.
+## 7. 当前输出物
 
-## Working Principle
+当前研究子项目已经或将逐步产出以下文档：
+- `README.md`
+- `RESEARCH_PLAN.md`
+- `RESEARCH_QUESTIONS.md`
+- `PAPER_OUTLINE.md`
+- `CONCEPT_MODEL.md`
+- `CURRENT_PROJECT_FACTS.md`
+- `DESIGN_DECISIONS.md`
+- `STANDARDS_MAPPING.md`
+- `STANDARDS_TO_IMPLEMENTATION_MAPPING.md`
+- `REFERENCE_MATERIALS.md`
+- `ANNOTATED_BIBLIOGRAPHY.md`
 
-Document reality first, refine academic expression second.
+## 8. 当前判断
+
+从研究角度看，MDAMS 的价值不在于“功能很多”，而在于它已经开始形成一个相对清晰的结构：
+- 有核心对象；
+- 有工作流主线；
+- 有标准参照；
+- 有工程实现；
+- 有可演示性；
+- 有继续概念化和论文化的空间。
+
+这正是研究子项目需要抓住并持续强化的方向。

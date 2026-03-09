@@ -1,72 +1,54 @@
-# Literature / Standards / Industry Review Plan
+# 文献回顾计划
 
-## Purpose
+## 目的
 
-This document defines how the MDAMS research track should gather and organize external reference materials.
+本文档用于规划 MDAMS 研究子项目的文献与资料回顾工作，确保后续资料收集不是零散堆积，而是能系统服务研究问题与论文写作。
 
-The objective is not only to collect citations, but to build a usable evidence base for:
-- concept clarification;
-- standards mapping;
-- related work review;
-- and industry-context discussion.
+## 主要资料类型
 
-## Review Axes
+### 1. 技术标准与官方规范
+重点包括：
+- IIIF
+- BagIt
+- OAIS
+- PREMIS
+- NISO Z39.87
 
-### 1. Technical Standards and Official Frameworks
-Collect and analyze:
-- IIIF specifications;
-- OAIS reference materials;
-- BagIt specification;
-- metadata-related standards that become relevant later.
+### 2. 学术研究文献
+重点包括：
+- 博物馆/文化遗产数字资产管理；
+- 数字保存与保存元数据；
+- IIIF 应用与评价；
+- 原型研究 / 设计科学方法。
 
-### 2. Academic Research
-Collect and analyze:
-- museum digital asset management studies;
-- cultural heritage repository and digitization workflow research;
-- IIIF-related scholarly/practice papers;
-- prototype methodology or design-science references.
+### 3. 行业与机构实践资料
+重点包括：
+- 机构级 IIIF 实践；
+- 数字馆藏/数字展陈平台案例；
+- 保存导向打包、交付、管理实践。
 
-### 3. Industry / Platform Practice
-Collect and analyze:
-- real-world DAMS, repository, and preservation platform cases;
-- museum or GLAM sector digital infrastructure trends;
-- platform capability comparisons;
-- architecture patterns for large image handling and access.
+## 回顾目标
 
-## Recommended Recording Structure for Each Source
+文献回顾不只是为了“列参考文献”，而是要回答：
+- 当前项目对应的现实问题是什么；
+- 相关标准与方法在外部语境中如何被理解；
+- MDAMS 原型与已有工作相比处于什么位置；
+- 当前项目有哪些可论证的独特价值与局限。
 
-For each meaningful source, record:
-- title;
-- source type (standard / paper / report / website / case);
-- URL or citation;
-- key points;
-- relevance to MDAMS;
-- which research question(s) it informs.
+## 当前优先级
 
-## Priority Order
+建议优先顺序如下：
+1. 核心标准资料；
+2. 博物馆/文化遗产 DAMS 研究；
+3. IIIF 实践案例；
+4. 保存元数据与事件建模；
+5. 原型研究方法文献。
 
-### Priority 1
-- IIIF official materials
-- BagIt official specification
-- OAIS official reference model materials
+## 当前输出方式
 
-### Priority 2
-- museum/cultural-heritage DAMS research
-- IIIF-related scholarly adoption/use literature
-- digital repository ingest/preservation workflow research
+文献回顾结果优先沉淀到：
+- `REFERENCE_MATERIALS.md`
+- `ANNOTATED_BIBLIOGRAPHY.md`
+- 专题审阅笔记文件
 
-### Priority 3
-- industry platform cases and trend materials
-- wider DAM vs repository vs preservation-system comparison materials
-
-## Current Limitation
-
-In the current runtime, broad web search is not fully available through the preferred search tool, so some collection work may need to proceed through direct public-source fetching, targeted URLs, or later staged searches.
-
-## Working Rule
-
-Do not collect references as a flat pile. Always tie them back to:
-- the concept model;
-- the standards mapping;
-- the paper outline;
-- or a specific research question.
+这样可以逐步积累成论文相关工作部分的基础。

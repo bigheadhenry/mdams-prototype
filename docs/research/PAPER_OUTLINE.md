@@ -1,62 +1,51 @@
-# MDAMS Paper Outline (Draft)
+# MDAMS 论文大纲（草案）
 
-## Tentative Title
+## 1. 引言
+- 问题背景：博物馆/展陈数字资源管理面临的现实需求
+- 现有系统与标准之间的张力：工程可行性、标准复杂性与原型边界
+- 研究目标：提出并分析一个面向数字资产管理与保存意识的原型系统
+- 论文贡献概述
 
-Design and Implementation of a Museum Digital Asset Management System Prototype: From Ingest to IIIF-Based Access and Preservation-Oriented Export
+## 2. 相关背景与参考框架
+- 数字资产管理与文化遗产数字资源管理
+- IIIF 在访问/展示互操作中的作用
+- BagIt 在打包/导出中的意义
+- OAIS 作为概念性保存框架
+- PREMIS 作为保存元数据框架
+- NISO Z39.87 作为数字静态图像技术元数据参考
 
-## 1. Introduction
-- Background: growth of museum digital resources and need for manageable digital objects.
-- Problem: many systems are either too broad, too infrastructure-heavy, or poorly aligned with cultural heritage workflows.
-- Research objective: design and validate a prototype focused on the core MDAMS workflow.
-- Contribution statement.
+## 3. 研究方法与项目定位
+- 设计科学 / 原型研究取向
+- 实践驱动的系统构建与反思
+- 原型边界与研究对象说明
 
-## 2. Background and Related Concepts
-- Museum digital assets and digital object management.
-- DAMS vs repository vs collection management context.
-- IIIF overview.
-- OAIS as a conceptual reference.
-- BagIt as export/packaging reference.
+## 4. MDAMS 原型设计
+- 核心对象：数字资产
+- 核心工作流：采集、校验、处理、访问、导出
+- 概念模型说明
+- 架构与关键技术栈说明
 
-## 3. Research Problem and Design Goals
-- What the prototype is trying to prove.
-- Scope boundaries.
-- Why the project focuses on a core workflow instead of full institutional coverage.
-- Design goals: ingest, metadata, fixity, derivatives, access, export.
+## 5. 标准与实现映射
+- IIIF：直接实现层
+- BagIt：直接导出层
+- OAIS：概念框架层
+- PREMIS：保存元数据部分对齐
+- NISO Z39.87：图像技术元数据部分对齐
+- 选择性标准对齐的理由与边界
 
-## 4. Conceptual Model
-- Primary managed object.
-- Relationship between asset, file, metadata, derivative, access representation, export package.
-- Implications for UI, API, and storage logic.
+## 6. 当前实现与演示链路
+- 已实现能力概述
+- 典型 demo 工作流
+- 大图像场景下的意义
+- 当前缺口与局限
 
-## 5. System Architecture and Implementation
-- Overall architecture.
-- Backend, frontend, asynchronous task system.
-- Storage and file-processing flow.
-- IIIF-related components.
-- Export mechanism.
+## 7. 评估与讨论
+- 原型价值如何判断
+- 工程可行性与研究意义的结合
+- 与完整生产级系统的差异
+- 当前局限与下一步方向
 
-## 6. Core Workflow Validation
-- Representative workflow scenario.
-- Ingest steps.
-- Metadata/fixity generation.
-- Derivative/access generation.
-- IIIF access demonstration.
-- Export/package generation.
-
-## 7. Discussion
-- Design trade-offs.
-- Standards integration vs prototype simplicity.
-- Engineering constraints encountered.
-- What remains outside the current prototype scope.
-
-## 8. Conclusion and Future Work
-- Summary of prototype value.
-- Limits of the current implementation.
-- Future directions: richer metadata modeling, workflow management, preservation depth, institutional integration.
-
-## Optional Appendices / Supporting Materials
-- architecture diagrams;
-- workflow diagrams;
-- sample manifests or package structures;
-- deployment notes;
-- screenshots.
+## 8. 结论
+- 总结原型的研究与工程价值
+- 强调其在博物馆/展陈数字资源管理语境下的意义
+- 指出后续研究与实现扩展方向

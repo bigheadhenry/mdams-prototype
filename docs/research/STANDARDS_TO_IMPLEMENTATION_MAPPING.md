@@ -1,250 +1,232 @@
-# Standards to Implementation Mapping
+# 标准到实现映射
 
-## Purpose
+## 目的
 
-This document maps the current MDAMS Prototype implementation to the standards, reference models, and community frameworks now identified in the research track.
+本文档把 MDAMS Prototype 当前实现与已识别的标准、参考模型和社区框架进行直接对应。
 
-It is intentionally practical.
-
-Its goal is not to claim full compliance. Instead, it answers four concrete questions for each standard/framework:
-1. What role does the standard play?
-2. What is already present in the current implementation?
-3. What is missing or only implicit?
-4. What is the realistic next step if the project wants stronger alignment?
+它是一个更偏实践的文档，核心要回答四个问题：
+1. 这个标准/框架在项目里扮演什么角色？
+2. 当前实现中已经具备了什么？
+3. 还缺什么，或者哪些只是隐含存在？
+4. 如果要增强对齐，下一步最现实的动作是什么？
 
 ---
 
-## Mapping Legend
+## 映射级别说明
 
-- **Current alignment level**
-  - **Direct**: explicit implementation feature or output already exists
-  - **Partial**: some implementation behaviors align, but not as a formalized standard mapping
-  - **Conceptual**: mainly used as framing rather than concrete implementation
-  - **Future-facing**: relevant mainly for later extension
+- **直接对齐**：系统里已经存在明确实现特征或输出
+- **部分对齐**：实现行为与标准有对应，但还未 formalize
+- **概念对齐**：主要作为解释框架使用，而不是直接实现
+- **未来导向**：当前更多是未来扩展参考
 
 ---
 
 ## 1. IIIF
 
-### Role
-Access/presentation interoperability standard.
+### 角色
+访问/展示互操作标准。
 
-### Current alignment level
-**Direct**
+### 当前对齐级别
+**直接对齐**
 
-### Already present in MDAMS
-- dynamic IIIF Manifest generation;
-- IIIF-facing public URL structure;
-- Cantaloupe-based image service integration;
-- Mirador viewer integration;
-- distinction between stored asset file and IIIF-facing access representation.
+### 当前实现中已经存在
+- 动态 IIIF Manifest 生成；
+- 面向 IIIF 的公共 URL 结构；
+- 基于 Cantaloupe 的图像服务集成；
+- Mirador 查看器集成；
+- 明确区分存储文件与访问表示。
 
-### Evidence from current project facts
-The current demonstrable workflow already includes producing IIIF-facing access output and previewing through Mirador.
+### 还缺什么
+- 尚未明确记录当前实际支持的 IIIF Manifest profile；
+- 是否支持更复杂的 ranges、annotations、多部件对象等结构尚不清晰；
+- 尚缺一个稳定的输出验证说明。
 
-### What is still missing or implicit
-- no claim yet of broad/full IIIF feature coverage;
-- no explicit internal profile documenting which Presentation API fields are intentionally supported;
-- unclear depth of support for richer structures such as complex ranges, annotations, multi-part objects, or institution-specific descriptive enrichment.
+### 实际解释
+IIIF 是当前 MDAMS 中最强、最直接、最可展示的标准实现层。
 
-### Practical interpretation
-IIIF is the strongest case of an actually implemented standards-aligned layer in MDAMS. It should be described as the clearest direct implementation target rather than merely conceptual inspiration.
-
-### Realistic next step
-- document the current manifest profile actually emitted by MDAMS;
-- record which IIIF fields are stable, optional, or not yet supported;
-- add a small validation/test procedure for manifest output.
+### 下一步建议
+- 记录当前 manifest 输出 profile；
+- 标出已支持、可选支持、未支持字段；
+- 增加基础 manifest 验证流程。
 
 ---
 
 ## 2. BagIt
 
-### Role
-Packaging/export standard for preservation-oriented transfer and structuring.
+### 角色
+面向保存导向传输与导出的打包标准。
 
-### Current alignment level
-**Direct**
+### 当前对齐级别
+**直接对齐**
 
-### Already present in MDAMS
-- BagIt ZIP package download/export;
-- export logic tied to digital assets rather than generic file download;
-- strong relationship to fixity-aware workflow thinking.
+### 当前实现中已经存在
+- BagIt ZIP 导出；
+- 导出逻辑围绕数字资产展开，而非简单附件下载；
+- 与 fixity 导向思路密切相关。
 
-### Evidence from current project facts
-The current demonstrable workflow ends with export as a BagIt-oriented package.
+### 还缺什么
+- 当前文档还未完全写清导出 bag 的具体结构；
+- bag 中各类必需文件、manifest 算法与验证机制尚未系统记录；
+- 还没有 bag profile 层面的明确定义。
 
-### What is still missing or implicit
-- current documentation does not yet clearly describe how complete the bag structure is;
-- not yet documented whether manifest algorithms, tag files, and package validation are formalized beyond the basic output path;
-- bag profile or institution-specific packaging conventions are not yet described.
+### 实际解释
+BagIt 是当前已经落实到系统功能中的标准对齐点，但应避免把“已有导出”夸大为完整保存打包体系。
 
-### Practical interpretation
-BagIt is currently a real implementation feature, but the research writing should distinguish between “BagIt-oriented export is present” and “full institutional packaging/preservation environment is complete.”
-
-### Realistic next step
-- inspect and document the exact structure of the generated bag;
-- record which BagIt-required files are present;
-- if useful, add a simple validation check for exported bags.
+### 下一步建议
+- 检查一个真实导出包结构；
+- 记录 BagIt 关键文件是否齐全；
+- 增加简单的 bag 校验说明。
 
 ---
 
 ## 3. OAIS
 
-### Role
-Conceptual archival/lifecycle reference model.
+### 角色
+概念性的数字保存参考模型。
 
-### Current alignment level
-**Conceptual**
+### 当前对齐级别
+**概念对齐**
 
-### Already present in MDAMS
-- ingest-oriented framing;
-- lifecycle/process awareness;
-- preservation-aware export thinking;
-- differentiation between raw files, managed asset records, and access outputs;
-- SIP-like language in project description.
+### 当前实现中已经存在
+- ingest 导向组织方式；
+- 生命周期意识；
+- 面向保存的导出思路；
+- 对原始文件、管理对象、访问输出的区分；
+- SIP-like 的过程语言。
 
-### Evidence from current project facts
-The prototype workflow links ingest, metadata/fixity processing, access output, and package export, which is strongly compatible with OAIS-style lifecycle thinking.
+### 还缺什么
+- 没有正式 OAIS 信息模型映射；
+- 没有把 SIP/AIP/DIP 显式建模为一等实体；
+- 也没有完整覆盖 OAIS 全部职能域。
 
-### What is still missing or implicit
-- no formal OAIS information model mapping;
-- no explicit AIP/DIP/SIP modeling as first-class entities;
-- no preservation planning, administration, or archival storage functions in full OAIS depth;
-- no claim should be made that MDAMS is a complete OAIS repository.
+### 实际解释
+OAIS 当前更适合被视为研究解释框架，而不是系统实现标准。
 
-### Practical interpretation
-OAIS should currently be treated as an organizing conceptual frame for research explanation, not as a directly implemented standard.
-
-### Realistic next step
-- create a lightweight conceptual diagram mapping current MDAMS workflow stages to OAIS-inspired functions;
-- explicitly document which OAIS functions are out of scope.
+### 下一步建议
+- 画一个轻量 OAIS 对照图；
+- 明确写出哪些 OAIS 功能在当前范围之外。
 
 ---
 
 ## 4. PREMIS
 
-### Role
-Preservation metadata framework centered on Objects, Events, Agents, and Rights.
+### 角色
+以对象、事件、代理、权利为核心的保存元数据框架。
 
-### Current alignment level
-**Partial**
+### 当前对齐级别
+**部分对齐**
 
-### Already present in MDAMS
-- asset-centered records that can act as proto-object entities;
-- fixity generation/verification behavior;
-- asynchronous processing and conversion steps;
-- metadata extraction steps;
-- timestamps and status fields;
-- likely identifiable system/user/process actors at least implicitly in operations.
+### 当前实现中已经存在
+- 以资产为中心的记录，可视作 proto-object；
+- fixity 生成/校验；
+- 异步处理与转换；
+- 元数据提取动作；
+- 时间戳与状态字段；
+- 一定程度上可识别的系统/用户/处理过程角色。
 
-### Evidence from current project facts
-The prototype already performs ingest, fixity processing, metadata extraction, derivative-related processing, and package/export actions — all of which are strong candidates for PREMIS-like event interpretation.
+### 还缺什么
+- 尚未把 Object / Event / Agent / Rights 正式建模；
+- 没有稳定事件词表；
+- 处理历史更多是操作性存在，而不是正式保存元数据；
+- rights 维度目前较弱。
 
-### What is still missing or implicit
-- PREMIS Objects, Events, Agents, and Rights are not yet formalized as explicit system entities or metadata structures;
-- no stable event vocabulary yet for ingest, validation, conversion, or export actions;
-- provenance/process history may exist operationally without being modeled as preservation metadata;
-- rights information does not appear to be strongly developed.
+### 实际解释
+当前 MDAMS 已经具有多种 **proto-PREMIS 行为**，尤其体现在对象状态与事件层面，但尚未达到正式 PREMIS 实现。
 
-### Practical interpretation
-MDAMS appears to have several **proto-PREMIS behaviors** already, especially around events and object-level technical state, but not yet a formal PREMIS implementation. This is a strong research point: the prototype can be described as preservation-aware and PREMIS-informable without overclaiming compliance.
-
-### Realistic next step
-- define a minimal PREMIS-inspired event model for current workflow actions;
-- record a small controlled vocabulary for events such as ingest, checksum generation, metadata extraction, conversion, manifest generation, and export;
-- identify the minimum agent/right/object information worth capturing.
+### 下一步建议
+- 建立最小 PREMIS 风格事件模型；
+- 为 ingest、checksum、metadata extraction、conversion、manifest generation、export 建立事件词表；
+- 明确最小 agent / rights / object 信息集合。
 
 ---
 
 ## 5. NISO Z39.87
 
-### Role
-Technical metadata standard for digital still images.
+### 角色
+数字静态图像技术元数据标准。
 
-### Current alignment level
-**Partial**
+### 当前对齐级别
+**部分对齐**
 
-### Already present in MDAMS
-- image metadata extraction;
-- image-focused workflow orientation;
-- large-image handling and derivative processing;
-- IIIF image-serving context that depends on meaningful image characterization.
+### 当前实现中已经存在
+- 图像元数据提取；
+- 图像导向工作流；
+- 大图像处理与衍生生成；
+- 与 IIIF 图像访问链相关的图像特征处理。
 
-### Evidence from current project facts
-The prototype already extracts image metadata and supports large-image scenarios such as PSB / BigTIFF handling.
+### 还缺什么
+- 尚无显式字段 crosswalk；
+- 还不清楚当前提取字段覆盖到 Z39.87 的哪些层级；
+- 尚未形成公开的图像技术元数据 profile。
 
-### What is still missing or implicit
-- no explicit internal crosswalk from extracted fields to Z39.87 elements;
-- unclear whether format registry references, capture-related fields, image creation metadata, or technical characterization coverage are complete;
-- no published technical metadata profile for image assets.
+### 实际解释
+当前系统已经是“图像感知”的，但技术元数据组织仍更偏实现驱动，而不是标准 profile 驱动。
 
-### Practical interpretation
-MDAMS already behaves like an image-aware system, but its current technical metadata handling appears more implementation-driven than standards-profile-driven. Z39.87 is therefore a very strong candidate for formalizing the image technical metadata subset later.
-
-### Realistic next step
-- inspect currently extracted image metadata fields;
-- create a small crosswalk showing which fields align to selected Z39.87 concepts;
-- define a “minimum viable technical metadata profile” for still images in the prototype.
+### 下一步建议
+- 盘点当前图像元数据提取字段；
+- 与 Z39.87 做最小 crosswalk；
+- 形成 still image 的 minimum viable profile。
 
 ---
 
-## 6. CS3DP (Community Standards for 3D Data Preservation)
+## 6. CS3DP（3D 数据保存社区标准）
 
-### Role
-Community guidance for lifecycle, metadata, preservation, legal, and access issues around 3D data.
+### 角色
+围绕 3D 数据生命周期、元数据、保存、权利与访问的社区指导框架。
 
-### Current alignment level
-**Future-facing**
+### 当前对齐级别
+**未来导向**
 
-### Already present in MDAMS
-- not much direct 3D-specific implementation evidence at present;
-- only the broader lifecycle-oriented perspective is currently relevant.
+### 当前实现中已经存在
+- 当前几乎没有直接 3D 专项实现证据；
+- 只有较宏观的生命周期视角具有参考意义。
 
-### What is still missing or implicit
-- no 3D asset model;
-- no 3D viewer/service chain;
-- no 3D-specific metadata profile;
-- no 3D preservation workflow.
+### 还缺什么
+- 没有 3D 资产模型；
+- 没有 3D 查看链路；
+- 没有 3D 元数据 profile；
+- 没有 3D 保存工作流。
 
-### Practical interpretation
-CS3DP should not be treated as a current implementation-aligned standard for MDAMS. Its value is as a structured reference for future expansion beyond still-image-centered workflows.
+### 实际解释
+CS3DP 当前不应被视为与实现直接对齐的标准，而更适合作为未来扩展到复杂数字对象时的参考材料。
 
-### Realistic next step
-- keep it in the research track as a future extension reference;
-- revisit only if 3D support becomes a concrete roadmap item.
-
----
-
-## Cross-Standard Interpretation
-
-The current implementation does **not** align with all standards in the same way. A more accurate reading is:
-
-- **IIIF** = strongest direct implementation alignment;
-- **BagIt** = direct export/package alignment;
-- **OAIS** = conceptual reference model;
-- **PREMIS** = partial but promising preservation-metadata alignment;
-- **NISO Z39.87** = partial but promising technical-image-metadata alignment;
-- **CS3DP** = future-facing extension reference.
-
-This layered interpretation is stronger than a generic “the system follows standards” claim because it distinguishes:
-- actual implemented standards-facing features,
-- conceptually adopted frameworks,
-- and future enrichment directions.
+### 下一步建议
+- 保留在研究线中作为未来扩展参考；
+- 只有在 3D 成为明确 roadmap 项时再深化。
 
 ---
 
-## Research Value
+## 跨标准总体判断
 
-This mapping supports a strong thesis/paper claim:
+当前 MDAMS 与不同标准的关系并不相同，更准确的分层解释是：
 
-> MDAMS Prototype demonstrates that a museum-oriented digital asset management prototype can combine direct implementation of selected interoperability/export standards with selective conceptual adoption of preservation and metadata frameworks, producing a system that is both technically demonstrable and research-meaningful without overstating formal compliance.
+- **IIIF** = 最强直接实现层；
+- **BagIt** = 直接导出/打包层；
+- **OAIS** = 概念解释层；
+- **PREMIS** = 保存元数据的部分对齐层；
+- **NISO Z39.87** = 图像技术元数据的部分对齐层；
+- **CS3DP** = 未来扩展参考层。
+
+这种解释优于笼统说“系统遵循多个标准”，因为它清楚区分了：
+- 已经实现的标准能力；
+- 借鉴的概念框架；
+- 尚待 formalization 的潜力；
+- 未来扩展方向。
 
 ---
 
-## Recommended Follow-Up Work
+## 研究意义
 
-1. Add a PREMIS-inspired event table for the current workflow.
-2. Add a Z39.87-inspired image technical metadata crosswalk.
-3. Document the current IIIF manifest profile actually emitted by the prototype.
-4. Inspect one real BagIt export and document its structure.
-5. Add an OAIS-inspired scope diagram showing what is in and out of current prototype scope.
+这份映射支撑一个很重要的研究判断：
+
+> MDAMS Prototype 的价值在于，它把“直接实现若干关键互操作/导出标准”与“选择性吸收保存与元数据框架”结合在一起，从而形成一个既有工程可演示性、又具研究解释力的数字资产管理原型。
+
+---
+
+## 后续建议
+
+1. 新增 PREMIS 事件映射表；
+2. 新增图像技术元数据 crosswalk；
+3. 文档化当前 IIIF Manifest profile；
+4. 检查一个真实 BagIt 导出样本；
+5. 补一个 OAIS 范围图。

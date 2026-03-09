@@ -1,97 +1,46 @@
-# Synchronization Mechanism Between Development Track and Research Track
+# 与开发主线同步说明
 
-## Purpose
+## 目的
 
-This document defines how the MDAMS development project and the MDAMS research-writing subproject should stay synchronized.
+本文档用于说明研究子项目如何与 MDAMS 的开发主线保持同步，而不是脱离代码与实际系统独立漂移。
 
-The goal is to ensure that implementation work continuously produces research material, and that research framing continuously sharpens implementation priorities.
+## 基本原则
 
-## Principle
+### 1. 研究必须以真实项目事实为基础
+研究文档应优先来自：
+- 当前仓库代码与结构；
+- 当前项目文档；
+- 当前可验证工作流；
+- 当前部署与测试结果。
 
-Development and research should not be treated as two separate timelines.
+不能把尚未实现的设想直接写成已完成事实。
 
-Instead:
-- development produces evidence;
-- research organizes that evidence;
-- research clarifies concepts and evaluation criteria;
-- clarified concepts feed back into development decisions.
+### 2. 开发与研究要双向促进
+- 开发主线为研究提供事实与证据；
+- 研究主线为开发提供概念澄清、标准映射与设计决策支撑。
 
-## Sync Rules
+### 3. 研究文档要服务未来实现
+研究子项目不只是论文材料归档，也应反过来帮助明确：
+- 下一步该补哪些功能；
+- 哪些概念需要正式建模；
+- 哪些标准值得进一步落地。
 
-### Rule 1. Major implementation changes must leave a research trace
-When a major technical or product decision is made, at least one of the following should be updated:
-- `DESIGN_DECISIONS.md`
-- `CONCEPT_MODEL.md`
-- `STANDARDS_MAPPING.md`
-- `EVALUATION_FRAMEWORK.md`
-- `PAPER_OUTLINE.md`
+## 当前同步机制
 
-Examples:
-- redefining the primary managed object;
-- changing ingest workflow semantics;
-- changing IIIF generation logic;
-- restructuring derivative handling;
-- changing export/package scope.
+建议研究线持续从开发主线吸收以下内容：
+- 新增或调整的核心功能；
+- 架构变化；
+- 标准相关实现；
+- 数据模型变化；
+- 新的 demo 经验与问题；
+- 配置、部署与可运维性改进。
 
-### Rule 2. Each development milestone should be mappable to a research question
-Before or after a milestone, ask:
-- Which research question does this inform?
-- Does this milestone provide evidence, clarification, or limitation?
-- Should the result appear in the future paper as method, implementation, validation, or discussion?
+同时，研究线也应持续输出：
+- 设计决策记录；
+- 概念模型修订；
+- 标准到实现映射；
+- 可直接转化为论文正文的中文文本。
 
-### Rule 3. Demo validation is research evidence
-Successful end-to-end demonstrations should be recorded not only as engineering success but also as validation evidence.
+## 当前判断
 
-Examples:
-- asset ingest completed end-to-end;
-- fixity generation completed;
-- IIIF manifest/viewer chain works;
-- export package generated and inspected.
-
-### Rule 4. Failures are also research material
-Implementation failures, fragile integrations, and scope constraints should not disappear into chat logs.
-They should feed:
-- discussion;
-- limitations;
-- trade-off analysis;
-- future work.
-
-### Rule 5. Research framing should constrain feature expansion
-When considering a new feature, ask:
-- Does it strengthen the core research argument?
-- Does it help validate the prototype's central workflow?
-- Is it conceptually central, or only a peripheral product temptation?
-
-If the answer is weak, the feature should probably not be prioritized.
-
-## Recommended Operating Rhythm
-
-### After a meaningful development session
-Record:
-- what changed;
-- why it mattered;
-- what it implies conceptually;
-- whether it validates, complicates, or narrows the research argument.
-
-### After a meaningful research clarification
-Reflect into development:
-- terminology updates;
-- concept model adjustments;
-- UI/API naming improvements;
-- revised implementation priorities.
-
-## Suggested Minimal Workflow
-
-1. Development change occurs.
-2. Check whether the change affects product meaning, architecture, workflow, or standards alignment.
-3. If yes, update at least one research document.
-4. If the change validates a core chain, record it as evidence.
-5. If the change exposes a limitation, record it as discussion material.
-
-## Current Priority for Synchronization
-
-At the current stage, synchronization should especially focus on:
-- defining the core managed object;
-- clarifying the ingest-to-access workflow;
-- documenting standards alignment boundaries;
-- collecting validation evidence for the prototype's demonstrable core chain.
+MDAMS 的研究子项目不应成为“开发完成后再补写论文”的尾部工作，而应作为项目的一条并行主线，持续沉淀能够解释该原型为何成立、如何成立、成立到什么程度的核心材料。

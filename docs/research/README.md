@@ -1,19 +1,69 @@
-# MDAMS Research Track
+# MDAMS 研究子项目
 
-This directory contains the research-writing subproject that runs in parallel with the MDAMS Prototype development project.
+## 目的
 
-## Purpose
+本目录用于支撑 MDAMS Prototype 的并行研究/论文写作工作。
 
-To transform implementation practice into structured research material.
+它不是单纯的“项目说明文档”汇总，而是一个与开发主线同步推进的研究工作区，用来持续沉淀：
+- 项目事实；
+- 研究问题；
+- 标准与理论框架；
+- 设计决策；
+- 参考文献与外部材料；
+- 可逐步发展为论文的结构化内容。
 
-## Current Files
+## 当前定位
 
-- `RESEARCH_PLAN.md` — overall positioning and goals of the research track
-- `RESEARCH_QUESTIONS.md` — main question and sub-questions
-- `PAPER_OUTLINE.md` — working academic structure
-- `DESIGN_DECISIONS.md` — implementation/design decision log
-- `SYNC_WITH_DEVELOPMENT.md` — rules for keeping research and development aligned
+MDAMS 当前最适合被理解为一个**面向博物馆/展陈数字资源场景的高价值技术原型**，而不是一个已经完全产品化、完全标准化、完全制度化部署的成熟系统。
 
-## Working Principle
+因此，这条研究线的重点不是夸大其“完整性”，而是要清楚说明：
+1. 这个原型解决了什么问题；
+2. 它如何把数字资产管理、保存意识、访问互操作与工程实现结合起来；
+3. 它如何形成一个既可演示、又可研究、还能继续扩展的系统原型。
 
-Document reality first, refine academic expression second.
+## 当前研究主线
+
+目前研究子项目围绕以下几个方向展开：
+- 明确 MDAMS Prototype 的问题域与目标场景；
+- 提炼当前仓库中已经存在的“真实项目事实”；
+- 将 IIIF、OAIS、BagIt、PREMIS、NISO Z39.87 等标准/框架与项目对应起来；
+- 梳理原型的核心概念模型与设计决策；
+- 形成后续论文写作可直接复用的结构。
+
+## 建议阅读顺序
+
+如果要快速理解这条研究线，建议按下列顺序阅读：
+
+1. `RESEARCH_PLAN.md`：研究子项目的整体目标与执行路径
+2. `RESEARCH_QUESTIONS.md`：当前研究问题集合
+3. `CURRENT_PROJECT_FACTS.md`：当前项目中已确认的事实
+4. `CONCEPT_MODEL.md`：当前概念模型草案
+5. `DESIGN_DECISIONS.md`：关键设计决策与理由
+6. `STANDARDS_MAPPING.md`：标准/框架与项目的概念关系
+7. `STANDARDS_TO_IMPLEMENTATION_MAPPING.md`：标准与当前实现的实际对应
+8. `REFERENCE_MATERIALS.md` 与 `ANNOTATED_BIBLIOGRAPHY.md`：外部资料与注释书目
+
+## 工作原则
+
+本研究目录遵循以下原则：
+- **以当前真实实现为基础**，不把未来设想写成既成事实；
+- **区分“已实现”“部分对齐”“概念借鉴”“未来扩展”**；
+- **让研究叙述能够反过来服务工程推进**；
+- **优先形成可持续扩写的中间文档**，而不是过早追求一次性终稿。
+
+## 当前状态
+
+研究子项目已经具备以下基础：
+- 初步研究计划；
+- 研究问题草案；
+- 论文大纲草案；
+- 项目事实记录；
+- 设计决策记录；
+- 标准映射与实现映射；
+- 外部参考资料初步整理；
+- 用户补充标准材料的整理记录。
+
+下一阶段的重点将是：
+- 继续把“标准”与“当前实现”做更细粒度映射；
+- 补充 PREMIS 事件映射与图像技术元数据 crosswalk；
+- 增强可直接用于论文正文的中文表述与论证。

@@ -1,175 +1,78 @@
-# Reference Materials (Initial Collection)
+# 参考资料池（工作稿）
 
-## Purpose
+## 目的
 
-This document collects early reference materials for the MDAMS research track, including technical standards, conceptual frameworks, public specifications, and directions for academic/industry review.
+本文档用于持续汇总与 MDAMS 研究子项目相关的外部资料，包括：
+- 技术标准；
+- 官方规范；
+- 学术研究；
+- 行业/机构案例；
+- 方法论参考。
 
-This is an initial working collection, not yet a polished bibliography.
+它是一个“资料池”，不等同于最终论文参考文献表。
 
 ---
 
-## A. Core Technical Standards / Official Specifications
+## A. 已确认的核心标准资料
 
 ### 1. IIIF Presentation API 3.0
-- Source: IIIF Consortium
 - URL: https://iiif.io/api/presentation/3.0/
-- Search status: verified via official IIIF site search result and direct fetch
-- Current observed notes:
-  - Official stable version shown as 3.0.0
-  - Objective: provide the information necessary for a rich online viewing environment for compound digital objects
-  - Explicitly states that it does **not** aim to provide metadata for harvesting and discovery/search indexing
-  - Defines core resource types including Collection, Manifest, Canvas, Range, AnnotationPage, and Annotation
-  - Strong relevance to structured presentation of digitized cultural objects across institutions
-- Relevance to MDAMS:
-  - direct support for manifest-oriented access representation
-  - supports the argument that MDAMS should distinguish access/presentation from broader discovery metadata concerns
-  - provides a strong standards basis for IIIF-facing access workflow claims
+- 类型：官方技术规范
+- 状态：已直接抓取并确认
+- 作用：为访问表示、Manifest 结构与展示互操作提供基础。
 
-### 2. IIIF Project / Consortium Overview
-- Source: IIIF
-- URL: https://iiif.io/
-- Search status: verified via official IIIF site search result and direct fetch
-- Current observed notes:
-  - IIIF is supported by a global consortium
-  - Used by aggregators, research institutions, national libraries, archives, museums, software companies, and digital agencies
-- Relevance to MDAMS:
-  - supports the case that IIIF is an established interoperability direction in galleries, libraries, archives, and museums
-
-### 3. BagIt File Packaging Format (RFC 8493)
-- Source: RFC Editor / IETF informational RFC
+### 2. BagIt / RFC 8493
 - URL: https://www.rfc-editor.org/rfc/rfc8493
-- Search status: verified via RFC Editor search result and direct fetch
-- Current observed notes:
-  - BagIt is defined as a set of hierarchical file layout conventions for storage and transfer of arbitrary digital content
-  - A bag contains payload files plus metadata tag files
-  - Key strengths explicitly described in the RFC include strong integrity assurances and direct file access
-  - The RFC notes broad use in digital preservation-related organizations including the Library of Congress and university libraries
-  - Core required structure includes `bagit.txt`, one or more `manifest-<algorithm>.txt`, and a `data/` payload directory
-- Relevance to MDAMS:
-  - directly supports preservation-oriented export/package design
-  - aligns well with fixity-aware asset packaging
-  - provides a solid basis for describing the prototype's BagIt ZIP output as structured packaging rather than generic download
+- 类型：RFC / 官方技术标准
+- 状态：已直接抓取并确认
+- 作用：为导出打包结构提供标准基础。
 
-### 4. OAIS Reference Model / ISO 14721
-- Sources:
-  - OAIS information site: http://www.oais.info/
-  - ISO entry discovered in search: https://www.iso.org/standard/87471.html
-  - CCSDS PDF source discovered in search: https://ccsds.org/Pubs/650x0m3.pdf
-- Search status: official/near-official entry points identified; lightweight fetch on OAIS info site succeeded
-- Current observed notes:
-  - OAIS is clearly established as a reference model context for archival information systems
-  - Official/standards-related entry points have been located, but a fuller text extraction and citation-quality note still needs a dedicated follow-up pass
-- Relevance to MDAMS:
-  - conceptual reference for ingest, lifecycle thinking, package concepts, and preservation-aware system framing
+### 3. OAIS 相关入口
+- URLs:
+  - http://www.oais.info/
+  - https://www.iso.org/standard/87471.html
+  - https://ccsds.org/Pubs/650x0m3.pdf
+- 类型：参考模型 / 标准体系入口
+- 状态：入口已确认，全文细读仍需继续
+- 作用：为数字保存、生命周期与档案信息系统提供概念框架。
 
----
+### 4. PREMIS 3.0
+- 来源：用户提供 PDF 材料
+- 类型：保存元数据标准 / 数据字典
+- 状态：已提取并完成第一轮整理
+- 作用：为对象、事件、代理、权利等保存元数据建模提供参考。
 
-## B. Initial Academic / Research Leads
+### 5. NISO Z39.87
+- 来源：用户提供 PDF 材料
+- 类型：数字静态图像技术元数据标准
+- 状态：已提取并完成第一轮整理
+- 作用：为图像技术元数据 profile 提供标准基础。
 
-### 1. Digital Asset Management Systems in Museums
-- Source type: research/thesis-style document
-- Search result URL: https://jscholarship.library.jhu.edu/server/api/core/bitstreams/9193efe7-80a3-471d-a58a-609215762eef/content
-- Search status: discovered by search, direct fetch blocked with 403 in current environment
-- Potential relevance:
-  - likely directly relevant to museum DAMS framing
-  - should be revisited through alternative access path or bibliographic lookup
-
-### 2. “DAM Becky, Look at That Asset”: Digital Asset Management in Cultural ...
-- Source type: academic paper / master's paper lead
-- URL: https://cdr.lib.unc.edu/concern/masters_papers/v118rk462
-- Search status: discovered, not yet fetched
-- Potential relevance:
-  - likely useful for cultural-heritage DAM practice framing
-
-### 3. Advancing cultural heritage: a decadal review of digital ...
-- Source type: Nature-related review lead
-- URL: https://www.nature.com/articles/s40494-025-01714-x
-- Search status: discovered, not yet fetched
-- Potential relevance:
-  - may help frame broader digital cultural heritage trends and technology context
-
-### 4. Design Science in Information Systems Research
-- Source type: foundational methodology lead
-- URL: https://www.jstor.org/stable/25148625
-- Search status: discovered by search, direct fetch blocked with 403 in current environment
-- Potential relevance:
-  - strong candidate for methodological framing if the paper adopts design science / prototype research language
-
-### 5. The design science research process: a model for producing and presenting information systems research
-- Source type: methodology lead
-- Search result indicates accessible variants via ResearchGate / arXiv-like mirrors
-- Search status: discovered, not yet fetched
-- Potential relevance:
-  - useful for framing how prototype building becomes research output
+### 6. CS3DP
+- 来源：用户提供 PDF 材料
+- 类型：3D 数据保存社区标准/参考书
+- 状态：已提取并完成第一轮整理
+- 作用：为未来复杂数字对象/3D 资产扩展提供参考。
 
 ---
 
-## C. Initial IIIF Practice / Adoption Leads
+## B. 当前工作性解释
 
-### 1. Practical applications ... IIIF - Final Report
-- Source type: practice/report lead
-- URL: https://zenodo.org/records/6884885/files/Practical%20Applications%20of%20IIIF%20-%20Final%20Report%20v.pdf
-- Search status: discovered, not yet fetched
-- Potential relevance:
-  - likely useful for practical IIIF adoption and implementation examples
-
-### 2. Navigating IIIF in Art Research: How Two Institutions Engage with ...
-- Source type: scholarly article lead
-- URL: https://www.journals.uchicago.edu/doi/abs/10.1086/735803?journalCode=adx
-- Search status: discovered, not yet fetched
-- Potential relevance:
-  - likely useful for institutional practice and adoption analysis
-
-### 3. Evolving Standards in Digital Cultural Heritage - Developing a IIIF 3D ...
-- Source type: book/chapter lead
-- URL: https://link.springer.com/chapter/10.1007/978-3-031-35593-6_3
-- Search status: discovered, not yet fetched
-- Potential relevance:
-  - useful for broader standards-evolution discussion in cultural heritage contexts
+目前 MDAMS 研究线最稳固的标准基础可以概括为：
+- **IIIF**：访问表示与展示互操作；
+- **BagIt**：导出/打包结构；
+- **OAIS**：概念性保存框架；
+- **PREMIS**：保存元数据；
+- **NISO Z39.87**：数字静态图像技术元数据；
+- **CS3DP**：未来扩展到复杂数字对象时的社区参考。
 
 ---
 
-## D. Industry / Practice Observation Directions
+## C. 后续待补方向
 
-The following industry/practice areas should be tracked as contextual material:
-
-- museum collection systems vs digital asset management systems;
-- digital preservation platforms and repository tools;
-- IIIF ecosystem adoption and viewer/server tooling;
-- large-image handling in heritage digitization workflows;
-- convergence or divergence between DAM, repository, and preservation platform roles.
-
----
-
-## E. Current Working Interpretation
-
-At this stage, the strongest confirmed standards base for MDAMS research consists of:
-- IIIF for access representation;
-- BagIt for preservation-oriented export/package logic;
-- OAIS for conceptual preservation/lifecycle framing;
-- PREMIS for preservation metadata concepts and entities;
-- NISO Z39.87 for technical metadata of digital still images.
-
-The current research literature collection is still at the lead-gathering stage, but the first pass has already identified promising directions in:
-- museum DAMS;
-- IIIF institutional adoption;
-- design science / prototype methodology;
-- broader digital cultural heritage review literature.
-
-User-provided standards material has also expanded the standards horizon to include community guidance for 3D data preservation (CS3DP), which is not yet central to current MDAMS scope but may be valuable for future extension analysis.
-
-## F. Progress Update After Second Retrieval Pass
-
-The second retrieval pass achieved the following concrete advances:
-- directly verified two Zenodo-hosted IIIF practice/project sources;
-- verified bibliographic metadata and DOI for Crockett's 2020 cultural-heritage DAM paper;
-- confirmed the CCSDS OAIS PDF is reachable;
-- created a first working `ANNOTATED_BIBLIOGRAPHY.md` for the research track.
-
-## G. Next Retrieval Priorities
-
-1. Extract and summarize at least 3 accessible academic sources for museum/cultural-heritage DAMS.
-2. Perform a dedicated PDF text-extraction pass for Crockett's paper.
-3. Retrieve a cleaner OAIS official summary/citation note from CCSDS/ISO-adjacent materials.
-4. Retrieve at least 1 foundational design-science/prototype-methodology source accessible in full text.
-5. Expand the annotated bibliography into citation-ready entries plus thematic synthesis notes.
+后续资料收集可继续沿以下方向补充：
+- 博物馆/文化遗产 DAMS 研究；
+- IIIF 在机构场景中的实践案例；
+- 保存元数据与事件建模文献；
+- 图像技术元数据 profile 实践；
+- 设计科学/原型研究方法文献。

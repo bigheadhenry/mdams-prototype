@@ -1,92 +1,64 @@
-# MDAMS Evaluation Framework (Draft)
+# MDAMS 评估框架（草案）
 
-## Purpose
+## 目的
 
-This document defines how the prototype should be evaluated as a research-oriented system, not merely as a codebase with implemented features.
+本文档用于定义如何评估 MDAMS 这样的研究型技术原型是否“足够有价值”。
 
-## Evaluation Position
+评估目标不是把它与成熟商业系统做简单功能数量比较，而是从研究与原型的角度判断它是否具备：
+- 清晰问题回应；
+- 稳定可演示工作流；
+- 合理概念模型；
+- 有意义的标准对齐；
+- 可继续扩展的工程基础。
 
-The prototype should be evaluated primarily on whether it demonstrates a coherent and explainable core workflow for museum digital asset management.
+## 评估维度
 
-The goal is not to prove institutional completeness. The goal is to prove that the prototype successfully establishes and validates the essential chain from ingest to access and preservation-oriented export.
+### 1. 核心工作流可演示性
+- 是否存在稳定、可重复、可解释的主链路；
+- 是否能从采集走到访问与导出；
+- 是否能在实际环境中运行。
 
-## Evaluation Dimensions
+### 2. 核心对象模型清晰度
+- 系统是否有清楚的核心管理对象；
+- 数据结构与工作流是否围绕该对象组织；
+- 对象关系是否能被解释清楚。
 
-### 1. Workflow Coherence
-Can the prototype support a logically complete workflow rather than isolated features?
+### 3. 标准与框架对齐质量
+- 是否明确区分直接实现、部分对齐、概念借鉴与未来扩展；
+- 是否避免过度宣称；
+- 标准对齐是否真正服务系统目标。
 
-Questions:
-- Can a digital resource be ingested as a meaningful managed object?
-- Does the workflow connect ingest, analysis, access, and export?
-- Are the stages conceptually understandable?
+### 4. 保存导向表达能力
+- 是否体现 fixity、过程记录、打包导出、生命周期意识；
+- 是否能说明系统不是普通文件传输工具；
+- 是否具有进一步 formalize 为保存元数据/保存工作流的可能。
 
-### 2. Asset-Centered Modeling
-Does the prototype behave as a digital asset management system rather than a loose file utility?
+### 5. 工程实现可信度
+- 是否存在真实代码、真实架构、真实部署路径；
+- 是否具备基本可验证性；
+- 是否不是停留在概念图或高层愿景。
 
-Questions:
-- Is there a clear primary managed object?
-- Are files, metadata, derivatives, and access representations meaningfully related?
-- Does the product language reflect the model?
+### 6. 研究可解释性
+- 是否能清楚回答“为什么这样设计”；
+- 是否能把实现与研究问题连接起来；
+- 是否能支撑论文写作而不仅是项目说明。
 
-### 3. Metadata and Integrity Support
-Does the prototype provide meaningful support for metadata and fixity-oriented management?
+## 当前判断
 
-Questions:
-- Can technical/descriptive metadata be captured or extracted?
-- Can checksums/fixity information be generated and viewed?
-- Are these treated as part of the asset lifecycle?
+基于现有材料，MDAMS 在以下方面表现较强：
+- 有可演示主链路；
+- 有真实工程实现；
+- 有较清晰的资产中心倾向；
+- 有较好的标准参照基础。
 
-### 4. Access Capability
-Does the prototype provide a viable access layer for digital objects?
+仍需继续增强的方面包括：
+- 更细粒度的标准到实现映射；
+- 更清晰的事件模型；
+- 更稳的元数据 profile；
+- 更明确的范围边界与局限说明。
 
-Questions:
-- Can access representations be generated?
-- Can IIIF-related outputs be produced and viewed?
-- Is access clearly distinguished from preservation/original storage?
+## 工作结论
 
-### 5. Preservation-Oriented Export
-Does the prototype demonstrate awareness of packaging/export for long-term management?
+一个像 MDAMS 这样的研究型原型，其价值不应主要由“功能数量”决定，而应由以下组合来判断：
 
-Questions:
-- Can the system produce an exportable package?
-- Is the package conceptually tied to preservation-oriented workflows?
-- Is export treated as part of the product architecture, not an afterthought?
-
-### 6. Technical Feasibility and Stability
-Is the prototype sufficiently stable to support demonstration and analysis?
-
-Questions:
-- Can the main workflow run end-to-end?
-- Are asynchronous processes observable enough to debug?
-- Is deployment/configuration manageable?
-
-### 7. Research Value
-Does the prototype generate useful insights beyond implementation itself?
-
-Questions:
-- Does it expose meaningful design trade-offs?
-- Does it help clarify how standards can be adapted in a prototype?
-- Does it reveal useful boundaries between product ambition and implementation reality?
-
-## Evidence Types
-
-The following can serve as evaluation evidence:
-- successful end-to-end demo runs;
-- generated manifests and packages;
-- screenshots of workflow states;
-- architecture and workflow diagrams;
-- logged design decisions;
-- records of failures and their implications;
-- comparison between intended and actual workflow behavior.
-
-## Current Priority
-
-At the current stage, the strongest evaluation target is the demonstrable core chain:
-
-1. ingest;
-2. metadata/fixity processing;
-3. derivative/access generation;
-4. IIIF-facing access;
-5. export/package generation.
-
-If this chain is stable and explainable, the prototype already has strong research value even without full enterprise-level coverage.
+> 是否能够以有限但扎实的实现，支撑一个清楚的问题回应、一个稳定的可演示工作流、一组合理的标准映射，以及一个可继续深化的研究表达框架。
