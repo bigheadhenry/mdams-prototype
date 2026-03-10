@@ -47,8 +47,8 @@
 ## 当前输出方式
 
 文献回顾结果优先沉淀到：
-- `REFERENCE_MATERIALS.md`
-- `ANNOTATED_BIBLIOGRAPHY.md`
+- `参考资料（REFERENCE_MATERIALS）.md`
+- `注释书目（ANNOTATED_BIBLIOGRAPHY）.md`
 - 专题审阅笔记文件
 
 这样可以逐步积累成论文相关工作部分的基础。
