@@ -76,6 +76,12 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
   const derivatives = structure?.derivatives || [];
   const accessPaths = detail?.access_paths || {};
   const outputActions = detail?.output_actions || {};
+  const processTimeline = detail?.process_timeline || [];
+  const timelineStatusColorMap: Record<string, string> = {
+    done: 'green',
+    pending: 'blue',
+    error: 'red',
+  };
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -99,6 +105,30 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
           </Descriptions.Item>
           <Descriptions.Item label="创建时间">{detail.created_at}</Descriptions.Item>
         </Descriptions>
+      </Card>
+
+      <Card title="处理轨迹">
+        {processTimeline.length > 0 ? (
+          <List
+            bordered
+            dataSource={processTimeline}
+            renderItem={(item: any) => (
+              <List.Item>
+                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                  <Space wrap>
+                    <Text strong>{item.label || item.step}</Text>
+                    <Tag color={timelineStatusColorMap[item.status] || 'default'}>
+                      {item.status_label || item.status}
+                    </Tag>
+                  </Space>
+                  <Text type="secondary">{item.description || '-'}</Text>
+                </Space>
+              </List.Item>
+            )}
+          />
+        ) : (
+          <Alert type="warning" showIcon message="当前对象暂无可展示的处理轨迹" />
+        )}
       </Card>
 
       <Card title="对象结构 / 文件关系">

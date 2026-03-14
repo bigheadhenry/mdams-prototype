@@ -420,6 +420,77 @@ def get_asset_detail(asset_id: int, request: Request, db: Session = Depends(get_
     if has_distinct_original:
         structure_summary = "当前对象由原始文件与转换后主文件共同构成，当前访问与输出默认指向转换后主文件。"
 
+    timeline_status_label_map = {
+        "done": "已完成",
+        "pending": "待完成",
+        "error": "异常",
+    }
+
+    has_fixity = bool(metadata.get("fixity_sha256"))
+    has_basic_metadata = any(metadata.get(key) not in (None, "") for key in ["width", "height", "original_file_path", "conversion_method", "ingest_method"])
+    access_copy_ready = bool(asset.file_path and os.path.exists(asset.file_path))
+    preview_ready = asset.status == "ready"
+    output_ready = access_copy_ready
+
+    if asset.status == "error":
+        preview_step_status = "error"
+        access_copy_step_status = "error" if not access_copy_ready else "done"
+    else:
+        preview_step_status = "done" if preview_ready else "pending"
+        access_copy_step_status = "done" if access_copy_ready else "pending"
+
+    process_timeline = [
+        {
+            "step": "object_created",
+            "label": "对象记录已建立",
+            "status": "done",
+            "status_label": timeline_status_label_map["done"],
+            "description": f"资源对象记录已创建，当前对象标识为 asset-{asset.id}。",
+        },
+        {
+            "step": "ingest_completed",
+            "label": "上传 / 入库已完成",
+            "status": "done" if asset.file_path else "pending",
+            "status_label": timeline_status_label_map["done" if asset.file_path else "pending"],
+            "description": metadata.get("ingest_method") and f"当前对象已通过 {metadata.get('ingest_method')} 方式进入系统。" or "当前对象文件已进入系统并完成记录。",
+        },
+        {
+            "step": "fixity_recorded",
+            "label": "Fixity 已记录",
+            "status": "done" if has_fixity else "pending",
+            "status_label": timeline_status_label_map["done" if has_fixity else "pending"],
+            "description": has_fixity and "已记录 SHA256，可用于完整性校验。" or "当前对象尚未显示可用的 SHA256 记录。",
+        },
+        {
+            "step": "metadata_extracted",
+            "label": "基础元数据已形成",
+            "status": "done" if has_basic_metadata else "pending",
+            "status_label": timeline_status_label_map["done" if has_basic_metadata else "pending"],
+            "description": has_basic_metadata and "已形成至少一部分技术/处理元数据。" or "当前对象尚未显示明确的基础技术元数据。",
+        },
+        {
+            "step": "access_copy_ready",
+            "label": "访问主文件已准备",
+            "status": access_copy_step_status,
+            "status_label": timeline_status_label_map[access_copy_step_status],
+            "description": access_copy_ready and f"当前主文件 {actual_filename} 已可作为访问与当前输出基础。" or "当前访问主文件尚未准备完成。",
+        },
+        {
+            "step": "preview_ready",
+            "label": "预览访问已就绪",
+            "status": preview_step_status,
+            "status_label": timeline_status_label_map[preview_step_status],
+            "description": preview_ready and "当前对象已达到可预览状态，可尝试通过 IIIF / Mirador 访问。" or (asset.status == "error" and "对象当前处于错误状态，预览链路不可用。" or "当前对象尚未达到可预览状态。"),
+        },
+        {
+            "step": "output_ready",
+            "label": "输出动作已具备",
+            "status": "done" if output_ready else "pending",
+            "status_label": timeline_status_label_map["done" if output_ready else "pending"],
+            "description": output_ready and "当前文件下载与 BagIt 打包入口已具备。" or "当前对象尚未具备稳定输出能力。",
+        },
+    ]
+
     return {
         "id": asset.id,
         "identifier": f"asset-{asset.id}",
@@ -443,6 +514,7 @@ def get_asset_detail(asset_id: int, request: Request, db: Session = Depends(get_
             "preview_ready": preview_ready,
             "has_error": has_error,
         },
+        "process_timeline": process_timeline,
         "structure": {
             "summary": structure_summary,
             "primary_file": primary_file,
