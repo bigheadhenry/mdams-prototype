@@ -368,6 +368,57 @@ def get_asset_detail(asset_id: int, request: Request, db: Session = Depends(get_
 
     metadata = asset.metadata_info or {}
     actual_filename = os.path.basename(asset.file_path) if asset.file_path else asset.filename
+    original_file_path = metadata.get("original_file_path") if metadata else None
+    has_distinct_original = bool(original_file_path and original_file_path != asset.file_path)
+    original_filename = os.path.basename(original_file_path) if has_distinct_original else actual_filename
+
+    status_label_map = {
+        "processing": "处理中",
+        "ready": "已就绪",
+        "error": "处理失败",
+    }
+    status_label = status_label_map.get(asset.status, asset.status)
+    preview_ready = asset.status == "ready"
+    has_error = asset.status == "error"
+
+    primary_file = {
+        "role": "primary_file",
+        "role_label": "当前主文件",
+        "filename": actual_filename,
+        "file_path": asset.file_path,
+        "mime_type": asset.mime_type,
+        "file_size": asset.file_size,
+        "is_current": True,
+        "is_original": not has_distinct_original,
+    }
+
+    original_file = {
+        "role": "original_file",
+        "role_label": "原始文件",
+        "filename": original_filename,
+        "file_path": original_file_path if has_distinct_original else asset.file_path,
+        "mime_type": metadata.get("original_mime_type", asset.mime_type),
+        "file_size": metadata.get("original_file_size", asset.file_size),
+        "is_current": not has_distinct_original,
+        "is_original": True,
+        "same_as_primary": not has_distinct_original,
+    }
+
+    derivatives = []
+    if has_distinct_original:
+        derivatives.append({
+            "role": "converted_master",
+            "role_label": "转换后当前访问文件",
+            "filename": actual_filename,
+            "file_path": asset.file_path,
+            "mime_type": asset.mime_type,
+            "file_size": asset.file_size,
+            "derivation_method": metadata.get("conversion_method"),
+        })
+
+    structure_summary = "当前对象仅包含一个主文件。"
+    if has_distinct_original:
+        structure_summary = "当前对象由原始文件与转换后主文件共同构成，当前访问与输出默认指向转换后主文件。"
 
     return {
         "id": asset.id,
@@ -385,14 +436,53 @@ def get_asset_detail(asset_id: int, request: Request, db: Session = Depends(get_
             "file_size": asset.file_size,
             "mime_type": asset.mime_type,
         },
+        "status_info": {
+            "code": asset.status,
+            "label": status_label,
+            "message": asset.process_message,
+            "preview_ready": preview_ready,
+            "has_error": has_error,
+        },
+        "structure": {
+            "summary": structure_summary,
+            "primary_file": primary_file,
+            "original_file": original_file,
+            "derivatives": derivatives,
+            "packaging": {
+                "bagit_supported": True,
+                "bagit_note": "BagIt 打包属于输出/长期保存交付动作，不作为对象内部常驻文件展示。",
+            },
+        },
         "technical_metadata": metadata,
         "access": {
             "manifest_url": f"/api/iiif/{asset.id}/manifest",
-            "preview_enabled": asset.status == "ready",
+            "preview_enabled": preview_ready,
+        },
+        "access_paths": {
+            "manifest": {
+                "label": "IIIF Manifest",
+                "url": f"/api/iiif/{asset.id}/manifest",
+            },
+            "mirador_preview": {
+                "label": "Mirador 预览",
+                "manifest_url": f"/api/iiif/{asset.id}/manifest",
+                "enabled": preview_ready,
+            },
+            "preview_enabled": preview_ready,
         },
         "outputs": {
             "download_url": f"/api/assets/{asset.id}/download",
             "download_bag_url": f"/api/assets/{asset.id}/download-bag",
+        },
+        "output_actions": {
+            "download_current_file": {
+                "label": "下载当前文件",
+                "url": f"/api/assets/{asset.id}/download",
+            },
+            "download_bag": {
+                "label": "下载 BagIt 包",
+                "url": f"/api/assets/{asset.id}/download-bag",
+            },
         },
     }
 
