@@ -45,6 +45,8 @@ class AssetOut(BaseModel):
     mime_type: str
     created_at: datetime
     status: str
+    resource_type: str | None = None
+    process_message: str | None = None
 
     class Config:
         orm_mode = True
@@ -117,6 +119,8 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
         file_size=file_size,
         mime_type=file.content_type,
         status="ready",
+        resource_type="image_2d_cultural_object",
+        process_message="处理完成，可预览",
         metadata_info={"width": width, "height": height} # No original_metadata here
     )
     db.add(db_asset)
@@ -355,6 +359,54 @@ from fastapi.responses import FileResponse
 from fastapi.background import BackgroundTasks
 import tempfile
 import zipfile
+
+@app.get("/assets/{asset_id}")
+def get_asset_detail(asset_id: int, request: Request, db: Session = Depends(get_db)):
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    metadata = asset.metadata_info or {}
+    actual_filename = os.path.basename(asset.file_path) if asset.file_path else asset.filename
+
+    return {
+        "id": asset.id,
+        "identifier": f"asset-{asset.id}",
+        "title": asset.filename,
+        "resource_type": asset.resource_type or "image_2d_cultural_object",
+        "resource_type_label": "二维文物图片资源对象",
+        "status": asset.status,
+        "process_message": asset.process_message,
+        "created_at": asset.created_at,
+        "file": {
+            "filename": asset.filename,
+            "file_path": asset.file_path,
+            "actual_filename": actual_filename,
+            "file_size": asset.file_size,
+            "mime_type": asset.mime_type,
+        },
+        "technical_metadata": metadata,
+        "access": {
+            "manifest_url": f"/api/iiif/{asset.id}/manifest",
+            "preview_enabled": asset.status == "ready",
+        },
+        "outputs": {
+            "download_url": f"/api/assets/{asset.id}/download",
+            "download_bag_url": f"/api/assets/{asset.id}/download-bag",
+        },
+    }
+
+@app.get("/assets/{asset_id}/download")
+def download_asset_file(asset_id: int, db: Session = Depends(get_db)):
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    if not asset.file_path or not os.path.exists(asset.file_path):
+        raise HTTPException(status_code=404, detail="Physical file not found")
+
+    actual_filename = os.path.basename(asset.file_path)
+    return FileResponse(asset.file_path, filename=actual_filename)
 
 @app.get("/assets/{asset_id}/download-bag")
 def download_asset_bag(asset_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):

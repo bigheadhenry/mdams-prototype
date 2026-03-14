@@ -133,6 +133,8 @@ async def ingest_sip(
             file_size=file_size,
             mime_type=file.content_type,
             status=initial_status,
+            resource_type="image_2d_cultural_object",
+            process_message="等待处理" if initial_status == "processing" else "处理完成，可预览",
             metadata_info=final_metadata
         )
         

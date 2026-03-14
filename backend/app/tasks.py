@@ -63,6 +63,7 @@ def convert_psb_to_bigtiff(self, asset_id: int, original_path: str):
         asset.metadata_info["height"] = image.height
         
         asset.status = "ready"
+        asset.process_message = "处理完成，可预览"
         
         # Ensure JSON field update is tracked
         from sqlalchemy.orm.attributes import flag_modified
@@ -73,6 +74,7 @@ def convert_psb_to_bigtiff(self, asset_id: int, original_path: str):
     except Exception as e:
         print(f"Error converting PSB for Asset {asset_id}: {e}")
         asset.status = "error"
+        asset.process_message = f"转换失败: {str(e)}"
         if asset.metadata_info is None:
             asset.metadata_info = {}
         asset.metadata_info["error_message"] = str(e)

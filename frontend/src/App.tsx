@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Upload, Button, Table, message, Card, Statistic, Row, Col, Tag, Modal } from 'antd';
-import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined, DeleteOutlined, DownloadOutlined, ReloadOutlined, LoadingOutlined } from '@ant-design/icons';
+import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined, DeleteOutlined, DownloadOutlined, ReloadOutlined, LoadingOutlined, FileTextOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import MiradorViewer from './MiradorViewer';
 import IngestDemo from './components/IngestDemo';
+import AssetDetail from './components/AssetDetail';
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -22,6 +23,7 @@ const App: React.FC = () => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [currentManifest, setCurrentManifest] = useState('');
   const [selectedKey, setSelectedKey] = useState('1');
+  const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
 
   // Auto-refresh timer for processing assets
   useEffect(() => {
@@ -72,10 +74,14 @@ const App: React.FC = () => {
     formData.append('file', file);
 
     try {
-      await axios.post('/api/upload', formData);
+      const res = await axios.post('/api/upload', formData);
       message.success(`${file.name} 上传成功`);
       onSuccess("Ok");
       fetchAssets();
+      if (res.data?.id) {
+        setSelectedAssetId(res.data.id);
+        setSelectedKey('2');
+      }
     } catch (err) {
       message.error(`${file.name} 上传失败`);
       onError({ err });
@@ -129,18 +135,25 @@ const App: React.FC = () => {
       key: 'action',
       render: (_, record: Asset) => (
         <div style={{ display: 'flex', gap: '8px' }}>
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() => {
+              setSelectedAssetId(record.id);
+              setSelectedKey('2');
+            }}
+          >
+            详情
+          </Button>
           <Button 
             icon={<EyeOutlined />} 
             disabled={record.status === 'processing'}
             title={record.status === 'processing' ? '正在转码中，请稍候...' : '查看图像'}
             onClick={() => {
-              // Use relative path via Nginx proxy to avoid hardcoding IP
-              // 使用经由 Nginx 代理的相对路径，避免硬编码 IP
               setCurrentManifest(`/api/iiif/${record.id}/manifest`);
               setPreviewVisible(true);
             }}
           >
-            查看
+            预览
           </Button>
           <Button
             icon={<DownloadOutlined />}
@@ -192,47 +205,68 @@ const App: React.FC = () => {
         <Header style={{ padding: 0, background: '#fff' }} />
         <Content style={{ margin: '24px 16px 0' }}>
           <div style={{ padding: 24, minHeight: 360, background: '#fff' }}>
-            {selectedKey === '1' && (
-              <>
-                <Row gutter={16} style={{ marginBottom: 24 }}>
-                  <Col span={8}>
-                    <Card>
-                      <Statistic title="资产总数" value={assets.length} />
-                    </Card>
-                  </Col>
-                  <Col span={8}>
-                    <Card>
-                      <Statistic title="已用存储" value="1.2 GB" precision={2} />
-                    </Card>
-                  </Col>
-                  <Col span={8} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                     <Button icon={<ReloadOutlined />} onClick={() => fetchAssets()}>刷新列表</Button>
-                  </Col>
-                </Row>
-
-                <Table 
-                  dataSource={assets} 
-                  columns={columns} 
-                  rowKey="id" 
-                  loading={loading}
-                />
-              </>
-            )}
-            
-            {selectedKey === '4' && (
-              <IngestDemo 
-                onViewManifest={(assetId) => {
-                  setCurrentManifest(`/api/iiif/${assetId}/manifest`);
+            {selectedAssetId !== null ? (
+              <AssetDetail
+                assetId={selectedAssetId}
+                onBack={() => {
+                  setSelectedAssetId(null);
+                  setSelectedKey('1');
+                  fetchAssets(true);
+                }}
+                onPreview={(manifestUrl) => {
+                  setCurrentManifest(manifestUrl);
                   setPreviewVisible(true);
                 }}
               />
-            )}
-            
-            {(selectedKey === '2' || selectedKey === '3') && (
-               <div style={{ textAlign: 'center', padding: 50 }}>
-                 <Tag color="orange">建设中</Tag>
-                 <p>该模块尚未实现。</p>
-               </div>
+            ) : (
+              <>
+                {selectedKey === '1' && (
+                  <>
+                    <Row gutter={16} style={{ marginBottom: 24 }}>
+                      <Col span={8}>
+                        <Card>
+                          <Statistic title="资产总数" value={assets.length} />
+                        </Card>
+                      </Col>
+                      <Col span={8}>
+                        <Card>
+                          <Statistic title="已用存储" value="1.2 GB" precision={2} />
+                        </Card>
+                      </Col>
+                      <Col span={8} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                         <Button icon={<ReloadOutlined />} onClick={() => fetchAssets()}>刷新列表</Button>
+                      </Col>
+                    </Row>
+
+                    <Table 
+                      dataSource={assets} 
+                      columns={columns} 
+                      rowKey="id" 
+                      loading={loading}
+                    />
+                  </>
+                )}
+                
+                {selectedKey === '4' && (
+                  <IngestDemo 
+                    onViewManifest={(assetId) => {
+                      setCurrentManifest(`/api/iiif/${assetId}/manifest`);
+                      setPreviewVisible(true);
+                    }}
+                    onOpenAssetDetail={(assetId) => {
+                      setSelectedAssetId(assetId);
+                      setSelectedKey('2');
+                    }}
+                  />
+                )}
+                
+                {(selectedKey === '2' || selectedKey === '3') && (
+                   <div style={{ textAlign: 'center', padding: 50 }}>
+                     <Tag color="orange">建设中</Tag>
+                     <p>该模块尚未实现。</p>
+                   </div>
+                )}
+              </>
             )}
           </div>
         </Content>

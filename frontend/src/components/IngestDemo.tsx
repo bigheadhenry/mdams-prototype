@@ -12,9 +12,10 @@ const { Panel } = Collapse;
 
 interface IngestDemoProps {
   onViewManifest?: (assetId: number) => void;
+  onOpenAssetDetail?: (assetId: number) => void;
 }
 
-const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
+const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest, onOpenAssetDetail }) => {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [progress, setProgress] = useState<{ step: string; message: string }>({ step: '', message: '' });
@@ -324,9 +325,20 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest }) => {
               />
           )}
 
-          <div style={{ textAlign: 'center', marginBottom: 24, display: 'flex', justifyContent: 'center', gap: '16px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 24, display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
              <Button 
-                type="primary" 
+                type="primary"
+                size="large"
+                icon={<FileTextOutlined />}
+                onClick={() => {
+                  const assetId = result.serverVerification?.asset_id;
+                  if (assetId && onOpenAssetDetail) onOpenAssetDetail(assetId);
+                }}
+             >
+                查看对象详情
+             </Button>
+
+             <Button 
                 size="large"
                 icon={<EyeOutlined />}
                 disabled={!isPreviewSupported(result.fileName)}

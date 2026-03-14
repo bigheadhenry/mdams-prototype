@@ -12,6 +12,8 @@ class Asset(Base):
     mime_type = Column(String)
     metadata_info = Column(JSON, nullable=True)  # Store Exif/IPTC as JSON
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    resource_type = Column(String, default="image_2d_cultural_object")
+    process_message = Column(String, nullable=True)
     
     # Status: processing, ready, error
     status = Column(String, default="processing")
