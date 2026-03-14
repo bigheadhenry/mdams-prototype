@@ -33,3 +33,5 @@ docker-compose.override.yml
 
 # Temporary Scripts
 upload_to_server.bat
+cantaloupe/cantaloupe.properties
+cantaloupe/cantaloupe-5.0.6.zip
