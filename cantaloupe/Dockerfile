@@ -5,20 +5,22 @@ FROM eclipse-temurin:11-jre
 ENV CANTALOUPE_VERSION=5.0.6
 WORKDIR /opt
 
-# Install unzip, font libraries, and GraphicsMagick/FFmpeg for better format support
+# Install unzip, download tools, font libraries, and GraphicsMagick/FFmpeg for better format support
 RUN apt-get update && apt-get install -y \
     unzip \
+    curl \
     fontconfig \
     libfreetype6 \
     graphicsmagick \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy zip and unzip
-COPY cantaloupe-${CANTALOUPE_VERSION}.zip .
-RUN unzip cantaloupe-${CANTALOUPE_VERSION}.zip && \
-    mv cantaloupe-${CANTALOUPE_VERSION} cantaloupe && \
-    rm cantaloupe-${CANTALOUPE_VERSION}.zip
+# Download release zip during build so the repo does not need to carry large binaries
+RUN curl -L -o cantaloupe-${CANTALOUPE_VERSION}.zip \
+    https://github.com/cantaloupe-project/cantaloupe/releases/download/v${CANTALOUPE_VERSION}/cantaloupe-${CANTALOUPE_VERSION}.zip \
+    && unzip cantaloupe-${CANTALOUPE_VERSION}.zip \
+    && mv cantaloupe-${CANTALOUPE_VERSION} cantaloupe \
+    && rm cantaloupe-${CANTALOUPE_VERSION}.zip
 
 WORKDIR /opt/cantaloupe
 
@@ -26,9 +28,7 @@ WORKDIR /opt/cantaloupe
 RUN mkdir -p /var/lib/cantaloupe/images \
     && mkdir -p /var/lib/cantaloupe/cache
 
-# Copy config
-# Force rebuild 2026-01-05
-COPY cantaloupe.properties /etc/cantaloupe.properties
+# Runtime config is mounted by docker-compose to /etc/cantaloupe.properties
 
 # Expose port
 EXPOSE 8182
