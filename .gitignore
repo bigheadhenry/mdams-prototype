@@ -35,3 +35,5 @@ docker-compose.override.yml
 upload_to_server.bat
 cantaloupe/cantaloupe.properties
 cantaloupe/cantaloupe-5.0.6.zip
+cantaloupe/cantaloupe.properties
+cantaloupe/cantaloupe-5.0.6.zip

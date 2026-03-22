@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Configuration
-REPO_DIR="/home/bigheadhenry/repos/meam.git"
-WORK_DIR="/home/bigheadhenry/meam-prototype"
+REPO_DIR="/home/bigheadhenry/repos/mdams.git"
+WORK_DIR="/home/bigheadhenry/mdams-prototype"
 
 echo ">>> Setting up Git Push-to-Deploy on Server..."
 
@@ -23,7 +23,7 @@ echo "Creating post-receive hook at $HOOK_FILE..."
 cat > "$HOOK_FILE" << 'EOF'
 #!/bin/bash
 
-WORK_DIR="/home/bigheadhenry/meam-prototype"
+WORK_DIR="/home/bigheadhenry/mdams-prototype"
 LOG_FILE="/home/bigheadhenry/deploy.log"
 
 echo "==============================================="
