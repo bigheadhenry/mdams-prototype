@@ -78,6 +78,7 @@ docker-compose.yml  容器编排入口
 ## 4. 文档导航
 
 ### 项目入口文档
+- [项目方向说明：顶层聚合检索服务 + 独立模态资源系统](docs/PROJECT_DIRECTION_AGGREGATION_ARCHITECTURE.md)
 - [项目现状与开发路线图](docs/PROJECT_STATUS.md)
 - [工作流指南](docs/WORKFLOW_GUIDE.md)
 - [AI 辅助开发与部署指南](docs/AI_DEVELOPMENT_GUIDE.md)
