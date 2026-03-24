@@ -1,4 +1,4 @@
-# MEAM 项目架构文档
+# MDAMS 项目架构文档
 
 ## 1. 系统架构图 (System Architecture)
 
@@ -18,7 +18,7 @@ graph TB
         subgraph Application_Layer ["应用层"]
             Backend["FastAPI Backend<br/>Port: 8000"]
             Cantaloupe["Cantaloupe IIIF Server<br/>Port: 8182"]
-            FileBrowser["FileBrowser (Optional)<br/>Port: 8081"]
+            FileBrowser["FileBrowser<br/>Port: 8081"]
         end
 
         subgraph Data_Layer ["数据层"]

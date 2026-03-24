@@ -28,6 +28,6 @@
 4.  **重新部署**
     在服务器上执行：
     ```bash
-    cd ~/meam-prototype
+    cd ~/mdams-prototype
     ./deploy.sh
     ```

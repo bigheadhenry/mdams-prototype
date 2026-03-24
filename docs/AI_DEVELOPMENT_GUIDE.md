@@ -4,7 +4,7 @@
 
 ## 1. 项目概览 (Project Overview)
 
-*   **项目名称**: MEAM Prototype (Museum Exhibition Asset Management)
+*   **项目名称**: MDAMS Prototype (Museum Digital Asset Management System)
 *   **核心功能**: 超大分辨率图像 (BigTIFF/PSB) 存储、IIIF 预览、数字资产录入与利用。
 *   **架构模式**: 前后端分离 + 容器化部署 (Docker Compose)。
 
@@ -86,7 +86,7 @@ sudo apt-get install -y libvips libvips-dev libvips-tools ffmpeg graphicsmagick 
 ### 步骤 1: 克隆代码
 ```bash
 git clone <repository_url>
-cd meam-prototype
+cd mdams-prototype
 ```
 
 ### 步骤 2: 修改 IP 配置

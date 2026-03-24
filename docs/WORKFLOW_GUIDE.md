@@ -74,7 +74,7 @@ git push -f production master
 2.  **SSH 登录排查**:
     ```bash
     ssh bigheadhenry@192.168.5.13
-    cd meam-prototype
+    cd mdams-prototype
     docker compose logs -f --tail=100  # 查看容器运行日志
     ```
 
@@ -83,7 +83,7 @@ git push -f production master
 
 ```bash
 ssh bigheadhenry@192.168.5.13
-cd meam-prototype
+cd mdams-prototype
 ./deploy.sh
 ```
 

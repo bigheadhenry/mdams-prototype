@@ -14,7 +14,7 @@ This project uses a **Git Push-to-Deploy** workflow to synchronize code between 
 | Remote Name  | URL | Purpose |
 |Data Transfer | --- | --- |
 | `origin`     | `https://github.com/bigheadhenry/mdams-prototype.git` | Source Code Management & Backup |
-| `production` | `ssh://bigheadhenry@192.168.5.13/home/bigheadhenry/repos/meam.git` | Deployment Trigger |
+| `production` | `ssh://bigheadhenry@192.168.5.13/home/bigheadhenry/repos/mdams.git` | Deployment Trigger |
 
 ## 3. Workflow
 
@@ -45,7 +45,7 @@ git push production main:master
 > **What happens next?**
 > 1. The code is pushed to the bare repository on the server.
 > 2. A `post-receive` hook triggers.
-> 3. The hook checks out the code to `~/meam-prototype`.
+> 3. The hook checks out the code to `~/mdams-prototype`.
 > 4. Docker Compose rebuilds and restarts the services automatically.
 
 ## 4. Setup Scripts

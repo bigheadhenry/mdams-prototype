@@ -1,10 +1,10 @@
-# MEAM Prototype 系统架构与功能说明文档
+# MDAMS Prototype 系统架构与功能说明文档
 
-本文档详细描述了 MEAM (Museum Enterprise Asset Management) 原型系统的技术架构、核心功能及设计理念。该系统专为实验室环境（N100 服务器 + QNAP NAS）设计，旨在验证混合存储架构下的数字资产管理与 IIIF 高清图像服务能力。
+本文档详细描述了 MDAMS (Museum Digital Asset Management System) 原型系统的技术架构、核心功能及设计理念。该系统专为实验室环境（N100 服务器 + QNAP NAS）设计，旨在验证混合存储架构下的数字资产管理与 IIIF 高清图像服务能力。
 
 ## 1. 系统概览 (System Overview)
 
-MEAM Prototype 是一个轻量级的数字资产管理系统，核心能力在于对高分辨率文物图像的存储、管理与 IIIF 标准化展示。系统采用微服务架构，前后端分离，针对低功耗服务器（Intel N100）进行了专门的性能优化。
+MDAMS Prototype 是一个面向博物馆数字资源场景的原型系统，核心能力在于对高分辨率文物图像的存储、管理与 IIIF 标准化展示。系统采用微服务架构，前后端分离，针对低功耗服务器（Intel N100）进行了专门的性能优化。
 
 ### 1.1 核心价值
 *   **IIIF 原生支持**: 遵循 IIIF Presentation API 3.0 标准，支持跨机构图像互操作。
@@ -96,7 +96,7 @@ graph TD
 
 ### 4.2 目录结构
 ```text
-/meam-prototype
+/mdams-prototype
 ├── backend/            # Python API 服务代码
 ├── frontend/           # React 前端代码
 ├── cantaloupe/         # 图像服务器配置与构建文件
