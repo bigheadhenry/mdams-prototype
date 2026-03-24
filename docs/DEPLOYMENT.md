@@ -19,7 +19,7 @@
 ### 2.1 代码传输
 在开发机上将代码传输至服务器：
 ```powershell
-scp -r d:\Coding\meam-prototype bigheadhenry@192.168.5.13:/home/bigheadhenry/
+scp -r d:\Coding\mdams-prototype bigheadhenry@192.168.5.13:/home/bigheadhenry/
 ```
 
 ### 2.2 服务器环境检查
@@ -33,7 +33,7 @@ ls -ld /sunjing/project/文物库
 ### 2.3 启动服务
 进入项目目录并运行部署脚本：
 ```bash
-cd meam-prototype
+cd mdams-prototype
 chmod +x deploy.sh
 ./deploy.sh
 ```

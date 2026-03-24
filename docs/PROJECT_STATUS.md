@@ -117,7 +117,7 @@
 
 历史文档中存在多个名称并行：
 
-- MEAM
+- MDAMS
 - MDAMS
 - Prototype
 - Museum Enterprise Asset Management
