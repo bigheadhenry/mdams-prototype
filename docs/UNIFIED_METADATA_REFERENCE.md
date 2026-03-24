@@ -332,17 +332,3 @@ MDAMS 建议使用统一资源 ID 作为跨系统组织的主线。
 - 新增字段映射示例。
 
 本文件应作为 MDAMS 统一元数据方向的长期参考文档。
-EOF
-
-python - <<'PY'
-from pathlib import Path
-p = Path('/home/bigheadhenry/mdams-prototype/README.md')
-text = p.read_text()
-needle = "### 项目入口文档\n"
-insert = "### 项目入口文档\n- [统一元数据参考](docs/UNIFIED_METADATA_REFERENCE.md)\n"
-if insert not in text:
-    text = text.replace(needle, insert, 1)
-p.write_text(text)
-PY
-
-git -C /home/bigheadhenry/mdams-prototype add docs/UNIFIED_METADATA_REFERENCE.md README.md && git -C /home/bigheadhenry/mdams-prototype commit -m "docs: add unified metadata reference" && git -C /home/bigheadhenry/mdams-prototype push origin main

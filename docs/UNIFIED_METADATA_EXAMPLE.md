@@ -31,13 +31,11 @@
 | `title` | 资源标题 | 顶层主字段 | `清代山水图` |
 | `summary` | 简要描述 | 顶层主字段 | `一幅清代山水图像资源` |
 | `keywords` | 关键词/标签 | 顶层主字段 | `山水, 清代, 书画` |
-| `creators` | 创建者/责任者 | 顶层主字段 | `[
-  "张某"
-]` |
+| `creators` | 创建者/责任者 | 顶层主字段 | `["张某"]` |
 | `rights` | 权利/版权说明 | 顶层主字段 | `馆藏内部使用` |
 | `access_level` | 访问级别 | 顶层主字段 | `internal` |
 | `status` | 统一状态 | 顶层主字段 | `ready` |
-| `preview_url` | 预览地址 | 顶层主字段 | `/api/iiif/.../manifest` |
+| `preview_url` | 预览地址 | 顶层主字段 | `/api/iiif/44/manifest` |
 | `detail_url` | 统一详情页地址 | 顶层主字段 | `/assets/44` |
 | `updated_at` | 最近更新时间 | 顶层主字段 | `2026-03-24T12:00:00Z` |
 
@@ -283,16 +281,3 @@
 这个示例文档的目标是让 MDAMS 的统一元数据设计不仅“有原则”，而且“可落地、可扩展、可让模型继续理解和生成”。
 
 它是一个面向实际开发的参考模板，而不是静态说明。
-EOF
-
-python - <<'PY'
-from pathlib import Path
-p = Path('/home/bigheadhenry/mdams-prototype/README.md')
-text = p.read_text()
-marker = "### 项目入口文档\n"
-if "[统一元数据示例](docs/UNIFIED_METADATA_EXAMPLE.md)" not in text:
-    text = text.replace(marker, "### 项目入口文档\n- [统一元数据示例](docs/UNIFIED_METADATA_EXAMPLE.md)\n- [统一元数据参考](docs/UNIFIED_METADATA_REFERENCE.md)\n", 1)
-p.write_text(text)
-PY
-
-git -C /home/bigheadhenry/mdams-prototype add docs/UNIFIED_METADATA_EXAMPLE.md README.md && git -C /home/bigheadhenry/mdams-prototype commit -m "docs: add unified metadata examples" && git -C /home/bigheadhenry/mdams-prototype push origin main

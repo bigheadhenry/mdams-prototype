@@ -78,6 +78,8 @@ docker-compose.yml  容器编排入口
 ## 4. 文档导航
 
 ### 项目入口文档
+- [统一元数据参考](docs/UNIFIED_METADATA_REFERENCE.md)
+- [统一元数据示例](docs/UNIFIED_METADATA_EXAMPLE.md)
 - [项目方向说明：顶层聚合检索服务 + 独立模态资源系统](docs/PROJECT_DIRECTION_AGGREGATION_ARCHITECTURE.md)
 - [项目现状与开发路线图](docs/PROJECT_STATUS.md)
 - [工作流指南](docs/WORKFLOW_GUIDE.md)
