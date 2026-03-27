@@ -37,3 +37,15 @@ cantaloupe/cantaloupe.properties
 cantaloupe/cantaloupe-5.0.6.zip
 cantaloupe/cantaloupe.properties
 cantaloupe/cantaloupe-5.0.6.zip
+
+# Frontend test and preview artifacts
+frontend/playwright-report/
+frontend/test-results/
+frontend/.shots/
+frontend/frontend/
+frontend/unified-detail-layout.png
+backend/tests/__pycache__/
+
+# Local scratch and generated files
+pytest_backend.db
+reference/

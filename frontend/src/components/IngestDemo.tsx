@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, Upload, Button, Steps, Descriptions, Alert, Spin, Tag, Typography, Divider, Collapse, message, Modal } from 'antd';
 import { UploadOutlined, FileTextOutlined, SafetyCertificateOutlined, CloudUploadOutlined, ExperimentOutlined, EyeOutlined, DownloadOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-// @ts-ignore
 import HashWorker from '../workers/hashWorker.ts?worker';
 import axios from 'axios';
 import { checkFileLayers } from '../utils/fileCheck';
@@ -17,7 +17,7 @@ interface IngestDemoProps {
 
 const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest, onOpenAssetDetail }) => {
   const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'processing' | 'uploading' | 'success' | 'error'>('idle');
   const [progress, setProgress] = useState<{ step: string; message: string }>({ step: '', message: '' });
   const [result, setResult] = useState<any>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -40,6 +40,7 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest, onOpenAssetDeta
             } else if (type === 'complete') {
                 // Client-side processing done, now upload SIP
                 if (fileRef.current) {
+                    // eslint-disable-next-line react-hooks/immutability
                     uploadSIP(result, fileRef.current);
                 } else {
                     console.error("File is null when trying to upload SIP");
@@ -99,7 +100,7 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest, onOpenAssetDeta
     return sanitized;
   };
 
-  const uploadSIP = async (manifestData: any, fileData: File) => {
+  async function uploadSIP(manifestData: any, fileData: File) {
     setStatus('uploading');
     setProgress({ step: 'uploading', message: '正在上传 SIP 包并进行服务端校验...' });
     
@@ -160,7 +161,7 @@ const IngestDemo: React.FC<IngestDemoProps> = ({ onViewManifest, onOpenAssetDeta
       setProgress({ step: 'error', message: `服务端校验失败: ${errorMsg}` });
       message.error(`入库失败: ${errorMsg}`);
     }
-  };
+  }
 
   const handleFileSelect = async (info: any) => {
     // We only take the last selected file

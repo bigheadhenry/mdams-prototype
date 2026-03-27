@@ -1,6 +1,7 @@
 from .celery_app import celery_app
 from .database import SessionLocal
 from .models import Asset
+from .services.metadata_layers import build_metadata_layers
 import os
 import pyvips
 from sqlalchemy.orm import Session
@@ -53,14 +54,24 @@ def convert_psb_to_bigtiff(self, asset_id: int, original_path: str):
         # Update Asset
         asset.file_path = output_path
         
-        # Update metadata
-        if asset.metadata_info is None:
-            asset.metadata_info = {}
-            
-        asset.metadata_info["original_file_path"] = original_path
-        asset.metadata_info["conversion_method"] = "celery_pyvips_psb_to_bigtiff"
-        asset.metadata_info["width"] = image.width
-        asset.metadata_info["height"] = image.height
+        layers = build_metadata_layers(
+            asset_id=asset.id,
+            asset_filename=asset.filename,
+            asset_file_path=asset.file_path,
+            asset_file_size=asset.file_size,
+            asset_mime_type=asset.mime_type,
+            asset_status=asset.status,
+            asset_resource_type=asset.resource_type,
+            asset_created_at=asset.created_at,
+            metadata=asset.metadata_info or {},
+        )
+        layers["technical"]["original_file_path"] = original_path
+        layers["technical"]["conversion_method"] = "celery_pyvips_psb_to_bigtiff"
+        layers["technical"]["width"] = image.width
+        layers["technical"]["height"] = image.height
+        layers["technical"]["image_file_name"] = os.path.basename(output_path)
+        layers["technical"].setdefault("original_file_name", os.path.basename(original_path))
+        asset.metadata_info = layers
         
         asset.status = "ready"
         asset.process_message = "处理完成，可预览"
@@ -75,9 +86,19 @@ def convert_psb_to_bigtiff(self, asset_id: int, original_path: str):
         print(f"Error converting PSB for Asset {asset_id}: {e}")
         asset.status = "error"
         asset.process_message = f"转换失败: {str(e)}"
-        if asset.metadata_info is None:
-            asset.metadata_info = {}
-        asset.metadata_info["error_message"] = str(e)
+        layers = build_metadata_layers(
+            asset_id=asset.id if asset else None,
+            asset_filename=asset.filename if asset else None,
+            asset_file_path=asset.file_path if asset else None,
+            asset_file_size=asset.file_size if asset else None,
+            asset_mime_type=asset.mime_type if asset else None,
+            asset_status=asset.status if asset else None,
+            asset_resource_type=asset.resource_type if asset else None,
+            asset_created_at=asset.created_at if asset else None,
+            metadata=asset.metadata_info or {},
+        )
+        layers["technical"]["error_message"] = str(e)
+        asset.metadata_info = layers
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(asset, "metadata_info")
         db.commit()

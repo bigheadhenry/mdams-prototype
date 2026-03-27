@@ -1,57 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Upload, Button, Table, message, Card, Statistic, Row, Col, Tag, Modal } from 'antd';
-import { UploadOutlined, DatabaseOutlined, DashboardOutlined, ShoppingCartOutlined, EyeOutlined, ExperimentOutlined, DeleteOutlined, DownloadOutlined, ReloadOutlined, LoadingOutlined, FileTextOutlined } from '@ant-design/icons';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Layout, Menu, Button, Table, message, Card, Statistic, Row, Col, Tag, Modal } from 'antd';
+import {
+  DatabaseOutlined,
+  DashboardOutlined,
+  ShoppingCartOutlined,
+  EyeOutlined,
+  ExperimentOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  ReloadOutlined,
+  LoadingOutlined,
+  FileTextOutlined,
+} from '@ant-design/icons';
 import axios from 'axios';
 import MiradorViewer from './MiradorViewer';
 import IngestDemo from './components/IngestDemo';
 import AssetDetail from './components/AssetDetail';
+import PlatformDirectory from './components/PlatformDirectory';
+import UnifiedResourceDetail from './components/UnifiedResourceDetail';
+import ThreeDManagement from './components/ThreeDManagement';
+import type { AssetSummary } from './types/assets';
 
 const { Header, Content, Footer, Sider } = Layout;
 
-interface Asset {
-  id: number;
-  filename: string;
-  file_size: number;
-  mime_type: string;
-  status: string;
-  created_at: string;
-}
-
 const App: React.FC = () => {
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assets, setAssets] = useState<AssetSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [currentManifest, setCurrentManifest] = useState('');
   const [selectedKey, setSelectedKey] = useState('1');
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
+  const [selectedUnifiedResourceId, setSelectedUnifiedResourceId] = useState<string | null>(null);
 
-  // Auto-refresh timer for processing assets
-  useEffect(() => {
-    let interval: any;
-    // Check if any asset is processing
-    const hasProcessing = assets.some(a => a.status === 'processing');
-    
-    if (hasProcessing) {
-        interval = setInterval(() => {
-            fetchAssets(true); // silent refresh
-        }, 3000);
-    }
-    
-    return () => clearInterval(interval);
-  }, [assets]);
-
-  const fetchAssets = async (silent = false) => {
+  const fetchAssets = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const res = await axios.get('/api/assets');
       setAssets(res.data);
     } catch (err) {
-      // Quiet fail if backend is down for UI demo
       console.warn('加载资产失败', err);
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const hasProcessing = assets.some((asset) => asset.status === 'processing');
+    if (hasProcessing) {
+      interval = setInterval(() => {
+        fetchAssets(true);
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [assets, fetchAssets]);
 
   const handleDelete = async (id: number) => {
     try {
@@ -64,90 +70,46 @@ const App: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchAssets();
-  }, []);
-
-  const handleUpload = async (options: any) => {
-    const { file, onSuccess, onError } = options;
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const res = await axios.post('/api/upload', formData);
-      message.success(`${file.name} 上传成功`);
-      onSuccess("Ok");
-      fetchAssets();
-      if (res.data?.id) {
-        setSelectedAssetId(res.data.id);
-        setSelectedKey('2');
-      }
-    } catch (err) {
-      message.error(`${file.name} 上传失败`);
-      onError({ err });
-    }
-  };
-
-  const beforeUpload = (file: any) => {
-    // Allow common image formats supported by Cantaloupe/Java 2D
-    // JPG, PNG, GIF, BMP, TIFF
-    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tif', '.tiff'];
-    const fileName = file.name.toLowerCase();
-    const isImage = file.type.startsWith('image/') && 
-                    allowedExtensions.some(ext => fileName.endsWith(ext));
-    
-    if (!isImage) {
-      message.error('您只能上传支持的图像文件 (JPG, PNG, GIF, BMP, TIFF)!');
-      return Upload.LIST_IGNORE;
-    }
-    
-    const isLt100M = file.size / 1024 / 1024 < 1000;
-    if (!isLt100M) {
-      message.error('图像大小必须小于 1000MB!');
-      return Upload.LIST_IGNORE;
-    }
-    return true;
-  };
-
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id' },
     { title: '文件名', dataIndex: 'filename', key: 'filename' },
-    { 
-      title: '大小', 
-      dataIndex: 'file_size', 
+    {
+      title: '大小',
+      dataIndex: 'file_size',
       key: 'file_size',
-      render: (val: number) => (val / 1024 / 1024).toFixed(2) + ' MB'
+      render: (val: number) => (val / 1024 / 1024).toFixed(2) + ' MB',
     },
     { title: '类型', dataIndex: 'mime_type', key: 'mime_type' },
-    { 
-      title: '状态', 
-      dataIndex: 'status', 
+    {
+      title: '状态',
+      dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
         <Tag icon={status === 'processing' ? <LoadingOutlined /> : undefined} color={status === 'ready' ? 'green' : 'blue'}>
-            {status.toUpperCase()}
+          {status.toUpperCase()}
         </Tag>
-      )
+      ),
     },
     { title: '上传时间', dataIndex: 'created_at', key: 'created_at' },
     {
       title: '操作',
       key: 'action',
-      render: (_, record: Asset) => (
-        <div style={{ display: 'flex', gap: '8px' }}>
+      render: (_value: unknown, record: AssetSummary) => (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Button
             icon={<FileTextOutlined />}
             onClick={() => {
               setSelectedAssetId(record.id);
+              setSelectedUnifiedResourceId(null);
               setSelectedKey('2');
             }}
           >
             详情
           </Button>
-          <Button 
-            icon={<EyeOutlined />} 
+          <Button
+            icon={<EyeOutlined />}
             disabled={record.status === 'processing'}
-            title={record.status === 'processing' ? '正在转码中，请稍候...' : '查看图像'}
+            title={record.status === 'processing' ? '正在转码中，请稍候…' : '查看图像预览'}
             onClick={() => {
               setCurrentManifest(`/api/iiif/${record.id}/manifest`);
               setPreviewVisible(true);
@@ -192,12 +154,23 @@ const App: React.FC = () => {
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
-          onClick={(e) => setSelectedKey(e.key)}
+          onClick={(e) => {
+            setSelectedKey(e.key);
+            if (e.key !== '2') {
+              setSelectedAssetId(null);
+            }
+            if (e.key !== '6') {
+              setSelectedUnifiedResourceId(null);
+            }
+          }}
           items={[
             { key: '1', icon: <DashboardOutlined />, label: '仪表盘' },
             { key: '2', icon: <DatabaseOutlined />, label: '数字资产' },
             { key: '3', icon: <ShoppingCartOutlined />, label: '订单管理' },
             { key: '4', icon: <ExperimentOutlined />, label: '入库 PoC' },
+            { key: '5', icon: <DatabaseOutlined />, label: '统一资源' },
+            { key: '6', icon: <FileTextOutlined />, label: '统一详情' },
+            { key: '7', icon: <DatabaseOutlined />, label: '3D Data' },
           ]}
         />
       </Sider>
@@ -218,6 +191,38 @@ const App: React.FC = () => {
                   setPreviewVisible(true);
                 }}
               />
+            ) : selectedKey === '6' ? (
+              selectedUnifiedResourceId ? (
+                <UnifiedResourceDetail
+                  resourceId={selectedUnifiedResourceId}
+                  onBack={() => {
+                    setSelectedUnifiedResourceId(null);
+                    setSelectedKey('5');
+                  }}
+                  onPreview={(manifestUrl) => {
+                    setCurrentManifest(manifestUrl);
+                    setPreviewVisible(true);
+                  }}
+                  onOpenSourceDetail={(assetId) => {
+                    setSelectedAssetId(assetId);
+                    setSelectedUnifiedResourceId(null);
+                    setSelectedKey('2');
+                  }}
+                  onOpenUnifiedResourceDetail={(resourceId) => {
+                    setSelectedUnifiedResourceId(resourceId);
+                    setSelectedAssetId(null);
+                    setSelectedKey('6');
+                  }}
+                />
+              ) : (
+                <Card>
+                  <Tag color="blue">统一详情</Tag>
+                  <p>请先从统一资源目录中选择一个资源。</p>
+                  <Button type="primary" onClick={() => setSelectedKey('5')}>
+                    返回统一资源目录
+                  </Button>
+                </Card>
+              )
             ) : (
               <>
                 {selectedKey === '1' && (
@@ -234,37 +239,56 @@ const App: React.FC = () => {
                         </Card>
                       </Col>
                       <Col span={8} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                         <Button icon={<ReloadOutlined />} onClick={() => fetchAssets()}>刷新列表</Button>
+                        <Button icon={<ReloadOutlined />} onClick={() => fetchAssets()}>
+                          刷新列表
+                        </Button>
                       </Col>
                     </Row>
 
-                    <Table 
-                      dataSource={assets} 
-                      columns={columns} 
-                      rowKey="id" 
-                      loading={loading}
-                    />
+                    <Table dataSource={assets} columns={columns} rowKey="id" loading={loading} />
                   </>
                 )}
-                
+
                 {selectedKey === '4' && (
-                  <IngestDemo 
+                  <IngestDemo
                     onViewManifest={(assetId) => {
                       setCurrentManifest(`/api/iiif/${assetId}/manifest`);
                       setPreviewVisible(true);
                     }}
                     onOpenAssetDetail={(assetId) => {
                       setSelectedAssetId(assetId);
+                      setSelectedUnifiedResourceId(null);
                       setSelectedKey('2');
                     }}
                   />
                 )}
-                
+
+                {selectedKey === '5' && (
+                  <PlatformDirectory
+                    onPreview={(manifestUrl) => {
+                      setCurrentManifest(manifestUrl);
+                      setPreviewVisible(true);
+                    }}
+                    onOpenAssetDetail={(assetId) => {
+                      setSelectedAssetId(assetId);
+                      setSelectedUnifiedResourceId(null);
+                      setSelectedKey('2');
+                    }}
+                    onOpenUnifiedResourceDetail={(resourceId) => {
+                      setSelectedUnifiedResourceId(resourceId);
+                      setSelectedAssetId(null);
+                      setSelectedKey('6');
+                    }}
+                  />
+                )}
+
+                {selectedKey === '7' && <ThreeDManagement />}
+
                 {(selectedKey === '2' || selectedKey === '3') && (
-                   <div style={{ textAlign: 'center', padding: 50 }}>
-                     <Tag color="orange">建设中</Tag>
-                     <p>该模块尚未实现。</p>
-                   </div>
+                  <div style={{ textAlign: 'center', padding: 50 }}>
+                    <Tag color="orange">建设中</Tag>
+                    <p>该模块尚未实现。</p>
+                  </div>
                 )}
               </>
             )}
@@ -280,7 +304,7 @@ const App: React.FC = () => {
           footer={null}
           destroyOnHidden={true}
         >
-           {previewVisible && <MiradorViewer manifestId={currentManifest} />}
+          {previewVisible && <MiradorViewer manifestId={currentManifest} />}
         </Modal>
       </Layout>
     </Layout>

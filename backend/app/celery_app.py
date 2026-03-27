@@ -1,8 +1,6 @@
 from celery import Celery
-import os
 
-# Get Redis URL from environment or default to local
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+from .config import REDIS_URL
 
 celery_app = Celery(
     "meam_worker",

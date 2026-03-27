@@ -1,15 +1,18 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
-from sqlalchemy.orm import Session
-from ..database import get_db
-from ..models import Asset
-from ..tasks import convert_psb_to_bigtiff
-from ..utils.metadata import extract_metadata
-import os
 import hashlib
 import json
-import shutil
-from datetime import datetime
+import os
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from PIL import Image
+from sqlalchemy.orm import Session
+
+from .. import config
+from ..database import get_db
+from ..models import Asset
+from ..schemas import IngestSipResponse
+from ..tasks import convert_psb_to_bigtiff
+from ..services.metadata_layers import build_metadata_layers
+from ..utils.metadata import extract_metadata
 
 router = APIRouter(
     prefix="/ingest",
@@ -17,9 +20,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
-
-@router.post("/sip")
+@router.post("/sip", response_model=IngestSipResponse)
 async def ingest_sip(
     file: UploadFile = File(...),
     manifest: str = Form(...),
@@ -48,7 +49,7 @@ async def ingest_sip(
     # 2. Receive File & Calculate Server-side Hash (Streamed)
     # 边接收边计算 Hash，避免多次读取 IO
     sha256_hash = hashlib.sha256()
-    file_location = os.path.join(UPLOAD_DIR, file.filename)
+    file_location = os.path.join(config.UPLOAD_DIR, file.filename)
     
     # Use a temporary file first to ensure integrity before "committing" to storage
     temp_location = file_location + ".tmp"
@@ -117,15 +118,35 @@ async def ingest_sip(
             except Exception as e:
                 print(f"Error extracting dimensions with ExifTool: {e}")
 
-        # Merge technical metadata
-        # Ensure we only store serializable types
-        final_metadata = {
-            "ingest_method": "sip_bagit",
-            "fixity_sha256": server_hash,
-            "exif_metadata": exif_metadata,
-            "width": width,
-            "height": height
-        }
+        file_group = exif_metadata.get("File", {})
+        image_file_name = file.filename
+        final_metadata = build_metadata_layers(
+            asset_filename=file.filename,
+            asset_file_path=file_location,
+            asset_file_size=file_size,
+            asset_mime_type=file.content_type,
+            asset_status=initial_status,
+            asset_resource_type="image_2d_cultural_object",
+            metadata={
+                **client_metadata,
+                "ingest_method": "sip_bagit",
+                "fixity_sha256": server_hash,
+                "checksum": server_hash,
+                "checksum_algorithm": "SHA256",
+                "original_file_name": file.filename,
+                "image_file_name": image_file_name,
+                "file_size": file_size,
+                "format_name": file_group.get("FileType") or file.content_type,
+                "format_version": file_group.get("FileTypeVersion"),
+                "width": width,
+                "height": height,
+            },
+            source_metadata={
+                "client_metadata": client_metadata,
+                "exif_metadata": exif_metadata,
+                "server_hash": server_hash,
+            },
+        )
         
         db_asset = Asset(
             filename=file.filename,

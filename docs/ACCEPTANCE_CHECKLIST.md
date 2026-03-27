@@ -1,311 +1,87 @@
-# MDAMS Prototype 主链路验收清单
+# MDAMS Prototype Main Chain Acceptance Checklist
 
-## 1. 文档目标
+This checklist covers the current priority path:
 
-本文档用于定义 **MDAMS Prototype** 当前阶段核心主链路的最小验收清单。
+`upload -> ingest -> convert -> manifest -> preview -> download`
 
-当前验收重点不是覆盖全部未来业务功能，而是验证以下主链路是否成立：
+Use it for:
+- local startup validation
+- regression checks after config changes
+- demo preflight
+- quick failure diagnosis
 
-> **上传 → 入库 → 元数据提取 → 转换处理 → IIIF Manifest → Mirador 预览 → 下载/导出**
+## 1. Environment
 
-这份清单适用于：
+- `docker compose config` succeeds
+- `docker compose ps` shows `backend`, `frontend`, `db`, `redis`, `worker`, and `cantaloupe`
+- `http://localhost:3000` opens without a white screen
+- `http://localhost:8000/health` returns `healthy`
+- `http://localhost:8000/ready` returns `healthy`
 
-- 新环境启动验收
-- 日常回归检查
-- 演示前自检
-- 配置调整后的验证
-- 关键功能改动后的快速回归
+## 2. Upload And Ingest
 
----
+- A supported image can be selected in the frontend
+- Upload returns success
+- The new asset appears in the asset list
+- Asset detail opens after upload
+- `GET /assets` returns the uploaded record
 
-## 2. 验收范围
+## 3. Metadata
 
-本清单当前重点覆盖以下范围：
+- Asset detail shows filename, size, mime type, and status
+- Width and height are present when the sample provides them
+- Technical metadata is rendered in the detail view
+- No unexpected server error appears in the metadata section
 
-- 前端访问
-- 后端 API 可用性
-- 数据库与异步任务协作
-- 资产上传与列表查询
-- 元数据提取
-- 转换处理
-- IIIF Manifest 访问
-- Mirador 预览
-- 下载/导出
+## 4. Conversion
 
-暂不作为本阶段强制验收项的内容包括：
+- PSB sample triggers the background conversion flow
+- Worker logs show the conversion task running
+- Converted output is written back to the asset record
+- The asset status eventually becomes `ready` or a clear error state
 
-- 完整权限体系
-- 高级检索
-- 审批流
-- 多租户能力
-- AI 增强能力
+## 5. IIIF
 
----
+- `GET /assets/{id}/manifest` returns a valid manifest
+- Manifest IDs resolve correctly
+- The manifest references the expected image service URL
+- Mirador can load the manifest
+- The IIIF image service can fetch the converted or source image
 
-## 3. 环境级验收
+## 6. Download
 
-## A. 容器与服务状态
+- Current file download returns HTTP 200
+- BagIt ZIP download returns HTTP 200
+- Downloaded content matches the selected asset
 
-### A-1. Docker Compose 配置可展开
-- [ ] `docker compose config` 执行成功
-- [ ] 关键环境变量已正确注入
-- [ ] 路径挂载未出现明显错误
+## 7. Failure Checks
 
-### A-2. 关键服务已启动
-- [ ] `docker compose ps` 可看到主要服务
-- [ ] backend 处于运行状态
-- [ ] frontend 处于运行状态
-- [ ] db 处于运行状态
-- [ ] redis 处于运行状态
-- [ ] worker 处于运行状态
-- [ ] cantaloupe 处于运行状态
+- DB downtime surfaces as a clear health check failure
+- Missing upload directory surfaces as a clear health check failure
+- Failed conversion is visible in the asset detail status
+- Manifest generation failures are visible in the API response
 
-### A-3. 服务无明显异常重启
-- [ ] 关键容器未出现持续重启
-- [ ] 日志中无立即导致功能失效的致命错误
+## 8. Minimum Pass Criteria
 
----
+Treat the current build as acceptable only if all of the following pass:
 
-## 4. 入口级验收
+- frontend opens
+- `/health` and `/ready` are healthy
+- asset upload works
+- asset list updates
+- asset detail loads
+- metadata is visible
+- conversion either succeeds or fails clearly
+- manifest is accessible
+- Mirador can load at least one ready asset
+- current file download works
+- BagIt download works
 
-## B. 前端与 API 基础可达性
+## 9. Suggested Next Check
 
-### B-1. 前端首页可访问
-- [ ] 浏览器可打开前端入口
-- [ ] 页面无明显白屏
-- [ ] 页面首屏请求无关键报错
+After this checklist is green, the next useful step is:
 
-### B-2. API 基础访问正常
-- [ ] 前端请求后端时无明显 502/504
-- [ ] `/api` 路径代理正常
-- [ ] 资产列表等基础接口可返回有效响应
+1. split the backend routes into smaller modules
+2. add a narrow backend health test
+3. tighten the asset detail data contract
 
-### B-3. IIIF 访问路径可达
-- [ ] `/iiif/2` 路径可访问
-- [ ] 无明显代理路径错误
-
----
-
-## 5. 主链路功能验收
-
-## C. 资产上传与入库
-
-### C-1. 上传功能正常
-- [ ] 可以在前端选择文件并发起上传
-- [ ] 上传请求成功返回
-- [ ] 前端提示成功或进入后续状态
-
-### C-2. 上传结果进入资产列表
-- [ ] 新上传记录在资产列表中可见
-- [ ] 至少能看到基础资产信息
-- [ ] 资产有可用于后续访问的标识
-
-### C-3. 后端入库成功
-- [ ] 后端已生成对应资产记录
-- [ ] 关联文件信息存在
-- [ ] 未出现明显数据库写入错误
-
----
-
-## D. 元数据提取
-
-### D-1. 技术元数据可见
-- [ ] 文件类型可识别
-- [ ] 文件大小可见
-- [ ] 图像尺寸可见（如适用）
-
-### D-2. 扩展元数据提取正常
-- [ ] Exif / IPTC 等基础元数据可提取（如样本包含）
-- [ ] 返回结构未出现明显错乱
-- [ ] 元数据内容与样本基本一致
-
----
-
-## E. 异步处理与转换
-
-### E-1. 处理任务可触发
-- [ ] 上传/入库后相关任务被触发
-- [ ] worker 有实际处理行为
-- [ ] 队列未出现明显积压或卡死
-
-### E-2. 转换过程正常
-- [ ] 任务状态可观察
-- [ ] 处理过程中无明显致命报错
-- [ ] 需要转换的样本能生成衍生结果
-
-### E-3. 转换结果有效
-- [ ] 目标衍生文件已生成
-- [ ] 生成结果可被后续预览链路使用
-- [ ] 失败任务能被识别而非静默丢失
-
----
-
-## F. IIIF Manifest 与图像服务
-
-### F-1. Manifest 可访问
-- [ ] 资产对应 manifest URL 可获取
-- [ ] manifest 打开后返回有效内容
-- [ ] manifest 中包含合理的资源结构
-
-### F-2. Manifest 中的资源引用正确
-- [ ] 图像服务地址正确
-- [ ] public URL 与当前部署入口一致
-- [ ] 无明显 host / path 拼接错误
-
-### F-3. IIIF 图像服务正常
-- [ ] IIIF 图像请求可成功返回
-- [ ] 图像缩略图/切片请求有效
-- [ ] Cantaloupe 能访问到对应源图像
-
----
-
-## G. Mirador 预览
-
-### G-1. Mirador 成功加载 manifest
-- [ ] 打开预览页时 manifest 加载成功
-- [ ] 未出现明显跨域或路径错误
-
-### G-2. 图像交互正常
-- [ ] 图像可显示
-- [ ] 可缩放
-- [ ] 可平移
-
-### G-3. 大图场景有效
-- [ ] 超大图像可进入预览
-- [ ] 预览不是直接加载整张原图导致卡死
-
----
-
-## H. 下载/导出
-
-### H-1. 下载入口存在
-- [ ] 前端或接口可找到下载/导出入口
-
-### H-2. 下载动作成功
-- [ ] 下载请求可执行
-- [ ] 返回文件可获取
-- [ ] 文件内容与资产对应关系正确
-
----
-
-## 6. 演示级验收结论
-
-如果以下关键项全部通过，可判定当前主链路验收通过：
-
-- [ ] 服务启动正常
-- [ ] 前端可访问
-- [ ] API 可访问
-- [ ] 上传成功
-- [ ] 资产列表可见
-- [ ] 元数据可见
-- [ ] 转换成功
-- [ ] Manifest 可访问
-- [ ] Mirador 可预览
-- [ ] 下载/导出可执行
-
----
-
-## 6.1 2026-03-14 现网对象闭环回归结果
-
-本轮已基于实际运行中的 Docker 容器与真实数据库完成一轮对象闭环回归，重点验证“**上传 → 对象详情 → 访问 → 输出**”链路。
-
-### 已确认通过
-
-- [x] backend 现网已暴露 `/assets/{asset_id}` 与 `/assets/{asset_id}/download`
-- [x] worker 已以兼容新字段的代码运行
-- [x] frontend 已加载新的前端构建产物
-- [x] 数据库已补齐 `resource_type` 与 `process_message` 字段
-- [x] 真实上传测试样本成功生成新对象 `asset 44`
-- [x] `asset 44` 详情接口可返回对象摘要、文件信息、技术元数据、状态与访问/输出入口
-- [x] `asset 44` 原文件下载返回 HTTP 200
-- [x] `asset 44` BagIt 下载返回 HTTP 200
-- [x] 对象状态可读表达已验证成功（示例：`处理完成，可预览`）
-
-### 本轮说明
-
-- 本轮验证已证明第一阶段“单件二维文物图片资源对象”闭环在现网成立；
-- Mirador 的最终浏览器交互展示本轮未通过自动化浏览器完成，但其依赖的 Manifest 与前端新构建产物均已到位，仍建议后续补一轮人工页面点击确认；
-- 本轮之后，验收重点可以从“主链路是否存在”转向“对象表达是否足够稳、足够清晰、足够可扩展”。
-
----
-
-## 6.2 2026-03-14 真实页面人工回归结果（对象结构第二轮）
-
-本轮回归重点不再只是接口通断，而是检查前端真实入口是否已经承载第二轮“对象结构化详情页”能力。
-
-### 已确认通过
-
-- [x] 前端首页 `http://127.0.0.1:3000` 可正常返回 HTML
-- [x] 首页已加载第二轮前端 bundle：`index-pjNRFeLU.js`
-- [x] 通过前端统一入口访问 `http://127.0.0.1:3000/api/assets/44` 可返回 HTTP 200
-- [x] 现网对象详情接口已返回第二轮新增结构：`status_info`、`structure`、`access_paths`、`output_actions`
-- [x] `asset 44` 当前状态为 `ready`，结构摘要为“当前对象仅包含一个主文件。”
-- [x] 现网对象详情中已可区分：对象摘要、对象结构、访问路径、输出动作等语义层次
-
-### 本轮发现
-
-- 自动化浏览器（Playwright）在当前环境缺少浏览器可执行文件，未能完成真正的页面点击级自动化验证；
-- 在排查过程中一度观察到前端容器内局部 `/api` 代理 502，但经现网入口复测，用户实际访问路径 `http://127.0.0.1:3000/api/assets/44` 已恢复并返回 200；
-- 因此，本轮可确认“真实用户入口的页面/API 主链路”可用，但仍建议后续补一次人工浏览器点击回归，重点确认对象详情页的视觉组织与 Mirador 交互体验。
-
-### 用户异机实测补充（同网络电脑）
-
-- [x] 用户已在同网络的另一台电脑上实际访问系统；
-- [x] 除“部分图片在 Mirador 中打开失败”外，未发现其他明显问题；
-- [x] 当前阶段判断为：主链路基本稳定，Mirador 的部分图片兼容性问题保留为后续独立专题，不阻断本轮阶段收口。
-
----
-
-## 6.3 2026-03-14 第三轮上线验证结果（处理轨迹）
-
-本轮在第二轮“对象结构化详情”基础上，继续为对象详情页补入最小生命周期表达，目标是让对象页不仅回答“它是什么”，也回答“它走到了哪一步”。
-
-### 已确认通过
-
-- [x] 现网 `GET /assets/{asset_id}` 已返回 `process_timeline`
-- [x] `process_timeline` 当前已包含 7 个最小轨迹节点
-- [x] 现网前端首页已加载第三轮 bundle：`index-DpZ3jxHu.js`
-- [x] 用户入口 `http://127.0.0.1:3000/api/assets/44` 已返回包含 `process_timeline` 的详情结果
-- [x] `asset 44` 当前状态为 `ready`
-- [x] `asset 44` 当前轨迹已覆盖：对象建立、入库完成、Fixity 记录、元数据形成、访问主文件准备、预览就绪、输出动作具备
-
-### 本轮说明
-
-- 本轮未引入独立事件表或完整 PREMIS 持久化，而是基于当前对象状态与已有元数据推导最小生命周期轨迹；
-- 因此，本轮成果应理解为“对象生命周期可视化最小实现”，而不是完整事件系统；
-- 第三轮完成后，当前对象详情页已具备“对象摘要 + 处理轨迹 + 对象结构 + 访问路径 + 输出动作”的基本形态。
-
----
-
-## 7. 验收失败时的优先排查顺序
-
-若验收失败，建议优先按以下顺序定位：
-
-1. Docker Compose 配置是否展开正确
-2. 容器是否正常运行
-3. 前端是否能访问 backend
-4. backend 是否能连接 db / redis
-5. worker 是否在执行任务
-6. Cantaloupe 是否能访问图像文件
-7. manifest 中的 public URL 是否正确
-8. nginx `/api` 和 `/iiif/2` 代理是否一致
-
-详细方法请配合以下文档使用：
-
-- `docs/DEMO_FLOW.md`
-- `docs/TROUBLESHOOTING.md`
-
----
-
-## 8. 后续维护建议
-
-建议每次出现以下情况时，都至少执行一轮本清单中的关键项：
-
-- 修改 `docker-compose.yml`
-- 调整 `.env` / 环境变量
-- 调整 nginx 路由或代理
-- 调整 manifest URL 生成逻辑
-- 修改 IIIF / Cantaloupe 相关配置
-- 修改上传、入库、转换相关功能
-
-这样可以尽量避免“局部改动破坏整条主链路”的问题。

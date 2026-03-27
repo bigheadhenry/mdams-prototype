@@ -413,7 +413,7 @@ docker compose logs --tail=100 cantaloupe
 
 - `docs/DEMO_FLOW.md`
 - `docs/ACCEPTANCE_CHECKLIST.md`
-- `docs/DEPLOYMENT.md`
+- `docs/SETUP_AND_DEPLOYMENT.md`
 - `docs/WORKFLOW_GUIDE.md`
 
 其中：

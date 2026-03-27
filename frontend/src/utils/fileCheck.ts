@@ -1,5 +1,5 @@
 import { readPsd } from 'ag-psd';
-// @ts-ignore
+// @ts-expect-error UTIF does not ship types that match this import shape.
 import UTIF from 'utif';
 
 export interface LayerCheckResult {
