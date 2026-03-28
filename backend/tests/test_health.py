@@ -16,6 +16,9 @@ from app import main  # noqa: E402
 from app import config as app_config  # noqa: E402
 
 
+pytestmark = [pytest.mark.smoke, pytest.mark.integration]
+
+
 class HealthyDB:
     def execute(self, _statement):
         return None

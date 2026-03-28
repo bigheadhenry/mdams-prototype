@@ -2,12 +2,16 @@ import asyncio
 from io import BytesIO
 from pathlib import Path
 
+import pytest
 from fastapi import UploadFile
 
 from app import config as app_config
 from app.platform import three_d_source
 from app.routers import platform as platform_router
 from app.routers import three_d as three_d_router
+
+
+pytestmark = [pytest.mark.system, pytest.mark.integration, pytest.mark.contract]
 
 
 def _make_file_bytes(content: bytes):
@@ -45,6 +49,12 @@ async def _upload_three_d_sample(db_session, filename: str = "model.glb"):
         project_name="3D 测试项目",
         creator="Codex",
         creator_org="MDAMS Lab",
+        object_number="DEMO-3D-0001",
+        object_name="古建三维模型",
+        object_type="可移动文物",
+        collection_unit="MDAMS Lab",
+        object_summary="用于验证三维对象和藏品对象的强关联。",
+        object_keywords="古建, 三维, 示例",
         format_name="glb",
         coordinate_system="local",
         unit="m",
@@ -93,6 +103,37 @@ async def _upload_three_d_package(db_session):
     )
 
 
+async def _upload_three_d_linked_sample(db_session, collection_object_id: int):
+    file = UploadFile(file=_make_glb_bytes(), filename="linked-model.glb")
+    return await three_d_router.upload_three_d_resource(
+        file=file,
+        title="已关联三维模型",
+        resource_group="鍏宠仈A",
+        version_label="v2",
+        version_order=2,
+        is_current=False,
+        is_web_preview=True,
+        web_preview_status="ready",
+        web_preview_reason=None,
+        profile_key="model",
+        project_name="3D 测试项目",
+        creator="Codex",
+        creator_org="MDAMS Lab",
+        collection_object_id=collection_object_id,
+        format_name="glb",
+        coordinate_system="local",
+        unit="m",
+        vertex_count=2048,
+        face_count=4096,
+        material_count=8,
+        texture_count=4,
+        point_count=None,
+        lod_count=1,
+        capture_time=None,
+        db=db_session,
+    )
+
+
 def test_three_d_resource_subsystem_and_platform_adapter(db_session, test_upload_dir, monkeypatch):
     monkeypatch.setattr(app_config, "UPLOAD_DIR", str(test_upload_dir))
 
@@ -118,8 +159,17 @@ def test_three_d_resource_subsystem_and_platform_adapter(db_session, test_upload
     assert detail.web_preview_status == "disabled"
     assert detail.metadata_layers["core"]["profile_key"] == "model"
     assert detail.outputs.download_url.endswith(f"/api/three-d/resources/{uploaded.id}/download")
+    assert detail.viewer is not None
+    assert detail.viewer.enabled is False
+    assert detail.viewer.preview_file is not None
+    assert detail.viewer.preview_file.role == "model"
     assert detail.structure.primary_file.role == "model"
     assert len(detail.structure.files) == 1
+
+    viewer_summary = three_d_router.get_three_d_resource_viewer(resource_id=resource.id, db=db_session)
+    assert viewer_summary.enabled is False
+    assert viewer_summary.preview_file is not None
+    assert viewer_summary.preview_file.role == "model"
 
     sources = platform_router.get_sources(db=db_session)
     assert any(source.source_system == three_d_source.SOURCE_SYSTEM for source in sources)
@@ -141,6 +191,17 @@ def test_three_d_resource_subsystem_and_platform_adapter(db_session, test_upload
     assert unified_detail.source_system == three_d_source.SOURCE_SYSTEM
     assert unified_detail.source_record is None
 
+    collection_objects = three_d_router.list_three_d_collection_objects(q="古建", db=db_session)
+    assert len(collection_objects) == 1
+    assert collection_objects[0].id == detail.collection_object.id
+
+    linked = asyncio.run(_upload_three_d_linked_sample(db_session, detail.collection_object.id))
+    linked_detail = three_d_router.get_three_d_resource(resource_id=linked.id, db=db_session)
+    assert linked_detail.collection_object is not None
+    assert linked_detail.collection_object.id == detail.collection_object.id
+    assert linked_detail.collection_object.object_number == detail.collection_object.object_number
+    assert linked_detail.collection_object.object_name == detail.collection_object.object_name
+
 
 def test_three_d_package_resource_stores_multiple_file_roles(db_session, test_upload_dir, monkeypatch):
     monkeypatch.setattr(app_config, "UPLOAD_DIR", str(test_upload_dir))
@@ -155,6 +216,11 @@ def test_three_d_package_resource_stores_multiple_file_roles(db_session, test_up
     assert detail.version_label == "v1"
     assert detail.is_web_preview is True
     assert detail.access.preview_enabled is True
+    assert detail.viewer is not None
+    assert detail.viewer.enabled is True
+    assert detail.viewer.preview_file is not None
+    assert detail.viewer.preview_file.role == "model"
+    assert detail.viewer.preview_url is not None
     assert detail.structure.packaging is not None
     assert detail.structure.packaging.file_count == 3
     assert len(detail.structure.files) == 3
@@ -163,6 +229,12 @@ def test_three_d_package_resource_stores_multiple_file_roles(db_session, test_up
     oblique_file = next(item for item in detail.structure.files if item.role == "oblique_photo")
     assert oblique_file.preview_url is not None
     assert oblique_file.download_url is not None
+
+    viewer_summary = three_d_router.get_three_d_resource_viewer(resource_id=uploaded.id, db=db_session)
+    assert viewer_summary.enabled is True
+    assert viewer_summary.preview_file is not None
+    assert viewer_summary.preview_file.role == "model"
+    assert viewer_summary.preview_url is not None
 
     preview_response = three_d_router.download_three_d_resource_file(
         resource_id=uploaded.id,

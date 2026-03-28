@@ -124,9 +124,11 @@ def list_unified_resources(
                 layers.get("technical", {}).get("role_summary") or "",
             ]
             search_tokens.extend(str(value) for value in (layers.get("management") or {}).values())
+            search_tokens.extend(str(value) for value in (layers.get("collection") or {}).values())
             search_tokens.extend(str(value) for value in (layers.get("technical") or {}).values())
             profile_fields = (layers.get("profile") or {}).get("fields") or {}
             search_tokens.extend(str(value) for value in profile_fields.values())
+            search_tokens.extend(str(value) for value in (layers.get("preservation") or {}).values())
             search_tokens.extend(str(value) for value in (layers.get("raw_metadata") or {}).values())
             search_blob = " ".join(search_tokens).lower()
             if normalized_query not in search_blob:

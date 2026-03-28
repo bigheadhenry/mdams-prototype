@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from datetime import datetime
 from typing import Sequence
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -10,10 +11,18 @@ from sqlalchemy.orm import Session
 
 from .. import config
 from ..database import get_db
-from ..models import ThreeDAsset, ThreeDAssetFile
-from ..schemas import ThreeDAssetOut, ThreeDDetailResponse
-from ..services.three_d_detail import build_three_d_detail_response
+from ..models import ThreeDAsset, ThreeDAssetFile, ThreeDCollectionObject
+from ..schemas import (
+    ThreeDAssetOut,
+    ThreeDCollectionObjectOut,
+    ThreeDDetailResponse,
+    ThreeDMetadataDictionaryResponse,
+    ThreeDViewerSummary,
+)
+from ..services.three_d_dictionary import build_three_d_metadata_dictionary
+from ..services.three_d_detail import build_three_d_detail_response, build_three_d_viewer_summary
 from ..services.three_d_metadata import PROFILE_DEFINITIONS, build_three_d_metadata_layers
+from ..services.three_d_production import seed_three_d_production_records
 from ..services.three_d_storage import (
     build_three_d_download_zip,
     build_three_d_package_manifest,
@@ -43,11 +52,76 @@ def _get_resource_or_404(resource_id: int, db: Session) -> ThreeDAsset:
     return asset
 
 
-def _normalize_profile_key(profile_key: str | None) -> str | None:
-    if not profile_key:
+def _normalize_profile_key(profile_key: object | None) -> str | None:
+    normalized = _normalize_optional_text(profile_key)
+    if not normalized:
         return None
-    normalized = profile_key.strip().lower()
+    normalized = normalized.lower()
     return normalized if normalized in PROFILE_DEFINITIONS else None
+
+
+def _normalize_optional_text(value: object | None) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        default_value = getattr(value, "default", None)
+        if isinstance(default_value, str):
+            value = default_value
+        else:
+            if default_value is None:
+                return None
+            value = str(default_value)
+    normalized = value.strip()
+    return normalized or None
+
+
+def _normalize_optional_int(value: object | None) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    default_value = getattr(value, "default", None)
+    if isinstance(default_value, int):
+        return default_value
+    try:
+        return int(str(value).strip())
+    except Exception:
+        return None
+
+
+def _collection_keywords_text(*values: str | None) -> str | None:
+    keywords = [item for item in (_normalize_optional_text(value) for value in values) if item]
+    return ", ".join(keywords) if keywords else None
+
+
+def _json_safe_value(value: object | None) -> object | None:
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_safe_value(item) for item in value]
+    if isinstance(value, set):
+        return [_json_safe_value(item) for item in value]
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if hasattr(value, "model_dump"):
+        try:
+            return _json_safe_value(value.model_dump())
+        except Exception:
+            pass
+    default_value = getattr(value, "default", None)
+    if default_value is not None and default_value is not value:
+        return _json_safe_value(default_value)
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
 
 
 def _upload_filename(upload: UploadFile | None) -> str | None:
@@ -132,6 +206,7 @@ def _serialize_three_d_asset(asset: ThreeDAsset) -> ThreeDAssetOut:
         primary_file_role = technical.get("primary_file_role")
     return ThreeDAssetOut(
         id=asset.id,
+        collection_object_id=asset.collection_object_id,
         resource_group=asset.resource_group,
         filename=asset.filename,
         title=str(core.get("title") or asset.filename),
@@ -150,8 +225,140 @@ def _serialize_three_d_asset(asset: ThreeDAsset) -> ThreeDAssetOut:
         resource_type=asset.resource_type,
         profile_key=str(core.get("profile_key") or "other"),
         profile_label=str(core.get("profile_label") or "其他"),
+        object_number=str(getattr(asset.collection_object, "object_number", None) or "") or None,
+        object_name=str(getattr(asset.collection_object, "object_name", None) or "") or None,
+        collection_unit=str(getattr(asset.collection_object, "collection_unit", None) or "") or None,
+        storage_tier=str(getattr(asset, "storage_tier", None) or "archive"),
+        preservation_status=str(getattr(asset, "preservation_status", None) or "pending"),
+        preservation_note=str(getattr(asset, "preservation_note", None) or "") or None,
         created_at=asset.created_at,
         process_message=asset.process_message,
+    )
+
+
+def _get_or_create_collection_object(
+    db: Session,
+    *,
+    object_number: str | None,
+    object_name: str | None,
+    object_type: str | None,
+    collection_unit: str | None,
+    summary: str | None,
+    keywords: str | None,
+) -> ThreeDCollectionObject | None:
+    if not any([object_number, object_name, object_type, collection_unit, summary, keywords]):
+        return None
+
+    query = db.query(ThreeDCollectionObject)
+    if object_number:
+        query = query.filter(ThreeDCollectionObject.object_number == object_number)
+    elif object_name:
+        query = query.filter(ThreeDCollectionObject.object_name == object_name)
+
+    collection_object = query.first()
+    if collection_object is None:
+        collection_object = ThreeDCollectionObject(
+            object_number=object_number,
+            object_name=object_name,
+            object_type=object_type,
+            collection_unit=collection_unit,
+            summary=summary,
+            keywords=keywords,
+            metadata_info={
+                "object_number": object_number,
+                "object_name": object_name,
+                "object_type": object_type,
+                "collection_unit": collection_unit,
+                "summary": summary,
+                "keywords": keywords,
+            },
+        )
+        db.add(collection_object)
+        db.flush()
+        return collection_object
+
+    collection_object.object_number = object_number or collection_object.object_number
+    collection_object.object_name = object_name or collection_object.object_name
+    collection_object.object_type = object_type or collection_object.object_type
+    collection_object.collection_unit = collection_unit or collection_object.collection_unit
+    collection_object.summary = summary or collection_object.summary
+    collection_object.keywords = keywords or collection_object.keywords
+    existing_metadata = collection_object.metadata_info if isinstance(collection_object.metadata_info, dict) else {}
+    collection_object.metadata_info = {
+        **existing_metadata,
+        **{
+            key: value
+            for key, value in {
+                "object_number": object_number,
+                "object_name": object_name,
+                "object_type": object_type,
+                "collection_unit": collection_unit,
+                "summary": summary,
+                "keywords": keywords,
+            }.items()
+            if value is not None
+        },
+    }
+    db.flush()
+    return collection_object
+
+
+def _get_collection_object_or_404(db: Session, object_id: int) -> ThreeDCollectionObject:
+    collection_object = db.query(ThreeDCollectionObject).filter(ThreeDCollectionObject.id == object_id).first()
+    if collection_object is None:
+        raise HTTPException(status_code=404, detail="Collection object not found")
+    return collection_object
+
+
+@router.get("/dictionary", response_model=ThreeDMetadataDictionaryResponse)
+def get_three_d_metadata_dictionary():
+    return build_three_d_metadata_dictionary()
+
+
+@router.get("/collection-objects", response_model=list[ThreeDCollectionObjectOut])
+def list_three_d_collection_objects(
+    q: str | None = None,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    query = db.query(ThreeDCollectionObject)
+    normalized_q = _normalize_optional_text(q)
+    if normalized_q:
+        like_query = f"%{normalized_q}%"
+        query = query.filter(
+            ThreeDCollectionObject.object_number.ilike(like_query)
+            | ThreeDCollectionObject.object_name.ilike(like_query)
+            | ThreeDCollectionObject.object_type.ilike(like_query)
+            | ThreeDCollectionObject.collection_unit.ilike(like_query)
+            | ThreeDCollectionObject.summary.ilike(like_query)
+            | ThreeDCollectionObject.keywords.ilike(like_query)
+        )
+    objects = query.order_by(ThreeDCollectionObject.created_at.desc(), ThreeDCollectionObject.id.desc()).limit(limit).all()
+    return [
+        ThreeDCollectionObjectOut(
+            id=item.id,
+            object_number=item.object_number,
+            object_name=item.object_name,
+            object_type=item.object_type,
+            collection_unit=item.collection_unit,
+            summary=item.summary,
+            keywords=item.keywords,
+        )
+        for item in objects
+    ]
+
+
+@router.get("/collection-objects/{object_id}", response_model=ThreeDCollectionObjectOut)
+def get_three_d_collection_object(object_id: int, db: Session = Depends(get_db)):
+    item = _get_collection_object_or_404(db, object_id)
+    return ThreeDCollectionObjectOut(
+        id=item.id,
+        object_number=item.object_number,
+        object_name=item.object_name,
+        object_type=item.object_type,
+        collection_unit=item.collection_unit,
+        summary=item.summary,
+        keywords=item.keywords,
     )
 
 
@@ -166,6 +373,13 @@ async def upload_three_d_resource(
     project_name: str | None = Form(None),
     creator: str | None = Form(None),
     creator_org: str | None = Form(None),
+    collection_object_id: int | None = Form(None),
+    object_number: str | None = Form(None),
+    object_name: str | None = Form(None),
+    object_type: str | None = Form(None),
+    collection_unit: str | None = Form(None),
+    object_summary: str | None = Form(None),
+    object_keywords: str | None = Form(None),
     resource_group: str | None = Form(None),
     version_label: str | None = Form("original"),
     version_order: int | None = Form(0),
@@ -173,6 +387,9 @@ async def upload_three_d_resource(
     is_web_preview: bool | None = Form(False),
     web_preview_status: str | None = Form("disabled"),
     web_preview_reason: str | None = Form(None),
+    storage_tier: str | None = Form("archive"),
+    preservation_status: str | None = Form("pending"),
+    preservation_note: str | None = Form(None),
     format_name: str | None = Form(None),
     coordinate_system: str | None = Form(None),
     unit: str | None = Form(None),
@@ -204,7 +421,63 @@ async def upload_three_d_resource(
         or resource_title
     )
 
+    normalized_storage_tier = (_normalize_optional_text(storage_tier) or "archive").lower()
+    normalized_preservation_status = (_normalize_optional_text(preservation_status) or "pending").lower()
+    normalized_object_number = _normalize_optional_text(object_number)
+    normalized_object_name = _normalize_optional_text(object_name)
+    normalized_object_type = _normalize_optional_text(object_type)
+    normalized_collection_unit = _normalize_optional_text(collection_unit)
+    normalized_object_summary = _normalize_optional_text(object_summary)
+    normalized_object_keywords = _collection_keywords_text(object_keywords, project_name, creator, creator_org)
+
+    normalized_collection_object_id = _normalize_optional_int(collection_object_id)
+
+    collection_object = None
+    if normalized_collection_object_id is not None:
+        collection_object = _get_collection_object_or_404(db, normalized_collection_object_id)
+        if normalized_object_number:
+            collection_object.object_number = normalized_object_number
+        if normalized_object_name:
+            collection_object.object_name = normalized_object_name
+        if normalized_object_type:
+            collection_object.object_type = normalized_object_type
+        if normalized_collection_unit:
+            collection_object.collection_unit = normalized_collection_unit
+        if normalized_object_summary:
+            collection_object.summary = normalized_object_summary
+        if normalized_object_keywords:
+            collection_object.keywords = normalized_object_keywords
+        existing_metadata = collection_object.metadata_info if isinstance(collection_object.metadata_info, dict) else {}
+        collection_object.metadata_info = {
+            **existing_metadata,
+            **{
+                key: value
+                for key, value in {
+                    "object_number": collection_object.object_number,
+                    "object_name": collection_object.object_name,
+                    "object_type": collection_object.object_type,
+                    "collection_unit": collection_object.collection_unit,
+                    "summary": collection_object.summary,
+                    "keywords": collection_object.keywords,
+                }.items()
+                if value is not None
+            },
+            "linked_via": "collection_object_id",
+        }
+        db.flush()
+    else:
+        collection_object = _get_or_create_collection_object(
+            db,
+            object_number=normalized_object_number,
+            object_name=normalized_object_name,
+            object_type=normalized_object_type,
+            collection_unit=normalized_collection_unit,
+            summary=normalized_object_summary,
+            keywords=normalized_object_keywords,
+        )
+
     db_asset = ThreeDAsset(
+        collection_object=collection_object,
         resource_group=resource_group or title or resource_title,
         filename=str(primary_filename),
         file_path="",
@@ -219,6 +492,9 @@ async def upload_three_d_resource(
         is_web_preview=bool(is_web_preview) if is_web_preview is not None else False,
         web_preview_status=(web_preview_status or "disabled").strip() or "disabled",
         web_preview_reason=web_preview_reason,
+        storage_tier=normalized_storage_tier,
+        preservation_status=normalized_preservation_status,
+        preservation_note=_normalize_optional_text(preservation_note),
         metadata_info={},
     )
     db.add(db_asset)
@@ -254,6 +530,13 @@ async def upload_three_d_resource(
             "project_name": project_name,
             "creator": creator,
             "creator_org": creator_org,
+            "collection_object_id": collection_object.id if collection_object else None,
+            "object_number": normalized_object_number,
+            "object_name": normalized_object_name,
+            "object_type": normalized_object_type,
+            "collection_unit": normalized_collection_unit,
+            "object_summary": normalized_object_summary,
+            "object_keywords": normalized_object_keywords,
             "format_name": format_name,
             "coordinate_system": coordinate_system,
             "unit": unit,
@@ -271,6 +554,9 @@ async def upload_three_d_resource(
             "is_web_preview": db_asset.is_web_preview,
             "web_preview_status": db_asset.web_preview_status,
             "web_preview_reason": db_asset.web_preview_reason,
+            "storage_tier": normalized_storage_tier,
+            "preservation_status": normalized_preservation_status,
+            "preservation_note": preservation_note,
             "ingest_method": "upload",
             "file_count": len(saved_files),
             "role_summary": ", ".join(f"{three_d_role_label(item['role'])}" for item in saved_files),
@@ -284,6 +570,7 @@ async def upload_three_d_resource(
             "project_name": project_name,
             "creator": creator,
             "creator_org": creator_org,
+            "collection_object_id": collection_object.id if collection_object else None,
             "format_name": format_name,
             "coordinate_system": coordinate_system,
             "unit": unit,
@@ -291,6 +578,7 @@ async def upload_three_d_resource(
         profile_hint=derived_profile_key,
         file_records=saved_files,
     )
+    metadata_layers = _json_safe_value(metadata_layers)  # type: ignore[assignment]
 
     manifest_path = build_three_d_package_manifest(resource_dir, asset=db_asset, metadata_layers=metadata_layers, file_records=saved_files)
     db_asset.filename = str(primary_file["filename"] or resource_title)
@@ -326,6 +614,16 @@ async def upload_three_d_resource(
             )
         )
 
+    seed_three_d_production_records(
+        db,
+        db_asset,
+        saved_files=saved_files,
+        manifest_path=str(manifest_path),
+        preview_ready=bool(db_asset.is_web_preview and db_asset.web_preview_status == "ready"),
+        preservation_status=normalized_preservation_status,
+        storage_tier=normalized_storage_tier,
+    )
+
     db.commit()
     db.refresh(db_asset)
     return _serialize_three_d_asset(db_asset)
@@ -341,6 +639,17 @@ def list_three_d_resources(skip: int = 0, limit: int = 100, db: Session = Depend
 def get_three_d_resource(resource_id: int, db: Session = Depends(get_db)):
     asset = _get_resource_or_404(resource_id, db)
     return build_three_d_detail_response(asset)
+
+
+@router.get("/resources/{resource_id}/viewer", response_model=ThreeDViewerSummary)
+def get_three_d_resource_viewer(resource_id: int, db: Session = Depends(get_db)):
+    asset = _get_resource_or_404(resource_id, db)
+    detail = build_three_d_detail_response(asset)
+    return build_three_d_viewer_summary(
+        asset=asset,
+        file_records=detail.structure.files,
+        primary_file=detail.structure.primary_file,
+    )
 
 
 @router.get("/resources/{resource_id}/download")

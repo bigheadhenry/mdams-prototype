@@ -1,0 +1,97 @@
+flowchart LR
+  U["用户 / 浏览器"]
+
+  subgraph Frontend["前端 / UI"]
+    FE0["前端容器<br/>统一入口"]
+    FE2D["二维影像界面<br/>仪表盘 / 资产详情"]
+    FEPLAT["统一平台<br/>目录 / 统一详情"]
+    FE3D["三维管理页<br/>对象级聚合 / 版本管理"]
+    FEVIEW["三维查看器<br/>model-viewer"]
+    FEMIR["Mirador / IIIF 预览"]
+    FETEST["三维测试样例包"]
+  end
+
+  subgraph Backend["后端 / API / Worker"]
+    B0["FastAPI 主入口"]
+    subgraph S2D["二维影像子系统"]
+      B2D1["资产 / 上传 / 下载"]
+      B2D2["IIIF Manifest / BagIt"]
+      B2D3["元数据提取 / 健康检查"]
+    end
+    subgraph SPLAT["统一平台"]
+      BPL1["统一资源目录"]
+      BPL2["统一详情 / 检索"]
+      BPL3["来源注册表 / 适配器"]
+    end
+    subgraph S3D["三维数据管理子系统"]
+      B3D1["对象 / 版本 / 文件"]
+      B3D2["采集 / 处理 / 发布 / 保存"]
+      B3D3["Web 展示版本判定"]
+      B3D4["藏品对象关联"]
+    end
+    BWORK["Celery Worker<br/>格式转换任务"]
+    BSVC["共享服务层<br/>Schemas / Models / Utilities"]
+  end
+
+  subgraph Data["数据与外部服务"]
+    DPG["PostgreSQL"]
+    DREDIS["Redis"]
+    DIIIF["Cantaloupe"]
+    DNAS["NAS / 上传存储"]
+    DSTATIC["前端静态测试模型"]
+  end
+
+  U --> FE0
+  FE0 --> FE2D
+  FE0 --> FEPLAT
+  FE0 --> FE3D
+  FE0 --> FETEST
+
+  FE2D --> FEMIR
+  FE3D --> FEVIEW
+  FE3D --> FETEST
+  FEPLAT --> BPL2
+  FEPLAT --> BPL1
+  FEVIEW --> B3D1
+
+  FE0 -- "HTTP /api" --> B0
+  FE0 -- "HTTP /iiif/2" --> DIIIF
+
+  B0 --> B2D1
+  B0 --> B2D2
+  B0 --> B2D3
+  B0 --> BPL1
+  B0 --> BPL2
+  B0 --> BPL3
+  B0 --> B3D1
+  B0 --> B3D2
+  B0 --> B3D3
+  B0 --> B3D4
+  B0 --> BWORK
+  B0 --> BSVC
+
+  B2D1 --> DPG
+  B2D2 --> DIIIF
+  B2D2 --> DNAS
+  B2D3 --> DPG
+  BPL1 --> BPL3
+  BPL2 --> BPL3
+  BPL3 --> B2D1
+  BPL3 --> B3D1
+  B3D1 --> DPG
+  B3D1 --> DNAS
+  B3D2 --> DNAS
+  B3D3 --> DNAS
+  B3D4 --> DPG
+  BWORK --> DREDIS
+  BWORK --> DNAS
+  DIIIF --> DNAS
+  DPG --> DSTATIC
+
+  classDef frontend fill:#dbeafe,stroke:#60a5fa,color:#0f172a;
+  classDef backend fill:#dcfce7,stroke:#4ade80,color:#0f172a;
+  classDef data fill:#fee2e2,stroke:#ef4444,color:#0f172a;
+
+  class FE0,FE2D,FEPLAT,FE3D,FEVIEW,FEMIR,FETEST frontend;
+  class B0,B2D1,B2D2,B2D3,BPL1,BPL2,BPL3,B3D1,B3D2,B3D3,B3D4,BWORK,BSVC backend;
+  class DPG,DREDIS,DIIIF,DNAS,DSTATIC data;

@@ -1,6 +1,7 @@
 import asyncio
 from io import BytesIO
 
+import pytest
 from fastapi import UploadFile
 from PIL import Image
 
@@ -9,6 +10,9 @@ from app.models import Asset
 from app.platform import image_source
 from app.routers import assets as assets_router
 from app.routers import platform as platform_router
+
+
+pytestmark = [pytest.mark.integration, pytest.mark.contract]
 
 
 def _make_png_bytes():

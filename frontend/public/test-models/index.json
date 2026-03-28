@@ -1,0 +1,40 @@
+{
+  "object": {
+    "object_number": "DEMO-3D-0001",
+    "object_name": "?????3D ?????",
+    "collection_unit": "MDAMS Test Collection",
+    "resource_group": "demo-3d-vase-001"
+  },
+  "versions": [
+    {
+      "version_label": "original",
+      "version_order": 0,
+      "is_web_preview": false,
+      "web_preview_status": "disabled",
+      "format": "gltf + bin + png",
+      "role": "source",
+      "url": "/test-models/museum-vase-source.gltf",
+      "notes": "???????? glTF + BIN + ???????"
+    },
+    {
+      "version_label": "preview",
+      "version_order": 1,
+      "is_web_preview": true,
+      "web_preview_status": "ready",
+      "format": "glb",
+      "role": "web_preview",
+      "url": "/test-models/museum-vase-preview.glb",
+      "notes": "?????????????????"
+    },
+    {
+      "version_label": "detail",
+      "version_order": 2,
+      "is_web_preview": true,
+      "web_preview_status": "ready",
+      "format": "glb",
+      "role": "detail",
+      "url": "/test-models/museum-vase-detail.glb",
+      "notes": "??????????????????????"
+    }
+  ]
+}

@@ -18,12 +18,53 @@ class Asset(Base):
     
     # Status: processing, ready, error
     status = Column(String, default="processing")
+    application_items = relationship("ApplicationItem", back_populates="asset")
+
+
+class Application(Base):
+    __tablename__ = "applications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    application_no = Column(String, unique=True, index=True, nullable=False)
+    requester_name = Column(String, nullable=False)
+    requester_org = Column(String, nullable=True)
+    contact_email = Column(String, nullable=True)
+    purpose = Column(String, nullable=False)
+    usage_scope = Column(String, nullable=True)
+    status = Column(String, default="submitted", index=True)
+    review_note = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    submitted_at = Column(DateTime(timezone=True), server_default=func.now())
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+
+    items = relationship(
+        "ApplicationItem",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        order_by="ApplicationItem.id",
+    )
+
+
+class ApplicationItem(Base):
+    __tablename__ = "application_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    application_id = Column(Integer, ForeignKey("applications.id", ondelete="CASCADE"), index=True, nullable=False)
+    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="RESTRICT"), index=True, nullable=False)
+    requested_variant = Column(String, nullable=True)
+    delivery_format = Column(String, nullable=True)
+    note = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    application = relationship("Application", back_populates="items")
+    asset = relationship("Asset", back_populates="application_items")
 
 
 class ThreeDAsset(Base):
     __tablename__ = "three_d_assets"
 
     id = Column(Integer, primary_key=True, index=True)
+    collection_object_id = Column(Integer, ForeignKey("three_d_collection_objects.id", ondelete="SET NULL"), index=True, nullable=True)
     resource_group = Column(String, index=True, nullable=True)
     filename = Column(String, index=True)
     file_path = Column(String)
@@ -39,15 +80,25 @@ class ThreeDAsset(Base):
     is_web_preview = Column(Boolean, default=False)
     web_preview_status = Column(String, default="disabled")
     web_preview_reason = Column(String, nullable=True)
+    storage_tier = Column(String, default="archive")
+    preservation_status = Column(String, default="pending")
+    preservation_note = Column(String, nullable=True)
 
     # Status: processing, ready, error
     status = Column(String, default="processing")
 
+    collection_object = relationship("ThreeDCollectionObject", back_populates="assets")
     files = relationship(
         "ThreeDAssetFile",
         back_populates="asset",
         cascade="all, delete-orphan",
         order_by="ThreeDAssetFile.sort_order",
+    )
+    production_records = relationship(
+        "ThreeDProductionRecord",
+        back_populates="asset",
+        cascade="all, delete-orphan",
+        order_by="ThreeDProductionRecord.occurred_at",
     )
 
 
@@ -68,3 +119,36 @@ class ThreeDAssetFile(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     asset = relationship("ThreeDAsset", back_populates="files")
+
+
+class ThreeDCollectionObject(Base):
+    __tablename__ = "three_d_collection_objects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    object_number = Column(String, index=True, nullable=True)
+    object_name = Column(String, index=True, nullable=True)
+    object_type = Column(String, index=True, nullable=True)
+    collection_unit = Column(String, index=True, nullable=True)
+    summary = Column(String, nullable=True)
+    keywords = Column(String, nullable=True)
+    metadata_info = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    assets = relationship("ThreeDAsset", back_populates="collection_object")
+
+
+class ThreeDProductionRecord(Base):
+    __tablename__ = "three_d_production_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    asset_id = Column(Integer, ForeignKey("three_d_assets.id", ondelete="CASCADE"), index=True, nullable=False)
+    stage = Column(String, index=True)
+    event_type = Column(String, index=True)
+    status = Column(String, index=True)
+    actor = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    evidence = Column(String, nullable=True)
+    metadata_info = Column(JSON, nullable=True)
+    occurred_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    asset = relationship("ThreeDAsset", back_populates="production_records")

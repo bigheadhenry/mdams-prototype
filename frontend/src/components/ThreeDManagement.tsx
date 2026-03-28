@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Button,
   Card,
   Checkbox,
@@ -22,7 +23,8 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined, DownloadOutlined, EyeOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import type { ThreeDAssetSummary, ThreeDDetailResponse } from '../types/assets';
+import type { ThreeDAssetSummary, ThreeDCollectionObjectSummary, ThreeDDetailResponse } from '../types/assets';
+import ThreeDViewer from './ThreeDViewer';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -40,15 +42,46 @@ const WEB_PREVIEW_STATUS_OPTIONS = [
   { value: 'disabled', label: 'disabled' },
 ];
 
+const SAMPLE_MODELS = [
+  { title: '示例对象原始版（glTF + BIN + PNG）', url: '/test-models/museum-vase-source.gltf' },
+  { title: '示例对象 Web 展示版（GLB）', url: '/test-models/museum-vase-preview.glb' },
+  { title: '示例对象高细节版（GLB）', url: '/test-models/museum-vase-detail.glb' },
+];
+
+const buildLocalViewer = (title: string, url: string): ThreeDDetailResponse['viewer'] => ({
+  enabled: true,
+  reason: null,
+  renderer: 'model-viewer',
+  preview_file: {
+    role: 'model',
+    role_label: '示例模型',
+    filename: title,
+    actual_filename: title,
+    file_path: url,
+    file_size: 0,
+    mime_type: 'model/gltf+json',
+    is_primary: true,
+    sort_order: 0,
+    download_url: url,
+    preview_url: url,
+  },
+  preview_url: url,
+  supported_roles: ['model'],
+});
+
 type ThreeDObjectGroup = {
   key: string;
   label: string;
   versions: ThreeDAssetSummary[];
   resourceType: string;
   profileLabel: string | null;
+  objectNumber: string | null;
+  objectName: string | null;
   currentVersion: ThreeDAssetSummary | null;
   webPreviewVersion: ThreeDAssetSummary | null;
   latestVersion: ThreeDAssetSummary | null;
+  storageTier: string | null;
+  preservationStatus: string | null;
   updatedAt: string | null;
   readyCount: number;
   totalFileCount: number;
@@ -73,9 +106,27 @@ const ThreeDManagement: React.FC = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState<ThreeDDetailResponse | null>(null);
+  const [collectionObjects, setCollectionObjects] = useState<ThreeDCollectionObjectSummary[]>([]);
+  const [collectionObjectLoading, setCollectionObjectLoading] = useState(false);
+  const [sampleModelUrl, setSampleModelUrl] = useState(SAMPLE_MODELS[0]?.url ?? '/test-models/cube.gltf');
   const [form] = Form.useForm();
-
-  const fetchItems = async () => {
+    const sampleModel = useMemo(
+    () => SAMPLE_MODELS.find((model) => model.url === sampleModelUrl) ?? SAMPLE_MODELS[0],
+    [sampleModelUrl],
+  );
+  const sampleViewer = useMemo(
+    () => buildLocalViewer(sampleModel?.title ?? '示例模型', sampleModel?.url ?? sampleModelUrl),
+    [sampleModel, sampleModelUrl],
+  );
+  const collectionObjectOptions = useMemo(
+    () =>
+      collectionObjects.map((item) => ({
+        value: item.id,
+        label: `${item.object_number || `#${item.id}`} · ${item.object_name || '未命名藏品对象'}`,
+        title: item.object_name || item.object_number || `#${item.id}`,
+      })),
+    [collectionObjects],
+  );  const fetchItems = async () => {
     setLoading(true);
     try {
       const res = await axios.get<ThreeDAssetSummary[]>('/api/three-d/resources');
@@ -85,8 +136,21 @@ const ThreeDManagement: React.FC = () => {
     }
   };
 
+  const fetchCollectionObjects = async (query?: string) => {
+    setCollectionObjectLoading(true);
+    try {
+      const res = await axios.get<ThreeDCollectionObjectSummary[]>('/api/three-d/collection-objects', {
+        params: query ? { q: query, limit: 50 } : { limit: 50 },
+      });
+      setCollectionObjects(res.data);
+    } finally {
+      setCollectionObjectLoading(false);
+    }
+  };
+
   useEffect(() => {
     void fetchItems();
+    void fetchCollectionObjects();
   }, []);
 
   const openDetail = async (id: number) => {
@@ -160,9 +224,13 @@ const ThreeDManagement: React.FC = () => {
           versions: [],
           resourceType: item.resource_type,
           profileLabel: item.profile_label ?? null,
+          objectNumber: item.object_number ?? null,
+          objectName: item.object_name ?? null,
           currentVersion: null,
           webPreviewVersion: null,
           latestVersion: null,
+          storageTier: item.storage_tier ?? null,
+          preservationStatus: item.preservation_status ?? null,
           updatedAt: null,
           readyCount: 0,
           totalFileCount: 0,
@@ -171,6 +239,10 @@ const ThreeDManagement: React.FC = () => {
       nextGroup.versions.push(item);
       nextGroup.resourceType = nextGroup.resourceType || item.resource_type;
       nextGroup.profileLabel = nextGroup.profileLabel || item.profile_label || null;
+      nextGroup.objectNumber = nextGroup.objectNumber || item.object_number || null;
+      nextGroup.objectName = nextGroup.objectName || item.object_name || null;
+      nextGroup.storageTier = nextGroup.storageTier || item.storage_tier || null;
+      nextGroup.preservationStatus = nextGroup.preservationStatus || item.preservation_status || null;
       if (!nextGroup.updatedAt || item.created_at > nextGroup.updatedAt) {
         nextGroup.updatedAt = item.created_at;
       }
@@ -228,6 +300,10 @@ const ThreeDManagement: React.FC = () => {
         <Space direction="vertical" size={0}>
           <Text strong>{record.label}</Text>
           <Text type="secondary">
+            {record.objectNumber || '未关联藏品号'}
+            {record.objectName ? ` · ${record.objectName}` : ''}
+          </Text>
+          <Text type="secondary">
             {record.profileLabel || '其他'} · {record.resourceType}
           </Text>
         </Space>
@@ -265,6 +341,18 @@ const ThreeDManagement: React.FC = () => {
         ) : (
           <Tag color="default">未配置</Tag>
         ),
+    },
+    {
+      title: '保存层',
+      key: 'storage_tier',
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Tag color={record.storageTier === 'archive' ? 'blue' : record.storageTier === 'delivery' ? 'green' : 'gold'}>
+            {record.storageTier || 'archive'}
+          </Tag>
+          <Text type="secondary">{record.preservationStatus || 'pending'}</Text>
+        </Space>
+      ),
     },
     {
       title: '文件总数',
@@ -404,6 +492,21 @@ const ThreeDManagement: React.FC = () => {
         </Col>
       </Row>
 
+      <Card
+        title="测试模型"
+        bordered={false}
+        extra={
+          <Select
+            style={{ width: 220 }}
+            value={sampleModelUrl}
+            onChange={setSampleModelUrl}
+            options={SAMPLE_MODELS.map((model) => ({ label: model.title, value: model.url }))}
+          />
+        }
+      >
+        <ThreeDViewer viewer={sampleViewer} title={sampleModel?.title} />
+      </Card>
+
       <Card title="上传三维资源" bordered={false}>
         <Form form={form} layout="vertical" onFinish={handleUpload}>
           <Row gutter={16}>
@@ -468,6 +571,49 @@ const ThreeDManagement: React.FC = () => {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
+              <Form.Item label="关联藏品对象" name="collection_object_id">
+                <Select
+                  showSearch
+                  allowClear
+                  loading={collectionObjectLoading}
+                  placeholder="按藏品号或名称检索已有藏品对象"
+                  options={collectionObjectOptions}
+                  filterOption={false}
+                  onSearch={(value) => void fetchCollectionObjects(value)}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="藏品号" name="object_number">
+                <Input placeholder="例如：故00154701" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="藏品名称" name="object_name">
+                <Input placeholder="例如：青花瓷瓶" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="藏品类型" name="object_type">
+                <Input placeholder="可移动文物 / 不可移动文物 / 其他" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="收藏单位" name="collection_unit">
+                <Input placeholder="收藏单位或部门" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="对象摘要" name="object_summary">
+                <Input placeholder="对象级说明" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="对象关键词" name="object_keywords">
+                <Input placeholder="逗号分隔关键词" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
               <Form.Item label="格式名称" name="format_name">
                 <Input placeholder="glb / ply / jpg / mixed" />
               </Form.Item>
@@ -510,6 +656,33 @@ const ThreeDManagement: React.FC = () => {
             <Col xs={24} md={12}>
               <Form.Item label="单位" name="unit">
                 <Input placeholder="m / cm / mm" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="存储层级" name="storage_tier" initialValue="archive">
+                <Select
+                  options={[
+                    { value: 'working', label: 'working' },
+                    { value: 'delivery', label: 'delivery' },
+                    { value: 'archive', label: 'archive' },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="保存状态" name="preservation_status" initialValue="pending">
+                <Select
+                  options={[
+                    { value: 'pending', label: 'pending' },
+                    { value: 'preserved', label: 'preserved' },
+                    { value: 'archived', label: 'archived' },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="保存说明" name="preservation_note">
+                <Input placeholder="保存或归档说明" />
               </Form.Item>
             </Col>
             <Col xs={24}>
@@ -675,8 +848,28 @@ const ThreeDManagement: React.FC = () => {
               <Descriptions.Item label="Profile">{detail.profile_label || detail.profile_key || '-'}</Descriptions.Item>
               <Descriptions.Item label="资源类型">{detail.resource_type_label}</Descriptions.Item>
               <Descriptions.Item label="状态">{detail.status}</Descriptions.Item>
+              <Descriptions.Item label="关联藏品对象">
+                {detail.collection_object ? (
+                  <Space direction="vertical" size={0}>
+                    <Text strong>#{detail.collection_object.id}</Text>
+                    <Text type="secondary">
+                      {detail.collection_object.object_number || '未填写藏品号'}
+                      {detail.collection_object.object_name ? ` · ${detail.collection_object.object_name}` : ''}
+                    </Text>
+                  </Space>
+                ) : (
+                  '-'
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="藏品号">{detail.collection_object?.object_number || '-'}</Descriptions.Item>
+              <Descriptions.Item label="藏品名称">{detail.collection_object?.object_name || '-'}</Descriptions.Item>
+              <Descriptions.Item label="保存层级">{detail.preservation.storage_tier || '-'}</Descriptions.Item>
+              <Descriptions.Item label="保存状态">{detail.preservation.preservation_status || '-'}</Descriptions.Item>
+              <Descriptions.Item label="保存说明">{detail.preservation.preservation_note || '-'}</Descriptions.Item>
               <Descriptions.Item label="构成">{detail.structure.summary}</Descriptions.Item>
             </Descriptions>
+
+            <ThreeDViewer viewer={detail.viewer} title={detail.title} />
 
             <Card size="small" title="图像预览">
               <Row gutter={[12, 12]}>
@@ -761,6 +954,21 @@ const ThreeDManagement: React.FC = () => {
                 </Card>
               </Col>
             </Row>
+
+            <Card size="small" title="生产链·">
+              <Table
+                rowKey="id"
+                pagination={false}
+                dataSource={detail.production_records}
+                columns={[
+                  { title: '阶段', dataIndex: 'stage', key: 'stage' },
+                  { title: '事件', dataIndex: 'event_type', key: 'event_type' },
+                  { title: '状态', dataIndex: 'status', key: 'status' },
+                  { title: '执行人', dataIndex: 'actor', key: 'actor', render: (value: string | null | undefined) => value || '-' },
+                  { title: '时间', dataIndex: 'occurred_at', key: 'occurred_at' },
+                ]}
+              />
+            </Card>
 
             <Card size="small" title="分层元数据">
               <pre style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>

@@ -1,0 +1,48 @@
+flowchart TB
+  subgraph User["用户入口"]
+    U["浏览器 / 用户"]
+  end
+
+  subgraph Edge["边界层"]
+    NGINX["Nginx / 反向代理<br/>前端静态站点 + API 转发"]
+    FE["前端容器<br/>React 18 + Vite + TypeScript"]
+  end
+
+  subgraph App["应用层"]
+    API["FastAPI 应用"]
+    WORKER["Celery Worker<br/>PSB -> BigTIFF 转换"]
+    IIIFAPI["IIIF Manifest / 预览接口"]
+  end
+
+  subgraph Infra["数据与外部服务"]
+    PG["PostgreSQL<br/>资产 / 元数据 / 版本"]
+    REDIS["Redis<br/>Celery Broker"]
+    CANTA["Cantaloupe IIIF Server<br/>切片 / 图像服务"]
+    NAS["NAS / 本地存储<br/>上传文件 / 共享资源"]
+    SSD["SSD 数据卷<br/>./db_data"]
+    FB["可选 FileBrowser<br/>8081"]
+  end
+
+  U --> NGINX
+  NGINX --> FE
+  NGINX --> API
+  FE --> API
+  FE --> IIIFAPI
+  API --> PG
+  API --> REDIS
+  API --> NAS
+  API --> IIIFAPI
+  WORKER --> REDIS
+  WORKER --> NAS
+  IIIFAPI --> CANTA
+  CANTA --> NAS
+  PG --> SSD
+  FB -.-> NAS
+
+  classDef edge fill:#dbeafe,stroke:#60a5fa,color:#0f172a;
+  classDef app fill:#dcfce7,stroke:#4ade80,color:#0f172a;
+  classDef infra fill:#fee2e2,stroke:#ef4444,color:#0f172a;
+
+  class NGINX,FE edge;
+  class API,WORKER,IIIFAPI app;
+  class PG,REDIS,CANTA,NAS,SSD,FB infra;

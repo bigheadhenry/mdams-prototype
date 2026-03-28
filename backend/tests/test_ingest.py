@@ -12,6 +12,9 @@ from app.models import Asset
 from app.routers import ingest as ingest_router
 
 
+pytestmark = [pytest.mark.integration, pytest.mark.contract]
+
+
 def _make_png_bytes(color="white"):
     image = Image.new("RGB", (8, 8), color=color)
     buffer = BytesIO()

@@ -7,6 +7,32 @@ export interface AssetSummary {
   created_at: string;
 }
 
+export interface ApplicationCartItem {
+  assetId: number;
+  resourceId: string;
+  title: string;
+  manifestUrl: string;
+  objectNumber?: string | null;
+  sourceLabel?: string | null;
+  note?: string;
+}
+
+export interface ApplicationSummary {
+  id: number;
+  application_no: string;
+  requester_name: string;
+  requester_org?: string | null;
+  purpose: string;
+  usage_scope?: string | null;
+  status: string;
+  status_label: string;
+  review_note?: string | null;
+  item_count: number;
+  created_at: string;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+}
+
 export interface FileRecord {
   role?: string;
   role_label?: string;
@@ -170,6 +196,7 @@ export interface UnifiedResourceDetail extends UnifiedResourceSummary {
 
 export interface ThreeDAssetSummary {
   id: number;
+  collection_object_id?: number | null;
   resource_group?: string | null;
   filename: string;
   title?: string | null;
@@ -188,14 +215,31 @@ export interface ThreeDAssetSummary {
   resource_type: string;
   profile_key?: string | null;
   profile_label?: string | null;
+  object_number?: string | null;
+  object_name?: string | null;
+  collection_unit?: string | null;
+  storage_tier?: string;
+  preservation_status?: string;
+  preservation_note?: string | null;
   created_at: string;
   process_message?: string | null;
+}
+
+export interface ThreeDCollectionObjectSummary {
+  id: number;
+  object_number?: string | null;
+  object_name?: string | null;
+  object_type?: string | null;
+  collection_unit?: string | null;
+  summary?: string | null;
+  keywords?: string | null;
 }
 
 export interface ThreeDMetadataLayers {
   schema_version?: string;
   core?: Record<string, unknown>;
   management?: Record<string, unknown>;
+  collection?: Record<string, unknown>;
   technical?: Record<string, unknown>;
   profile?: {
     key?: string;
@@ -203,6 +247,7 @@ export interface ThreeDMetadataLayers {
     sheet?: string;
     fields?: Record<string, unknown>;
   };
+  preservation?: Record<string, unknown>;
   raw_metadata?: Record<string, unknown>;
 }
 
@@ -276,6 +321,27 @@ export interface ThreeDDetailResponse {
     download_url: string;
   };
   technical_metadata: Record<string, unknown>;
+  viewer?: {
+    enabled: boolean;
+    reason?: string | null;
+    renderer?: string;
+    preview_file?: {
+      id?: number | null;
+      role: string;
+      role_label: string;
+      filename: string;
+      actual_filename: string;
+      file_path: string;
+      file_size: number;
+      mime_type?: string | null;
+      is_primary?: boolean;
+      sort_order?: number;
+      download_url?: string | null;
+      preview_url?: string | null;
+    } | null;
+    preview_url?: string | null;
+    supported_roles?: string[];
+  } | null;
   version_label?: string;
   version_order?: number;
   is_current?: boolean;
@@ -283,6 +349,31 @@ export interface ThreeDDetailResponse {
   web_preview_status?: string;
   web_preview_reason?: string | null;
   resource_group?: string | null;
+  collection_object?: {
+    id: number;
+    object_number?: string | null;
+    object_name?: string | null;
+    object_type?: string | null;
+    collection_unit?: string | null;
+    summary?: string | null;
+    keywords?: string | null;
+  } | null;
+  preservation: {
+    storage_tier: string;
+    preservation_status: string;
+    preservation_note?: string | null;
+  };
+  production_records: Array<{
+    id: number;
+    stage: string;
+    event_type: string;
+    status: string;
+    actor?: string | null;
+    description?: string | null;
+    evidence?: string | null;
+    occurred_at: string;
+    metadata_info?: Record<string, unknown>;
+  }>;
 }
 
 export interface AssetDetailTimelineItem extends TimelineEntry {

@@ -94,7 +94,28 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
             "en": [manifest_title],
             "zh-cn": [manifest_title],
         },
+        "summary": {
+            "en": [f"MDAMS asset {asset.id}"],
+            "zh-cn": [f"MDAMS 资源 {asset.id}"],
+        },
+        "homepage": [
+            {
+                "id": f"{api_base_url}/assets/{asset_id}",
+                "type": "Text",
+                "label": {
+                    "en": ["MDAMS Asset Detail"],
+                    "zh-cn": ["MDAMS 资源详情"],
+                },
+                "format": "text/html",
+            }
+        ],
         "metadata": [
+            {"label": {"en": ["Asset ID"]}, "value": {"en": [str(asset.id)]}},
+            {
+                "label": {"en": ["Resource ID"]},
+                "value": {"en": [str(metadata_layers["core"].get("resource_id") or f"image_2d:{asset.id}")]},
+            },
+            {"label": {"en": ["Title"]}, "value": {"en": [manifest_title]}},
             {"label": {"en": ["File Size"]}, "value": {"en": [f"{asset.file_size} bytes"]}},
             {"label": {"en": ["MIME Type"]}, "value": {"en": [asset.mime_type]}},
             {"label": {"en": ["Uploaded At"]}, "value": {"en": [str(asset.created_at)]}},

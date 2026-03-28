@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Layout, Menu, Button, Table, message, Card, Statistic, Row, Col, Tag, Modal } from 'antd';
+import { Badge, Layout, Menu, Button, Table, message, Card, Statistic, Row, Col, Tag, Modal } from 'antd';
 import {
   DatabaseOutlined,
   DashboardOutlined,
@@ -19,7 +19,9 @@ import AssetDetail from './components/AssetDetail';
 import PlatformDirectory from './components/PlatformDirectory';
 import UnifiedResourceDetail from './components/UnifiedResourceDetail';
 import ThreeDManagement from './components/ThreeDManagement';
-import type { AssetSummary } from './types/assets';
+import ApplicationCart from './components/ApplicationCart';
+import ApplicationManagement from './components/ApplicationManagement';
+import type { ApplicationCartItem, ApplicationSummary, AssetSummary } from './types/assets';
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -31,6 +33,9 @@ const App: React.FC = () => {
   const [selectedKey, setSelectedKey] = useState('1');
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [selectedUnifiedResourceId, setSelectedUnifiedResourceId] = useState<string | null>(null);
+  const [applicationCart, setApplicationCart] = useState<ApplicationCartItem[]>([]);
+  const [applications, setApplications] = useState<ApplicationSummary[]>([]);
+  const [applicationsSubmitting, setApplicationsSubmitting] = useState(false);
 
   const fetchAssets = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -47,6 +52,19 @@ const App: React.FC = () => {
   useEffect(() => {
     fetchAssets();
   }, [fetchAssets]);
+
+  const fetchApplications = useCallback(async () => {
+    try {
+      const res = await axios.get<ApplicationSummary[]>('/api/applications');
+      setApplications(res.data);
+    } catch (err) {
+      console.warn('加载申请单失败', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchApplications();
+  }, [fetchApplications]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
@@ -69,6 +87,110 @@ const App: React.FC = () => {
       console.error(err);
     }
   };
+
+  const addToApplicationCart = useCallback((item: ApplicationCartItem) => {
+    let added = false;
+    setApplicationCart((current) => {
+      if (current.some((entry) => entry.assetId === item.assetId)) {
+        return current;
+      }
+      added = true;
+      return [...current, item];
+    });
+    return added;
+  }, []);
+
+  const updateApplicationNote = useCallback((assetId: number, note: string) => {
+    setApplicationCart((current) =>
+      current.map((item) => (item.assetId === assetId ? { ...item, note } : item)),
+    );
+  }, []);
+
+  const removeFromApplicationCart = useCallback((assetId: number) => {
+    setApplicationCart((current) => current.filter((item) => item.assetId !== assetId));
+    message.success('已从申请车移除');
+  }, []);
+
+  const submitApplication = useCallback(async (payload: {
+    requesterName: string;
+    requesterOrg?: string;
+    contactEmail?: string;
+    purpose: string;
+    usageScope?: string;
+  }) => {
+    setApplicationsSubmitting(true);
+    try {
+      await axios.post('/api/applications', {
+        requester_name: payload.requesterName,
+        requester_org: payload.requesterOrg,
+        contact_email: payload.contactEmail,
+        purpose: payload.purpose,
+        usage_scope: payload.usageScope,
+        items: applicationCart.map((item) => ({
+          asset_id: item.assetId,
+          requested_variant: 'current',
+          delivery_format: 'image',
+          note: item.note || null,
+        })),
+      });
+      message.success('申请单已提交');
+      setApplicationCart([]);
+      fetchApplications();
+    } catch (err) {
+      console.error(err);
+      message.error('申请单提交失败');
+    } finally {
+      setApplicationsSubmitting(false);
+    }
+  }, [applicationCart, fetchApplications]);
+
+  const approveApplication = useCallback(async (applicationId: number, reviewNote?: string) => {
+    try {
+      await axios.post(`/api/applications/${applicationId}/approve`, {
+        review_note: reviewNote || null,
+      });
+      message.success('申请单已通过');
+      fetchApplications();
+    } catch (err) {
+      console.error(err);
+      message.error('申请单通过失败');
+    }
+  }, [fetchApplications]);
+
+  const rejectApplication = useCallback(async (applicationId: number, reviewNote?: string) => {
+    try {
+      await axios.post(`/api/applications/${applicationId}/reject`, {
+        review_note: reviewNote || null,
+      });
+      message.success('申请单已拒绝');
+      fetchApplications();
+    } catch (err) {
+      console.error(err);
+      message.error('申请单拒绝失败');
+    }
+  }, [fetchApplications]);
+
+  const exportApplication = useCallback(async (applicationId: number) => {
+    try {
+      const response = await axios.get(`/api/applications/${applicationId}/export`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `application-${applicationId}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      message.success('交付包已生成');
+      fetchApplications();
+    } catch (err) {
+      console.error(err);
+      message.error('交付包导出失败');
+    }
+  }, [fetchApplications]);
 
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id' },
@@ -166,11 +288,16 @@ const App: React.FC = () => {
           items={[
             { key: '1', icon: <DashboardOutlined />, label: '仪表盘' },
             { key: '2', icon: <DatabaseOutlined />, label: '数字资产' },
-            { key: '3', icon: <ShoppingCartOutlined />, label: '订单管理' },
+            {
+              key: '3',
+              icon: <ShoppingCartOutlined />,
+              label: <Badge count={applicationCart.length} size="small">申请车</Badge>,
+            },
             { key: '4', icon: <ExperimentOutlined />, label: '入库 PoC' },
             { key: '5', icon: <DatabaseOutlined />, label: '统一资源' },
             { key: '6', icon: <FileTextOutlined />, label: '统一详情' },
             { key: '7', icon: <DatabaseOutlined />, label: '3D Data' },
+            { key: '8', icon: <FileTextOutlined />, label: '申请管理' },
           ]}
         />
       </Sider>
@@ -284,7 +411,27 @@ const App: React.FC = () => {
 
                 {selectedKey === '7' && <ThreeDManagement />}
 
-                {(selectedKey === '2' || selectedKey === '3') && (
+                {selectedKey === '8' && (
+                  <ApplicationManagement
+                    applications={applications}
+                    onApprove={approveApplication}
+                    onReject={rejectApplication}
+                    onExport={exportApplication}
+                    onRefresh={fetchApplications}
+                  />
+                )}
+
+                {selectedKey === '3' && (
+                  <ApplicationCart
+                    items={applicationCart}
+                    onRemove={removeFromApplicationCart}
+                    onUpdateNote={updateApplicationNote}
+                    onSubmit={submitApplication}
+                    submitting={applicationsSubmitting}
+                  />
+                )}
+
+                {selectedKey === '2' && (
                   <div style={{ textAlign: 'center', padding: 50 }}>
                     <Tag color="orange">建设中</Tag>
                     <p>该模块尚未实现。</p>
@@ -304,7 +451,21 @@ const App: React.FC = () => {
           footer={null}
           destroyOnHidden={true}
         >
-          {previewVisible && <MiradorViewer manifestId={currentManifest} />}
+          {previewVisible && (
+            <MiradorViewer
+              manifestId={currentManifest}
+              onAddToApplication={(item) =>
+                addToApplicationCart({
+                  assetId: item.assetId,
+                  resourceId: item.resourceId,
+                  title: item.title,
+                  manifestUrl: item.manifestUrl,
+                  objectNumber: item.objectNumber,
+                  sourceLabel: item.sourceLabel,
+                })
+              }
+            />
+          )}
         </Modal>
       </Layout>
     </Layout>

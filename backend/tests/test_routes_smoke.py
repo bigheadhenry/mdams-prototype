@@ -2,6 +2,7 @@ import asyncio
 from io import BytesIO
 from pathlib import Path
 
+import pytest
 from fastapi import BackgroundTasks, UploadFile
 from PIL import Image
 from starlette.requests import Request
@@ -13,6 +14,9 @@ from app.routers import assets as assets_router
 from app.routers import downloads as downloads_router
 from app.routers import iiif as iiif_router
 from app.routers import health as health_router
+
+
+pytestmark = [pytest.mark.smoke, pytest.mark.integration]
 
 
 def _make_png_bytes():

@@ -180,8 +180,112 @@ class IngestSipResponse(BaseModel):
     sha256: str
 
 
+class ApplicationCreateItemRequest(BaseModel):
+    asset_id: int
+    requested_variant: str | None = "current"
+    delivery_format: str | None = "image"
+    note: str | None = None
+
+
+class ApplicationCreateRequest(BaseModel):
+    requester_name: str
+    requester_org: str | None = None
+    contact_email: str | None = None
+    purpose: str
+    usage_scope: str | None = None
+    items: list[ApplicationCreateItemRequest] = Field(default_factory=list)
+
+
+class ApplicationApproveRequest(BaseModel):
+    review_note: str | None = None
+
+
+class ApplicationAssetRef(BaseModel):
+    id: int
+    filename: str
+    resource_type: str | None = None
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ApplicationItemResponse(BaseModel):
+    id: int
+    asset_id: int
+    requested_variant: str | None = None
+    delivery_format: str | None = None
+    note: str | None = None
+    created_at: datetime
+    asset: ApplicationAssetRef
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ApplicationListItem(BaseModel):
+    id: int
+    application_no: str
+    requester_name: str
+    requester_org: str | None = None
+    purpose: str
+    usage_scope: str | None = None
+    status: str
+    status_label: str
+    review_note: str | None = None
+    item_count: int
+    created_at: datetime
+    submitted_at: datetime | None = None
+    reviewed_at: datetime | None = None
+
+
+class ApplicationDetailResponse(BaseModel):
+    id: int
+    application_no: str
+    requester_name: str
+    requester_org: str | None = None
+    contact_email: str | None = None
+    purpose: str
+    usage_scope: str | None = None
+    status: str
+    review_note: str | None = None
+    created_at: datetime
+    submitted_at: datetime | None = None
+    reviewed_at: datetime | None = None
+    items: list[ApplicationItemResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ThreeDCollectionObjectOut(BaseModel):
+    id: int
+    object_number: str | None = None
+    object_name: str | None = None
+    object_type: str | None = None
+    collection_unit: str | None = None
+    summary: str | None = None
+    keywords: str | None = None
+
+
+class ThreeDProductionRecordOut(BaseModel):
+    id: int
+    stage: str
+    event_type: str
+    status: str
+    actor: str | None = None
+    description: str | None = None
+    evidence: str | None = None
+    occurred_at: datetime
+    metadata_info: dict[str, Any] = Field(default_factory=dict)
+
+
+class ThreeDPreservationSummary(BaseModel):
+    storage_tier: str
+    preservation_status: str
+    preservation_note: str | None = None
+
+
 class ThreeDAssetOut(BaseModel):
     id: int
+    collection_object_id: int | None = None
     resource_group: str | None = None
     filename: str
     title: str | None = None
@@ -200,6 +304,12 @@ class ThreeDAssetOut(BaseModel):
     resource_type: str
     profile_key: str | None = None
     profile_label: str | None = None
+    object_number: str | None = None
+    object_name: str | None = None
+    collection_unit: str | None = None
+    storage_tier: str = "archive"
+    preservation_status: str = "pending"
+    preservation_note: str | None = None
     created_at: datetime
     process_message: str | None = None
 
@@ -255,6 +365,15 @@ class ThreeDOutputs(BaseModel):
     download_url: str
 
 
+class ThreeDViewerSummary(BaseModel):
+    enabled: bool
+    reason: str | None = None
+    renderer: str = "model-viewer"
+    preview_file: ThreeDFileRecord | None = None
+    preview_url: str | None = None
+    supported_roles: list[str] = Field(default_factory=lambda: ["model"])
+
+
 class ThreeDDetailResponse(BaseModel):
     id: int
     identifier: str
@@ -272,6 +391,7 @@ class ThreeDDetailResponse(BaseModel):
     access: ThreeDAccessSummary
     outputs: ThreeDOutputs
     technical_metadata: dict[str, Any]
+    viewer: ThreeDViewerSummary | None = None
     version_label: str = "original"
     version_order: int = 0
     is_current: bool = True
@@ -279,5 +399,27 @@ class ThreeDDetailResponse(BaseModel):
     web_preview_status: str = "disabled"
     web_preview_reason: str | None = None
     resource_group: str | None = None
+    collection_object: ThreeDCollectionObjectOut | None = None
+    preservation: ThreeDPreservationSummary
+    production_records: list[ThreeDProductionRecordOut] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ThreeDMetadataFieldDefinition(BaseModel):
+    key: str
+    label: str
+    required: bool = False
+    layer: str
+    description: str | None = None
+
+
+class ThreeDMetadataDictionarySection(BaseModel):
+    key: str
+    label: str
+    fields: list[ThreeDMetadataFieldDefinition] = Field(default_factory=list)
+
+
+class ThreeDMetadataDictionaryResponse(BaseModel):
+    schema_version: str
+    sections: list[ThreeDMetadataDictionarySection] = Field(default_factory=list)

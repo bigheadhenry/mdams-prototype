@@ -1,4 +1,9 @@
+import pytest
+
 from app.services.metadata_layers import build_metadata_layers, get_fixity_sha256, get_original_file_path
+
+
+pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
 
 def test_build_metadata_layers_defaults_to_other_when_no_object_metadata():
