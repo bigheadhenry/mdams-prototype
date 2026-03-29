@@ -1,5 +1,7 @@
-# 已迁移
+﻿# Windows Docker 安装说明（已迁移）
 
-Windows 上的 Docker Desktop 安装与验证说明已经收敛到 [`SETUP_AND_DEPLOYMENT.md`](SETUP_AND_DEPLOYMENT.md) 的本地启动章节。
+旧版 Windows Docker 安装说明已迁移到：
 
-如果你只是想把项目跑起来，优先看那份文档。
+- [`SETUP_AND_DEPLOYMENT.md`](SETUP_AND_DEPLOYMENT.md)
+
+如果你是第一次启动项目，请直接按新的部署文档配置 `.env` 并使用 `docker compose up -d --build`。

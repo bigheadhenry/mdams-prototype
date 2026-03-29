@@ -1,89 +1,83 @@
-# MDAMS 项目架构文档
+﻿# MDAMS 架构说明
 
-## 1. 系统架构图 (System Architecture)
+## 1. 总体结构
 
-该图展示了系统的各个容器组件、网络流向以及它们与底层存储的交互关系。
+MDAMS Prototype 当前已经形成了四层主结构：
 
-```mermaid
-graph TB
-    subgraph Client_Side ["客户端 (Client)"]
-        Browser["浏览器 (Browser)<br/>React SPA"]
-    end
+- 前端展示层：二维页面、统一平台、三维管理页、Mirador、model-viewer
+- 后端业务层：FastAPI 路由、服务层、权限层、上传与导出逻辑
+- 数据与任务层：PostgreSQL、Redis、Celery
+- 图像与文件服务层：Cantaloupe、宿主机上传目录、测试样例资源
 
-    subgraph Docker_Host ["Docker 宿主机 (Server)"]
-        subgraph Entry_Point ["入口层 (Frontend Container)"]
-            Nginx["Nginx Reverse Proxy<br/>Port: 3000"]
-        end
+当前项目不再是单一二维 PoC，而是一个围绕馆内数字资源管理构建的原型底座。
 
-        subgraph Application_Layer ["应用层"]
-            Backend["FastAPI Backend<br/>Port: 8000"]
-            Cantaloupe["Cantaloupe IIIF Server<br/>Port: 8182"]
-            FileBrowser["FileBrowser<br/>Port: 8081"]
-        end
+## 2. 运行时组件
 
-        subgraph Data_Layer ["数据层"]
-            Postgres["PostgreSQL Database<br/>Port: 5432"]
-        end
-    end
+### 2.1 前端
 
-    subgraph Storage_Layer ["物理存储 (Storage)"]
-        NAS_Images["NAS / 本地存储<br/>(文物库/图像文件)"]
-        DB_Volume["SSD 数据卷<br/>(Postgres Data)"]
-    end
+- React 18 + Vite + TypeScript + Ant Design
+- 二维影像管理、申请车、申请管理
+- 统一资源目录与统一详情
+- 三维管理页与 Web 查看器
+- Mirador 与 model-viewer 集成
 
-    %% Data Flow Connections
-    Browser -- "HTTP / (Static)" --> Nginx
-    Browser -- "HTTP /api/*" --> Nginx
-    Browser -- "HTTP /iiif/2/*" --> Nginx
+### 2.2 后端
 
-    Nginx -- "Proxy /api" --> Backend
-    Nginx -- "Proxy /iiif/2" --> Cantaloupe
+- FastAPI API
+- 二维资源、三维资源、统一平台、申请、认证、权限等路由
+- 资产详情、元数据分层、生产链路、导出与下载服务
+- Celery 任务 worker
 
-    Backend -- "SQL Read/Write" --> Postgres
-    Backend -- "Scan/Analyze Metadata" --> NAS_Images
-    
-    Cantaloupe -- "Read Images" --> NAS_Images
-    
-    FileBrowser -- "Manage Files" --> NAS_Images
+### 2.3 数据与外部服务
 
-    Postgres -- "Persist Data" --> DB_Volume
-```
+- PostgreSQL：业务数据与元数据
+- Redis：任务队列
+- Cantaloupe：IIIF 图像服务
+- 宿主机 `uploads`：上传资源和衍生文件
 
-## 2. 核心数据结构 (Core Data Structure)
+## 3. 关键链路
 
-系统以 **Asset (资产)** 为核心实体，采用 PostgreSQL 存储结构化元数据，而将非结构化的大型文件（图像）存储在文件系统中。
+### 3.1 二维影像链路
 
-```mermaid
-erDiagram
-    ASSET {
-        int id PK "主键 ID"
-        string filename "文件名 (如: item001.jpg)"
-        string file_path "相对路径 (如: /collection/A/item001.jpg)"
-        int file_size "文件大小 (Bytes)"
-        string mime_type "MIME 类型 (如: image/jpeg)"
-        json metadata_info "技术元数据 (Exif, IPTC, IIIF info)"
-        datetime created_at "入库时间"
-        string status "处理状态 (processing, ready, error)"
-    }
-```
+`上传 -> 入库 -> 元数据提取 -> IIIF Manifest -> Mirador 预览 -> 下载 / BagIt 导出 -> 申请与审批`
 
-### 字段详细说明
+### 3.2 三维链路
 
-*   **`file_path`**: 存储的是相对于挂载点（`/sunjing/project/文物库`）的路径，而不是绝对路径。这使得系统在不同环境下迁移更灵活。
-*   **`metadata_info` (JSON)**: 这是一个灵活的 JSONB 字段，用于存储提取出的非结构化数据，例如：
-    *   `width`: 图像宽度 (px)
-    *   `height`: 图像高度 (px)
-    *   `format`: 原始格式
-    *   `exif`: 拍摄设备信息等
-*   **`status`**: 
-    *   `processing`: 正在提取元数据或生成缓存
-    *   `ready`: 资产已就绪，可正常访问
-    *   `error`: 处理过程中出错
+`上传 -> 版本管理 -> 资源包构成 -> Web 展示状态 -> viewer -> 对象级管理 -> 长期保存状态`
 
-## 3. 关键交互流程
+### 3.3 统一平台链路
 
-1.  **资产入库**: 
-    *   Backend 扫描 NAS 目录 -> 创建 `Asset` 记录 (Status: `processing`) -> 提取元数据 -> 更新 `Asset` (Status: `ready`)。
-2.  **图像浏览**:
-    *   前端请求 `/api/assets` -> Backend 查询 DB 返回 JSON 列表。
-    *   前端请求高清图 -> 构造 IIIF URL (`/iiif/2/...`) -> Nginx 转发给 Cantaloupe -> Cantaloupe 读取 NAS 文件 -> 动态裁剪/缩放 -> 返回图片数据。
+`来源注册 -> 统一资源目录 -> 统一详情 -> 来源详情 / 预览 / 下载`
+
+### 3.4 认证与权限链路
+
+`登录 -> 当前用户上下文 -> 角色与 scope -> 菜单裁剪 -> 后端接口校验 -> IIIF 访问控制`
+
+## 4. 当前实现边界
+
+当前已经明确的边界是：
+
+- MDAMS 负责身份、权限、资源范围和业务语义
+- Cantaloupe 负责图像切片与图像服务
+- Mirador 负责展示
+- 统一平台负责聚合与检索
+
+## 5. 部署视角
+
+当前仓库的容器组合为：
+
+- `frontend`
+- `backend`
+- `celery_worker`
+- `db`
+- `redis`
+- `cantaloupe`
+
+## 6. 当前结论
+
+当前架构已经能支撑稳定开发和持续演示，但后续还需要继续补：
+
+- 更完整的统一检索
+- 更细的权限和责任范围
+- 更强的治理和长期保存能力
+- 更完整的测试分层

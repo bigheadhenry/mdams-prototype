@@ -1,87 +1,96 @@
-# MDAMS Prototype Main Chain Acceptance Checklist
+﻿# MDAMS 当前验收清单
 
-This checklist covers the current priority path:
+这份清单用于验证当前仓库的主流程是否健康。当前重点不再只是二维上传，而是以下几条链路都能稳定跑通：
 
-`upload -> ingest -> convert -> manifest -> preview -> download`
+- 登录与权限
+- 二维影像主链路
+- 三维资源管理与查看
+- 统一平台目录与统一详情
+- 资源申请与交付
 
-Use it for:
-- local startup validation
-- regression checks after config changes
-- demo preflight
-- quick failure diagnosis
+建议把它作为本地启动验证、配置调整后回归、演示前检查的参考。
 
-## 1. Environment
+## 1. 环境与登录
 
-- `docker compose config` succeeds
-- `docker compose ps` shows `backend`, `frontend`, `db`, `redis`, `worker`, and `cantaloupe`
-- `http://localhost:3000` opens without a white screen
-- `http://localhost:8000/health` returns `healthy`
-- `http://localhost:8000/ready` returns `healthy`
+- `docker compose config` 可以成功解析
+- `docker compose ps` 能看到 `backend`、`frontend`、`db`、`redis`、`celery_worker` 和 `cantaloupe`
+- `http://localhost:3000` 可以正常打开
+- `http://localhost:8000/health` 返回正常
+- `http://localhost:8000/ready` 返回正常
+- 登录可以拿到当前用户上下文
+- 菜单会根据角色变化
 
-## 2. Upload And Ingest
+## 2. 二维影像主链路
 
-- A supported image can be selected in the frontend
-- Upload returns success
-- The new asset appears in the asset list
-- Asset detail opens after upload
-- `GET /assets` returns the uploaded record
+- 前端可以查看二维资源列表
+- 支持资源上传
+- 上传后资源会进入列表
+- 资源详情可以打开
+- 资源详情能看到基础元数据、技术元数据和可见范围
+- `GET /assets` 可以返回资源列表
+- `GET /assets/{id}` 可以返回资源详情
 
-## 3. Metadata
+## 3. IIIF 与 Mirador
 
-- Asset detail shows filename, size, mime type, and status
-- Width and height are present when the sample provides them
-- Technical metadata is rendered in the detail view
-- No unexpected server error appears in the metadata section
+- `GET /assets/{id}/manifest` 可以返回有效的 Manifest
+- Manifest 中的资源标识可以正确解析
+- Mirador 能打开一个 ready 的二维资源
+- 图像服务能够返回对应的切片或图片
+- 资源可见范围会影响可访问结果
 
-## 4. Conversion
+## 4. 资源申请
 
-- PSB sample triggers the background conversion flow
-- Worker logs show the conversion task running
-- Converted output is written back to the asset record
-- The asset status eventually becomes `ready` or a clear error state
+- 二维资源可以从 Mirador 加入申请车
+- 申请车可以提交正式申请单
+- 申请管理页可以查看申请单
+- 可以审批申请单
+- 审批通过后可以导出交付包
+- 导出后状态会进入 `fulfilled`
 
-## 5. IIIF
+## 5. 三维资源
 
-- `GET /assets/{id}/manifest` returns a valid manifest
-- Manifest IDs resolve correctly
-- The manifest references the expected image service URL
-- Mirador can load the manifest
-- The IIIF image service can fetch the converted or source image
+- 可以查看三维资源列表
+- 可以按对象聚合查看版本
+- 可以看到 Web 展示版标识
+- 可以打开三维 Web 查看器
+- 可以看到模型、点云和倾斜摄影图像的文件构成
+- 可以查看三维对象与藏品对象的关联
 
-## 6. Download
+## 6. 统一平台
 
-- Current file download returns HTTP 200
-- BagIt ZIP download returns HTTP 200
-- Downloaded content matches the selected asset
+- 统一资源目录可以打开
+- 统一资源目录可以筛选 profile、类型和可见范围
+- 统一详情页可以打开
+- 统一详情页可以跳回来源详情
+- 统一目录和统一详情在不同角色下有不同可见内容
 
-## 7. Failure Checks
+## 7. 权限与范围
 
-- DB downtime surfaces as a clear health check failure
-- Missing upload directory surfaces as a clear health check failure
-- Failed conversion is visible in the asset detail status
-- Manifest generation failures are visible in the API response
+- `system_admin` 可以看到完整菜单和资源
+- `resource_user` 可以看到浏览和申请相关入口，但看不到管理入口
+- `collection_owner` 可以看到自己责任范围内的 `owner_only` 资源
+- `collection_owner` 看不到其他责任范围的 `owner_only` 资源
+- `application_reviewer` 可以处理申请审批
 
-## 8. Minimum Pass Criteria
+## 8. 回归通过标准
 
-Treat the current build as acceptable only if all of the following pass:
+以下内容至少要全部通过，才能认为当前版本可接受：
 
-- frontend opens
-- `/health` and `/ready` are healthy
-- asset upload works
-- asset list updates
-- asset detail loads
-- metadata is visible
-- conversion either succeeds or fails clearly
-- manifest is accessible
-- Mirador can load at least one ready asset
-- current file download works
-- BagIt download works
+- 前端首页可以正常打开
+- 登录后菜单与角色一致
+- 二维资源列表可用
+- 二维资源详情可用
+- Mirador 可打开 ready 资源
+- 申请车和申请管理可用
+- 三维管理页可用
+- 三维 viewer 可用
+- 统一目录和统一详情可用
+- 至少一条登录态 Playwright 回归通过
 
-## 9. Suggested Next Check
+## 9. 下一步建议
 
-After this checklist is green, the next useful step is:
+如果这份清单已经稳定通过，下一步最值得做的是：
 
-1. split the backend routes into smaller modules
-2. add a narrow backend health test
-3. tighten the asset detail data contract
-
+1. 继续完善统一平台层
+2. 继续增强三维兼容性和保存能力
+3. 继续补齐权限、审计和长期保存能力
