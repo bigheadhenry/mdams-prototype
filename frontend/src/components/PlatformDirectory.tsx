@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Descriptions, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import { EyeOutlined, FileTextOutlined, LinkOutlined, ReloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -8,18 +8,18 @@ const { Paragraph, Text } = Typography;
 const { Search } = Input;
 
 const PROFILE_OPTIONS = [
-  { value: 'other', label: '其他' },
-  { value: 'movable_artifact', label: '可移动文物' },
-  { value: 'immovable_artifact', label: '不可移动文物' },
-  { value: 'art_photography', label: '艺术摄影' },
-  { value: 'business_activity', label: '业务活动' },
-  { value: 'panorama', label: '全景' },
-  { value: 'ancient_tree', label: '古树' },
-  { value: 'archaeology', label: '考古' },
-  { value: 'model', label: '三维模型' },
-  { value: 'point_cloud', label: '点云' },
-  { value: 'oblique_photo', label: '倾斜摄影图像' },
-  { value: 'package', label: '三维资源包' },
+  { value: 'other', label: 'Other' },
+  { value: 'movable_artifact', label: 'Movable Artifact' },
+  { value: 'immovable_artifact', label: 'Immovable Artifact' },
+  { value: 'art_photography', label: 'Art Photography' },
+  { value: 'business_activity', label: 'Business Activity' },
+  { value: 'panorama', label: 'Panorama' },
+  { value: 'ancient_tree', label: 'Ancient Tree' },
+  { value: 'archaeology', label: 'Archaeology' },
+  { value: 'model', label: '3D Model' },
+  { value: 'point_cloud', label: 'Point Cloud' },
+  { value: 'oblique_photo', label: 'Oblique Photo' },
+  { value: 'package', label: '3D Package' },
 ];
 
 interface PlatformDirectoryProps {
@@ -71,94 +71,108 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
   };
 
   useEffect(() => {
-    fetchDirectory();
+    void fetchDirectory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const columns = [
-    {
-      title: '统一 ID',
-      dataIndex: 'id',
-      key: 'id',
-      render: (value: string) => <Paragraph copyable style={{ marginBottom: 0 }}>{value}</Paragraph>,
-    },
-    { title: '来源', dataIndex: 'source_label', key: 'source_label' },
-    { title: '标题', dataIndex: 'title', key: 'title' },
-    { title: '类型', dataIndex: 'resource_type', key: 'resource_type' },
-    {
-      title: 'Profile',
-      dataIndex: 'profile_label',
-      key: 'profile_label',
-      render: (value: string | undefined, record: UnifiedResourceSummary) => (
-        <Tag>{value || record.profile_key || '其他'}</Tag>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (value: string, record: UnifiedResourceSummary) => (
-        <Space wrap>
-          <Tag color={record.preview_enabled ? 'green' : 'blue'}>
-            {record.preview_enabled ? '可预览' : '不可预览'}
-          </Tag>
-          <Tag>{value}</Tag>
-        </Space>
-      ),
-    },
-    {
-      title: '更新时间',
-      dataIndex: 'updated_at',
-      key: 'updated_at',
-      render: (value: string) => <Text type="secondary">{value}</Text>,
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_value: unknown, record: UnifiedResourceSummary) => (
-        <Space wrap>
-          <Button icon={<EyeOutlined />} disabled={!record.preview_enabled} onClick={() => onPreview(record.manifest_url)}>
-            预览
-          </Button>
-          <Button icon={<LinkOutlined />} onClick={() => onOpenUnifiedResourceDetail?.(record.id)}>
-            统一详情
-          </Button>
-          <Button
-            icon={<FileTextOutlined />}
-            onClick={() => {
-              const assetId = Number(record.source_id);
-              if (!Number.isNaN(assetId) && onOpenAssetDetail) {
-                onOpenAssetDetail(assetId);
-              }
-            }}
-          >
-            源详情
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  const columns = useMemo(
+    () => [
+      {
+        title: 'Unified ID',
+        dataIndex: 'id',
+        key: 'id',
+        render: (value: string) => <Paragraph copyable style={{ marginBottom: 0 }}>{value}</Paragraph>,
+      },
+      { title: 'Source', dataIndex: 'source_label', key: 'source_label' },
+      { title: 'Title', dataIndex: 'title', key: 'title' },
+      { title: 'Resource Type', dataIndex: 'resource_type', key: 'resource_type' },
+      {
+        title: 'Profile',
+        dataIndex: 'profile_label',
+        key: 'profile_label',
+        render: (value: string | undefined, record: UnifiedResourceSummary) => (
+          <Tag>{value || record.profile_key || 'Other'}</Tag>
+        ),
+      },
+      {
+        title: 'Status',
+        dataIndex: 'status',
+        key: 'status',
+        render: (value: string, record: UnifiedResourceSummary) => (
+          <Space wrap>
+            <Tag color={record.preview_enabled ? 'green' : 'blue'}>
+              {record.preview_enabled ? 'Previewable' : 'Download only'}
+            </Tag>
+            <Tag>{value}</Tag>
+          </Space>
+        ),
+      },
+      {
+        title: 'Updated At',
+        dataIndex: 'updated_at',
+        key: 'updated_at',
+        render: (value: string) => <Text type="secondary">{value}</Text>,
+      },
+      {
+        title: 'Actions',
+        key: 'action',
+        render: (_value: unknown, record: UnifiedResourceSummary) => (
+          <Space wrap>
+            <Button
+              data-testid={`platform-preview-${record.source_id}`}
+              icon={<EyeOutlined />}
+              disabled={!record.preview_enabled}
+              onClick={() => onPreview(record.manifest_url)}
+            >
+              Preview
+            </Button>
+            <Button
+              data-testid={`platform-unified-detail-${record.source_id}`}
+              icon={<LinkOutlined />}
+              onClick={() => onOpenUnifiedResourceDetail?.(record.id)}
+            >
+              Unified Detail
+            </Button>
+            <Button
+              data-testid={`platform-source-detail-${record.source_id}`}
+              icon={<FileTextOutlined />}
+              onClick={() => {
+                const assetId = Number(record.source_id);
+                if (!Number.isNaN(assetId) && onOpenAssetDetail) {
+                  onOpenAssetDetail(assetId);
+                }
+              }}
+            >
+              Source Detail
+            </Button>
+          </Space>
+        ),
+      },
+    ],
+    [onOpenAssetDetail, onOpenUnifiedResourceDetail, onPreview],
+  );
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Card title="统一资源目录">
+    <Space data-testid="platform-directory" direction="vertical" size="large" style={{ width: '100%' }}>
+      <Card title="Unified Resource Directory">
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Space wrap style={{ width: '100%' }}>
             <Search
+              data-testid="platform-search"
               allowClear
-              placeholder="搜索标题、文件名、MIME 或资源 ID"
+              placeholder="Search title, filename, MIME or resource ID"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              onSearch={(value) => fetchDirectory(value, status, previewState, resourceType, profileKey)}
+              onSearch={(value) => void fetchDirectory(value, status, previewState, resourceType, profileKey)}
               style={{ width: 320 }}
             />
             <Select
               allowClear
-              placeholder="状态"
+              placeholder="Status"
               value={status}
               onChange={(value) => {
                 setStatus(value);
-                fetchDirectory(query, value, previewState, resourceType, profileKey);
+                void fetchDirectory(query, value, previewState, resourceType, profileKey);
               }}
               style={{ width: 160 }}
               options={[
@@ -169,33 +183,33 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
             />
             <Select
               allowClear
-              placeholder="预览状态"
+              placeholder="Preview"
               value={previewState}
               onChange={(value) => {
                 setPreviewState(value);
-                fetchDirectory(query, status, value, resourceType, profileKey);
+                void fetchDirectory(query, status, value, resourceType, profileKey);
               }}
               style={{ width: 160 }}
               options={[
-                { value: 'true', label: '可预览' },
-                { value: 'false', label: '不可预览' },
+                { value: 'true', label: 'Previewable' },
+                { value: 'false', label: 'Download only' },
               ]}
             />
             <Select
               allowClear
-              placeholder="资源类型"
+              placeholder="Resource Type"
               value={resourceType}
               onChange={(value) => {
                 setResourceType(value);
-                fetchDirectory(query, status, previewState, value, profileKey);
+                void fetchDirectory(query, status, previewState, value, profileKey);
               }}
               style={{ width: 240 }}
               options={[
-                { value: 'image_2d_cultural_object', label: '二维影像' },
-                { value: 'three_d_model', label: '三维模型' },
-                { value: 'three_d_point_cloud', label: '点云' },
-                { value: 'three_d_oblique_photo', label: '倾斜摄影图像' },
-                { value: 'three_d_package', label: '三维资源包' },
+                { value: 'image_2d_cultural_object', label: '2D Image' },
+                { value: 'three_d_model', label: '3D Model' },
+                { value: 'three_d_point_cloud', label: 'Point Cloud' },
+                { value: 'three_d_oblique_photo', label: 'Oblique Photo' },
+                { value: 'three_d_package', label: '3D Package' },
               ]}
             />
             <Select
@@ -204,17 +218,17 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
               value={profileKey}
               onChange={(value) => {
                 setProfileKey(value);
-                fetchDirectory(query, status, previewState, resourceType, value);
+                void fetchDirectory(query, status, previewState, resourceType, value);
               }}
               style={{ width: 180 }}
               options={PROFILE_OPTIONS}
             />
-            <Button icon={<ReloadOutlined />} onClick={() => fetchDirectory()} />
+            <Button icon={<ReloadOutlined />} onClick={() => void fetchDirectory()} />
           </Space>
 
           <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="来源数量">{sources.length}</Descriptions.Item>
-            <Descriptions.Item label="资源总数">{resources.length}</Descriptions.Item>
+            <Descriptions.Item label="Source Count">{sources.length}</Descriptions.Item>
+            <Descriptions.Item label="Resource Count">{resources.length}</Descriptions.Item>
           </Descriptions>
         </Space>
 
@@ -222,27 +236,27 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
           style={{ marginTop: 16 }}
           type="info"
           showIcon
-          message="统一目录会持续接入二维影像、三维资源等子系统，并在平台层提供统一检索与统一详情入口。"
+          message="The unified directory aggregates multiple subsystem sources and provides a single search and detail entry."
         />
       </Card>
 
-      <Card title="来源摘要">
+      <Card title="Source Summary">
         <Descriptions bordered column={1} size="small">
           {sources.map((source) => (
             <Descriptions.Item key={source.source_system} label={source.source_label}>
               <Space direction="vertical" size={0}>
-                <Text>系统标识：{source.source_system}</Text>
-                <Text>资源类型：{source.resource_type}</Text>
-                <Text>资源数量：{source.resource_count}</Text>
-                <Text>接入口：{source.entrypoint}</Text>
-                <Text>健康状态：{source.healthy ? '健康' : '异常'}</Text>
+                <Text>System ID: {source.source_system}</Text>
+                <Text>Resource Type: {source.resource_type}</Text>
+                <Text>Resource Count: {source.resource_count}</Text>
+                <Text>Entrypoint: {source.entrypoint}</Text>
+                <Text>Healthy: {source.healthy ? 'Yes' : 'No'}</Text>
               </Space>
             </Descriptions.Item>
           ))}
         </Descriptions>
       </Card>
 
-      <Card title="统一资源列表">
+      <Card title="Unified Resource List">
         <Table
           rowKey="id"
           loading={loading}

@@ -330,7 +330,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
       </div>
 
       {sourceRecord && (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space data-testid="unified-resource-detail" direction="vertical" size="large" style={{ width: '100%' }}>
           <Card bordered={false}>
             <SectionTitle title="生命周期" subtitle="统一平台按源对象的处理轨迹展示。" />
             <List

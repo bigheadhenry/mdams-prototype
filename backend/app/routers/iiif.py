@@ -1,64 +1,115 @@
 import os
 from urllib.parse import quote
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from .. import config
 from ..database import get_db
 from ..models import Asset
+from ..permissions import CurrentUser, can_access_visibility_scope, ensure_current_user, require_permission
 from ..services.metadata_layers import build_iiif_metadata_entries, build_metadata_layers, get_dimensions
 
 router = APIRouter(tags=["iiif"])
 
 
+def _asset_visibility_scope(asset: Asset) -> str:
+    visibility_scope = getattr(asset, "visibility_scope", None)
+    if visibility_scope:
+        return str(visibility_scope)
+    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    core = metadata.get("core") if isinstance(metadata, dict) else {}
+    if isinstance(core, dict):
+        core_scope = core.get("visibility_scope")
+        if core_scope not in (None, ""):
+            return str(core_scope)
+    return "open"
+
+
+def _asset_collection_object_id(asset: Asset) -> int | None:
+    collection_object_id = getattr(asset, "collection_object_id", None)
+    if isinstance(collection_object_id, bool):
+        return int(collection_object_id)
+    if isinstance(collection_object_id, int):
+        return collection_object_id
+    if isinstance(collection_object_id, str) and collection_object_id.isdigit():
+        return int(collection_object_id)
+    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    core = metadata.get("core") if isinstance(metadata, dict) else {}
+    if isinstance(core, dict):
+        core_collection_object_id = core.get("collection_object_id")
+        if isinstance(core_collection_object_id, int):
+            return core_collection_object_id
+        if isinstance(core_collection_object_id, str) and core_collection_object_id.isdigit():
+            return int(core_collection_object_id)
+    return None
+
+
+def _assert_asset_visible(asset: Asset, user: CurrentUser) -> None:
+    if not can_access_visibility_scope(
+        user,
+        visibility_scope=_asset_visibility_scope(asset),
+        collection_object_id=_asset_collection_object_id(asset),
+    ):
+        raise HTTPException(status_code=403, detail="Asset is not visible to current user")
+
+
+def _api_base_url(request: Request) -> str:
+    if config.API_PUBLIC_URL:
+        return config.API_PUBLIC_URL.rstrip("/")
+
+    forwarded_host = request.headers.get("x-forwarded-host")
+    forwarded_proto = request.headers.get("x-forwarded-proto", "http")
+
+    if forwarded_host:
+        host = forwarded_host
+        scheme = forwarded_proto
+        forwarded_prefix = request.headers.get("x-forwarded-prefix", "")
+        if forwarded_prefix:
+            prefix = forwarded_prefix.rstrip("/")
+            return f"{scheme}://{host}{prefix}"
+        return f"{scheme}://{host}/api"
+
+    host = request.headers.get("host") or "localhost:8000"
+    scheme = request.url.scheme
+    if ":3000" in host:
+        return f"{scheme}://{host}/api"
+    return f"{scheme}://{host}"
+
+
+def _cantaloupe_base_url(request: Request) -> str:
+    if config.CANTALOUPE_PUBLIC_URL:
+        return config.CANTALOUPE_PUBLIC_URL.rstrip("/")
+
+    forwarded_host = request.headers.get("x-forwarded-host")
+    forwarded_proto = request.headers.get("x-forwarded-proto", "http")
+
+    if forwarded_host:
+        host = forwarded_host
+        scheme = forwarded_proto
+        return f"{scheme}://{host}/iiif/2"
+
+    host = request.headers.get("host")
+    if host and ":3000" in host:
+        return f"{request.url.scheme}://{host}/iiif/2"
+    return "http://localhost:8182/iiif/2"
+
+
 @router.get("/iiif/{asset_id}/manifest")
-def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get_db)):
+def get_iiif_manifest(
+    asset_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.view")),
+):
+    user = ensure_current_user(user)
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
-
-    if config.API_PUBLIC_URL:
-        api_base_url = config.API_PUBLIC_URL.rstrip("/")
-    else:
-        forwarded_host = request.headers.get("x-forwarded-host")
-        forwarded_proto = request.headers.get("x-forwarded-proto", "http")
-        forwarded_prefix = request.headers.get("x-forwarded-prefix", "")
-
-        if forwarded_host:
-            host = forwarded_host
-            scheme = forwarded_proto
-            if forwarded_prefix:
-                prefix = forwarded_prefix.rstrip("/")
-                api_base_url = f"{scheme}://{host}{prefix}"
-            else:
-                api_base_url = f"{scheme}://{host}/api"
-        else:
-            host = request.headers.get("host")
-            if not host:
-                host = "localhost:8000"
-            scheme = request.url.scheme
-            if ":3000" in host:
-                api_base_url = f"{scheme}://{host}/api"
-            else:
-                api_base_url = f"{scheme}://{host}"
-
-    if config.CANTALOUPE_PUBLIC_URL:
-        cantaloupe_base_url = config.CANTALOUPE_PUBLIC_URL.rstrip("/")
-    else:
-        forwarded_host = request.headers.get("x-forwarded-host")
-        forwarded_proto = request.headers.get("x-forwarded-proto", "http")
-
-        if forwarded_host:
-            host = forwarded_host
-            scheme = forwarded_proto
-            cantaloupe_base_url = f"{scheme}://{host}/iiif/2"
-        else:
-            host = request.headers.get("host")
-            if host and ":3000" in host:
-                cantaloupe_base_url = f"{request.url.scheme}://{host}/iiif/2"
-            else:
-                cantaloupe_base_url = "http://localhost:8182/iiif/2"
+    _assert_asset_visible(asset, user)
+    api_base_url = _api_base_url(request)
 
     manifest_id = f"{api_base_url}/iiif/{asset_id}/manifest"
     canvas_id = f"{api_base_url}/iiif/{asset_id}/canvas/1"
@@ -66,7 +117,7 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
     annotation_id = f"{api_base_url}/iiif/{asset_id}/annotation/1"
 
     actual_filename = os.path.basename(asset.file_path) if asset.file_path else asset.filename
-    image_service_id = f"{cantaloupe_base_url}/{quote(actual_filename)}"
+    image_service_id = f"{api_base_url}/iiif/{asset_id}/service/{quote(actual_filename, safe='')}"
 
     metadata_layers = build_metadata_layers(
         asset_id=asset.id,
@@ -76,6 +127,8 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
         asset_mime_type=asset.mime_type,
         asset_status=asset.status,
         asset_resource_type=asset.resource_type,
+        asset_visibility_scope=_asset_visibility_scope(asset),
+        asset_collection_object_id=_asset_collection_object_id(asset),
         asset_created_at=asset.created_at,
         metadata=asset.metadata_info or {},
     )
@@ -160,3 +213,34 @@ def get_iiif_manifest(asset_id: int, request: Request, db: Session = Depends(get
     manifest["metadata"].extend(build_iiif_metadata_entries(metadata_layers))
 
     return manifest
+
+
+@router.get("/iiif/{asset_id}/service/{image_path:path}")
+def proxy_iiif_image(
+    asset_id: int,
+    image_path: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.view")),
+):
+    user = ensure_current_user(user)
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    _assert_asset_visible(asset, user)
+
+    actual_filename = os.path.basename(asset.file_path) if asset.file_path else asset.filename
+    requested_filename, _, suffix = image_path.partition("/")
+    if requested_filename not in {actual_filename, asset.filename}:
+        raise HTTPException(status_code=404, detail="Image service not found")
+
+    target_url = f"{_cantaloupe_base_url(request)}/{quote(actual_filename, safe='')}"
+    if suffix:
+        target_url = f"{target_url}/{suffix}"
+
+    upstream = httpx.get(target_url, timeout=30.0)
+    return Response(
+        content=upstream.content,
+        status_code=upstream.status_code,
+        media_type=upstream.headers.get("content-type", "application/octet-stream"),
+    )

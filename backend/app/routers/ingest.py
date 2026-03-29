@@ -120,6 +120,14 @@ async def ingest_sip(
 
         file_group = exif_metadata.get("File", {})
         image_file_name = file.filename
+        normalized_visibility_scope = str(client_metadata.get("visibility_scope") or "open").strip().lower()
+        if normalized_visibility_scope not in {"open", "owner_only"}:
+            normalized_visibility_scope = "open"
+        collection_object_id = client_metadata.get("collection_object_id")
+        if isinstance(collection_object_id, str) and collection_object_id.isdigit():
+            collection_object_id = int(collection_object_id)
+        if not isinstance(collection_object_id, int):
+            collection_object_id = None
         final_metadata = build_metadata_layers(
             asset_filename=file.filename,
             asset_file_path=file_location,
@@ -127,6 +135,8 @@ async def ingest_sip(
             asset_mime_type=file.content_type,
             asset_status=initial_status,
             asset_resource_type="image_2d_cultural_object",
+            asset_visibility_scope=normalized_visibility_scope,
+            asset_collection_object_id=collection_object_id,
             metadata={
                 **client_metadata,
                 "ingest_method": "sip_bagit",
@@ -140,11 +150,15 @@ async def ingest_sip(
                 "format_version": file_group.get("FileTypeVersion"),
                 "width": width,
                 "height": height,
+                "visibility_scope": normalized_visibility_scope,
+                "collection_object_id": collection_object_id,
             },
             source_metadata={
                 "client_metadata": client_metadata,
                 "exif_metadata": exif_metadata,
                 "server_hash": server_hash,
+                "visibility_scope": normalized_visibility_scope,
+                "collection_object_id": collection_object_id,
             },
         )
         
@@ -153,6 +167,8 @@ async def ingest_sip(
             file_path=file_location,
             file_size=file_size,
             mime_type=file.content_type,
+            visibility_scope=normalized_visibility_scope,
+            collection_object_id=collection_object_id,
             status=initial_status,
             resource_type="image_2d_cultural_object",
             process_message="等待处理" if initial_status == "processing" else "处理完成，可预览",

@@ -11,6 +11,8 @@ class Asset(Base):
     file_path = Column(String)
     file_size = Column(Integer)
     mime_type = Column(String)
+    visibility_scope = Column(String, default="open", index=True)
+    collection_object_id = Column(Integer, index=True, nullable=True)
     metadata_info = Column(JSON, nullable=True)  # Store Exif/IPTC as JSON
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     resource_type = Column(String, default="image_2d_cultural_object")
@@ -19,6 +21,73 @@ class Asset(Base):
     # Status: processing, ready, error
     status = Column(String, default="processing")
     application_items = relationship("ApplicationItem", back_populates="asset")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    display_name = Column(String, nullable=False)
+    password_hash = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    collection_scope = Column(JSON, nullable=True)
+    metadata_info = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    roles = relationship(
+        "UserRole",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="UserRole.id",
+    )
+    sessions = relationship(
+        "UserSession",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="UserSession.id",
+    )
+
+
+class Role(Base):
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True, nullable=False)
+    label = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    metadata_info = Column(JSON, nullable=True)
+
+    users = relationship(
+        "UserRole",
+        back_populates="role",
+        cascade="all, delete-orphan",
+        order_by="UserRole.id",
+    )
+
+
+class UserRole(Base):
+    __tablename__ = "user_roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id", ondelete="CASCADE"), index=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="roles")
+    role = relationship("Role", back_populates="users")
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    session_token = Column(String, unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="sessions")
 
 
 class Application(Base):

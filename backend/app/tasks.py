@@ -62,6 +62,8 @@ def convert_psb_to_bigtiff(self, asset_id: int, original_path: str):
             asset_mime_type=asset.mime_type,
             asset_status=asset.status,
             asset_resource_type=asset.resource_type,
+            asset_visibility_scope=asset.visibility_scope,
+            asset_collection_object_id=asset.collection_object_id,
             asset_created_at=asset.created_at,
             metadata=asset.metadata_info or {},
         )
@@ -94,6 +96,8 @@ def convert_psb_to_bigtiff(self, asset_id: int, original_path: str):
             asset_mime_type=asset.mime_type if asset else None,
             asset_status=asset.status if asset else None,
             asset_resource_type=asset.resource_type if asset else None,
+            asset_visibility_scope=asset.visibility_scope if asset else None,
+            asset_collection_object_id=asset.collection_object_id if asset else None,
             asset_created_at=asset.created_at if asset else None,
             metadata=asset.metadata_info or {},
         )

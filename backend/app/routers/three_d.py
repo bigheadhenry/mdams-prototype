@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from .. import config
 from ..database import get_db
 from ..models import ThreeDAsset, ThreeDAssetFile, ThreeDCollectionObject
+from ..permissions import CurrentUser, can_access_visibility_scope, ensure_current_user, require_permission
 from ..schemas import (
     ThreeDAssetOut,
     ThreeDCollectionObjectOut,
@@ -320,6 +321,7 @@ def list_three_d_collection_objects(
     q: str | None = None,
     limit: int = 50,
     db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.view")),
 ):
     query = db.query(ThreeDCollectionObject)
     normalized_q = _normalize_optional_text(q)
@@ -349,7 +351,11 @@ def list_three_d_collection_objects(
 
 
 @router.get("/collection-objects/{object_id}", response_model=ThreeDCollectionObjectOut)
-def get_three_d_collection_object(object_id: int, db: Session = Depends(get_db)):
+def get_three_d_collection_object(
+    object_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.view")),
+):
     item = _get_collection_object_or_404(db, object_id)
     return ThreeDCollectionObjectOut(
         id=item.id,
@@ -401,6 +407,7 @@ async def upload_three_d_resource(
     lod_count: int | None = Form(None),
     capture_time: str | None = Form(None),
     db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.upload")),
 ):
     uploads_by_role = _collect_uploads(file, mesh_uploads, point_cloud_uploads, oblique_uploads)
     if not uploads_by_role:
@@ -630,19 +637,46 @@ async def upload_three_d_resource(
 
 
 @router.get("/resources", response_model=list[ThreeDAssetOut])
-def list_three_d_resources(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_three_d_resources(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("three_d.view")),
+):
+    user = ensure_current_user(user)
     assets = db.query(ThreeDAsset).order_by(ThreeDAsset.created_at.desc(), ThreeDAsset.id.desc()).offset(skip).limit(limit).all()
-    return [_serialize_three_d_asset(asset) for asset in assets]
+    visible_assets = []
+    for asset in assets:
+        visibility_scope = None
+        metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+        core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
+        if isinstance(core, dict):
+            visibility_scope = core.get("visibility_scope")
+        if can_access_visibility_scope(
+            user,
+            visibility_scope=visibility_scope if isinstance(visibility_scope, str) else "open",
+            collection_object_id=asset.collection_object_id,
+        ):
+            visible_assets.append(asset)
+    return [_serialize_three_d_asset(asset) for asset in visible_assets]
 
 
 @router.get("/resources/{resource_id}", response_model=ThreeDDetailResponse)
-def get_three_d_resource(resource_id: int, db: Session = Depends(get_db)):
+def get_three_d_resource(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.view")),
+):
     asset = _get_resource_or_404(resource_id, db)
     return build_three_d_detail_response(asset)
 
 
 @router.get("/resources/{resource_id}/viewer", response_model=ThreeDViewerSummary)
-def get_three_d_resource_viewer(resource_id: int, db: Session = Depends(get_db)):
+def get_three_d_resource_viewer(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.view")),
+):
     asset = _get_resource_or_404(resource_id, db)
     detail = build_three_d_detail_response(asset)
     return build_three_d_viewer_summary(
@@ -653,7 +687,11 @@ def get_three_d_resource_viewer(resource_id: int, db: Session = Depends(get_db))
 
 
 @router.get("/resources/{resource_id}/download")
-def download_three_d_resource(resource_id: int, db: Session = Depends(get_db)):
+def download_three_d_resource(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.view")),
+):
     asset = _get_resource_or_404(resource_id, db)
     resource_dir = _resource_dir(asset.id)
     file_records = list(asset.files or [])
@@ -670,7 +708,12 @@ def download_three_d_resource(resource_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/resources/{resource_id}/files/{file_id}")
-def download_three_d_resource_file(resource_id: int, file_id: int, db: Session = Depends(get_db)):
+def download_three_d_resource_file(
+    resource_id: int,
+    file_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.view")),
+):
     asset = _get_resource_or_404(resource_id, db)
     file_record = next((record for record in asset.files if record.id == file_id), None)
     if file_record is None:
@@ -686,7 +729,11 @@ def download_three_d_resource_file(resource_id: int, file_id: int, db: Session =
 
 
 @router.delete("/resources/{resource_id}")
-def delete_three_d_resource(resource_id: int, db: Session = Depends(get_db)):
+def delete_three_d_resource(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.edit")),
+):
     asset = _get_resource_or_404(resource_id, db)
     remove_resource_tree(_resource_dir(asset.id))
     db.delete(asset)

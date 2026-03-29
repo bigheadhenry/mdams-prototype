@@ -190,6 +190,8 @@ def build_asset_detail_response(asset: Asset) -> AssetDetailResponse:
         asset_mime_type=asset.mime_type,
         asset_status=asset.status,
         asset_resource_type=asset.resource_type,
+        asset_visibility_scope=asset.visibility_scope,
+        asset_collection_object_id=asset.collection_object_id,
         asset_created_at=asset.created_at,
         metadata=asset.metadata_info or {},
     )
@@ -273,6 +275,8 @@ def build_asset_detail_response(asset: Asset) -> AssetDetailResponse:
         title=str(metadata_layers["core"].get("title") or asset.filename),
         resource_type=asset.resource_type or "image_2d_cultural_object",
         resource_type_label=RESOURCE_TYPE_LABELS.get(asset.resource_type or "", "二维图像文物资源"),
+        visibility_scope=str(asset.visibility_scope or metadata_layers["core"].get("visibility_scope") or "open"),
+        collection_object_id=asset.collection_object_id,
         status=asset.status,
         process_message=asset.process_message,
         created_at=asset.created_at,

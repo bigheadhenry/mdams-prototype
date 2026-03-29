@@ -9,6 +9,7 @@ from starlette.requests import Request
 
 from app.models import Asset
 from app import config as app_config
+from app.permissions import build_system_user
 from app.schemas import AssetDetailResponse
 from app.routers import assets as assets_router
 from app.routers import downloads as downloads_router
@@ -75,7 +76,7 @@ def test_root_health_and_upload_chain(db_session, test_upload_dir, monkeypatch):
 
     uploaded = asyncio.run(_upload_sample(db_session, test_upload_dir))
 
-    assets = assets_router.list_assets(db=db_session)
+    assets = assets_router.list_assets(db=db_session, user=build_system_user())
     assert len(assets) == 1
     assert assets[0].filename == "smoke.png"
 
@@ -96,6 +97,7 @@ def test_root_health_and_upload_chain(db_session, test_upload_dir, monkeypatch):
     assert detail_schema.output_actions.download_bag is not None
     assert detail_schema.metadata_layers["schema_version"] == "2.0"
     assert detail_schema.metadata_layers["profile"]["key"] == "other"
+    assert detail_schema.metadata_layers["core"]["visibility_scope"] == "open"
     assert detail_schema.metadata_layers["technical"]["width"] == 8
     assert detail_schema.metadata_layers["technical"]["height"] == 8
 
@@ -103,9 +105,13 @@ def test_root_health_and_upload_chain(db_session, test_upload_dir, monkeypatch):
         asset_id=uploaded.id,
         request=_make_request({"host": "localhost:3000"}),
         db=db_session,
+        user=build_system_user(),
     )
     assert manifest["id"].endswith(f"/iiif/{uploaded.id}/manifest")
     assert manifest["items"][0]["id"].endswith(f"/iiif/{uploaded.id}/canvas/1")
+    assert manifest["items"][0]["items"][0]["items"][0]["body"]["service"][0]["id"].endswith(
+        f"/iiif/{uploaded.id}/service/smoke.png"
+    )
 
     download_response = downloads_router.download_asset_file(asset_id=uploaded.id, db=db_session)
     assert Path(download_response.path).exists()

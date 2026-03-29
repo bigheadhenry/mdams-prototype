@@ -10,6 +10,8 @@ class AssetOut(BaseModel):
     file_path: str
     file_size: int
     mime_type: str
+    visibility_scope: str | None = None
+    collection_object_id: int | None = None
     created_at: datetime
     status: str
     resource_type: str | None = None
@@ -122,6 +124,8 @@ class AssetDetailResponse(BaseModel):
     title: str
     resource_type: str
     resource_type_label: str
+    visibility_scope: str
+    collection_object_id: int | None = None
     status: str
     process_message: str | None = None
     created_at: datetime
@@ -423,3 +427,34 @@ class ThreeDMetadataDictionarySection(BaseModel):
 class ThreeDMetadataDictionaryResponse(BaseModel):
     schema_version: str
     sections: list[ThreeDMetadataDictionarySection] = Field(default_factory=list)
+
+
+class AuthLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class AuthRoleResponse(BaseModel):
+    key: str
+    label: str
+
+
+class AuthUserSummary(BaseModel):
+    username: str
+    display_name: str
+    roles: list[AuthRoleResponse] = Field(default_factory=list)
+    collection_scope: list[int] = Field(default_factory=list)
+
+
+class AuthContextResponse(BaseModel):
+    user_id: str
+    display_name: str
+    roles: list[str] = Field(default_factory=list)
+    permissions: list[str] = Field(default_factory=list)
+    collection_scope: list[int] = Field(default_factory=list)
+    auth_mode: str
+
+
+class AuthLoginResponse(BaseModel):
+    token: str
+    user: AuthContextResponse

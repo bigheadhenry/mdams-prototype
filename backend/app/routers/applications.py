@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
 from ..models import Application, ApplicationItem, Asset
+from ..permissions import CurrentUser, ensure_current_user, require_any_permission, require_permission
 from ..schemas import (
     ApplicationApproveRequest,
     ApplicationCreateRequest,
@@ -129,7 +130,11 @@ def _build_export_package(application: Application) -> tuple[str, str, str]:
 
 
 @router.post("/applications", response_model=ApplicationDetailResponse)
-def create_application(payload: ApplicationCreateRequest, db: Session = Depends(get_db)):
+def create_application(
+    payload: ApplicationCreateRequest,
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("application.create")),
+):
     if not payload.items:
         raise HTTPException(status_code=400, detail="Application must include at least one item")
 
@@ -170,7 +175,11 @@ def create_application(payload: ApplicationCreateRequest, db: Session = Depends(
 
 
 @router.get("/applications", response_model=list[ApplicationListItem])
-def list_applications(db: Session = Depends(get_db)):
+def list_applications(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_any_permission("application.view_all", "application.view_own")),
+):
+    user = ensure_current_user(user)
     applications = (
         db.query(Application)
         .options(joinedload(Application.items))
@@ -181,8 +190,14 @@ def list_applications(db: Session = Depends(get_db)):
 
 
 @router.get("/applications/{application_id}", response_model=ApplicationDetailResponse)
-def get_application(application_id: int, db: Session = Depends(get_db)):
-    return _get_application_or_404(application_id, db)
+def get_application(
+    application_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_any_permission("application.view_all", "application.view_own")),
+):
+    user = ensure_current_user(user)
+    application = _get_application_or_404(application_id, db)
+    return application
 
 
 @router.post("/applications/{application_id}/approve", response_model=ApplicationDetailResponse)
@@ -190,6 +205,7 @@ def approve_application(
     application_id: int,
     payload: ApplicationApproveRequest,
     db: Session = Depends(get_db),
+    _user=Depends(require_permission("application.review")),
 ):
     application = _get_application_or_404(application_id, db)
     application.status = "approved"
@@ -205,6 +221,7 @@ def reject_application(
     application_id: int,
     payload: ApplicationApproveRequest,
     db: Session = Depends(get_db),
+    _user=Depends(require_permission("application.review")),
 ):
     application = _get_application_or_404(application_id, db)
     application.status = "rejected"
@@ -220,6 +237,7 @@ def export_application(
     application_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _user=Depends(require_permission("application.export")),
 ):
     application = _get_application_or_404(application_id, db)
     if application.status not in {"approved", "fulfilled"}:

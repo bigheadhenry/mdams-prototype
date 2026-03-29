@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import hashlib
@@ -66,13 +66,13 @@ def _build_metadata(source_file: Path, copied_file: Path, project_name: str) -> 
 
     return {
         "title": object_name or source_file.stem,
-        "image_category": "生活用具",
+        "image_category": "鐢熸椿鐢ㄥ叿",
         "project_type": "DigicolPhotoScan",
         "project_name": project_name,
         "image_name": source_file.stem,
-        "capture_content": "生活用具图片采集样本",
+        "capture_content": "鐢熸椿鐢ㄥ叿鍥剧墖閲囬泦鏍锋湰",
         "remark": "Imported from reference dataset",
-        "tags": "生活用具,DigicolPhotoScan",
+        "tags": "鐢熸椿鐢ㄥ叿,DigicolPhotoScan",
         "record_account": "codex",
         "record_time": datetime.now(timezone.utc).isoformat(),
         "image_record_time": datetime.now(timezone.utc).isoformat(),
@@ -99,7 +99,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Import 2D reference images into MDAMS.")
     parser.add_argument("--source", required=True, help="Source folder containing JPG/JPEG images.")
     parser.add_argument("--limit", type=int, default=12, help="Maximum number of files to import.")
-    parser.add_argument("--project-name", default="生活用具", help="Project name to write into management metadata.")
+    parser.add_argument("--project-name", default="鐢熸椿鐢ㄥ叿", help="Project name to write into management metadata.")
     parser.add_argument("--database-url", default="sqlite:///backend-dev.db", help="Database URL to use.")
     parser.add_argument("--upload-dir", default="uploads", help="Upload directory to copy files into.")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be imported without copying files.")
@@ -155,7 +155,7 @@ def main() -> None:
                     "source_file": source_file.name,
                     "source_folder": str(source_file.parent),
                     "source_system": "digicol_photoscan",
-                    "source_category": "生活用具",
+                    "source_category": "鐢熸椿鐢ㄥ叿",
                 },
                 profile_hint="movable_artifact",
             )
@@ -191,3 +191,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

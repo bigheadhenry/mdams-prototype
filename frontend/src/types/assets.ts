@@ -3,6 +3,8 @@ export interface AssetSummary {
   filename: string;
   file_size: number;
   mime_type: string;
+  visibility_scope?: string | null;
+  collection_object_id?: number | null;
   status: string;
   created_at: string;
 }
@@ -70,6 +72,8 @@ export interface AssetDetailResponse {
   title: string;
   resource_type: string;
   resource_type_label: string;
+  visibility_scope: string;
+  collection_object_id?: number | null;
   status: string;
   process_message?: string | null;
   created_at: string;
