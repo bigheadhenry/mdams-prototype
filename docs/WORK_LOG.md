@@ -231,3 +231,10 @@ pm run build Í¨¹ý¡£
 - Stabilized unified directory/detail frontend selectors for login-aware testing.
 - Verified frontend build and Playwright suite pass under authenticated test state.
 
+
+## 2026-03-29
+- Extended Playwright coverage for collection-owner scope filtering on 2D assets and unified directory entries.
+- Added authenticated fixtures for system admin, resource user, and collection owner roles.
+- Stabilized frontend selectors for permission-aware testing.
+- Verified frontend build and login-aware Playwright suite pass, including collection-owner scope checks.
+

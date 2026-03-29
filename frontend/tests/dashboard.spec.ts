@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+﻿import { expect, test } from '@playwright/test';
 
 const systemAdminAuthContext = {
   user_id: 'system_admin',
@@ -34,6 +34,15 @@ const resourceUserAuthContext = {
   auth_mode: 'session',
 };
 
+const collectionOwnerAuthContext = {
+  user_id: 'collection_owner',
+  display_name: 'Collection Owner',
+  roles: ['collection_owner'],
+  permissions: ['dashboard.view', 'image.view', 'image.edit_scope', 'three_d.view', 'three_d.edit_scope', 'platform.view', 'collection.scope'],
+  collection_scope: [101],
+  auth_mode: 'session',
+};
+
 const availableUsers = [
   {
     username: 'system_admin',
@@ -46,6 +55,12 @@ const availableUsers = [
     display_name: 'Resource User',
     roles: [{ key: 'resource_user', label: 'Resource User' }],
     collection_scope: [],
+  },
+  {
+    username: 'collection_owner',
+    display_name: 'Collection Owner',
+    roles: [{ key: 'collection_owner', label: 'Collection Owner' }],
+    collection_scope: [101],
   },
 ];
 
@@ -233,32 +248,158 @@ async function bootstrapAuthenticatedState(page, authContext = systemAdminAuthCo
   });
 }
 
-async function bootstrapCommonApi(page) {
-  await page.route('/api/assets', async (route) => {
-    await route.fulfill({
-      json: [
-        {
-          id: 1,
-          filename: 'test_image.jpg',
-          file_size: 1024 * 1024 * 2.5,
-          mime_type: 'image/jpeg',
-          status: 'ready',
-          created_at: '2024-01-01 10:00:00',
-        },
-        {
-          id: 2,
-          filename: 'document.png',
-          file_size: 1024 * 500,
-          mime_type: 'image/png',
-          status: 'processing',
-          created_at: '2024-01-01 11:00:00',
-        },
-      ],
+async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
+  const visibleAssets = [
+    {
+      id: 1,
+      filename: 'test_image.jpg',
+      file_size: 1024 * 1024 * 2.5,
+      mime_type: 'image/jpeg',
+      status: 'ready',
+      created_at: '2024-01-01 10:00:00',
+    },
+  ];
+
+  if (authContext.permissions.includes('system.manage') || authContext.collection_scope.includes(101)) {
+    visibleAssets.push({
+      id: 2,
+      filename: 'owner_scope_image.jpg',
+      file_size: 1024 * 700,
+      mime_type: 'image/jpeg',
+      status: 'ready',
+      created_at: '2024-01-01 10:30:00',
     });
+  }
+
+  if (authContext.permissions.includes('system.manage')) {
+    visibleAssets.push({
+      id: 3,
+      filename: 'other_owner_image.jpg',
+      file_size: 1024 * 600,
+      mime_type: 'image/jpeg',
+      status: 'processing',
+      created_at: '2024-01-01 11:00:00',
+    });
+  }
+
+  const visibleUnifiedResources = [
+    unifiedDetail,
+    {
+      ...unifiedDetail,
+      id: 'image_2d:2',
+      source_id: '2',
+      title: 'owner_scope_image.jpg',
+      status: 'ready',
+      preview_enabled: true,
+      manifest_url: '/api/iiif/2/manifest',
+      detail_url: '/api/platform/resources/image_2d:2',
+      updated_at: '2024-01-01T10:30:00Z',
+      source_detail_url: '/api/assets/2',
+      source_record: {
+        ...sourceDetail,
+        id: 2,
+        identifier: 'asset-2',
+        title: 'owner_scope_image.jpg',
+        collection_object_id: 101,
+        visibility_scope: 'owner_only',
+        file: {
+          ...sourceDetail.file,
+          filename: 'owner_scope_image.jpg',
+          actual_filename: 'owner_scope_image.jpg',
+        },
+        metadata_layers: {
+          ...sourceDetail.metadata_layers,
+          core: {
+            ...sourceDetail.metadata_layers.core,
+            resource_id: 'asset-2',
+            title: 'owner_scope_image.jpg',
+            visibility_scope: 'owner_only',
+          },
+        },
+      },
+    },
+  ];
+
+  if (authContext.permissions.includes('system.manage')) {
+    visibleUnifiedResources.push({
+      ...unifiedDetail,
+      id: 'image_2d:3',
+      source_id: '3',
+      title: 'other_owner_image.jpg',
+      status: 'processing',
+      preview_enabled: false,
+      manifest_url: '/api/iiif/3/manifest',
+      detail_url: '/api/platform/resources/image_2d:3',
+      updated_at: '2024-01-01T11:00:00Z',
+      source_detail_url: '/api/assets/3',
+      source_record: {
+        ...sourceDetail,
+        id: 3,
+        identifier: 'asset-3',
+        title: 'other_owner_image.jpg',
+        collection_object_id: 102,
+        visibility_scope: 'owner_only',
+        file: {
+          ...sourceDetail.file,
+          filename: 'other_owner_image.jpg',
+          actual_filename: 'other_owner_image.jpg',
+        },
+        metadata_layers: {
+          ...sourceDetail.metadata_layers,
+          core: {
+            ...sourceDetail.metadata_layers.core,
+            resource_id: 'asset-3',
+            title: 'other_owner_image.jpg',
+            visibility_scope: 'owner_only',
+            collection_object_id: 102,
+          },
+        },
+      },
+    });
+  }
+
+  await page.route('/api/assets', async (route) => {
+    await route.fulfill({ json: visibleAssets });
   });
 
   await page.route('**/api/assets/1', async (route) => {
     await route.fulfill({ json: sourceDetail });
+  });
+
+  await page.route('**/api/assets/2', async (route) => {
+    await route.fulfill({
+      json: {
+        ...sourceDetail,
+        id: 2,
+        identifier: 'asset-2',
+        title: 'owner_scope_image.jpg',
+        visibility_scope: 'owner_only',
+        collection_object_id: 101,
+        file: {
+          ...sourceDetail.file,
+          filename: 'owner_scope_image.jpg',
+          actual_filename: 'owner_scope_image.jpg',
+        },
+      },
+    });
+  });
+
+  await page.route('**/api/assets/3', async (route) => {
+    await route.fulfill({
+      json: {
+        ...sourceDetail,
+        id: 3,
+        identifier: 'asset-3',
+        title: 'other_owner_image.jpg',
+        visibility_scope: 'owner_only',
+        collection_object_id: 102,
+        file: {
+          ...sourceDetail.file,
+          filename: 'other_owner_image.jpg',
+          actual_filename: 'other_owner_image.jpg',
+        },
+      },
+    });
   });
 
   await page.route('**/api/platform/sources**', async (route) => {
@@ -268,7 +409,7 @@ async function bootstrapCommonApi(page) {
           source_system: 'image_2d',
           source_label: '2D Image Subsystem',
           resource_type: 'image_2d_cultural_object',
-          resource_count: 2,
+          resource_count: visibleUnifiedResources.length,
           status: 'healthy',
           healthy: true,
           last_synced_at: '2024-01-01T12:00:00Z',
@@ -284,28 +425,21 @@ async function bootstrapCommonApi(page) {
       await route.fulfill({ json: unifiedDetail });
       return;
     }
+    if (url.pathname.includes('/api/platform/resources/image_2d:2') || url.pathname.includes('/api/platform/resources/image_2d%3A2')) {
+      await route.fulfill({ json: visibleUnifiedResources[1] });
+      return;
+    }
+    if (url.pathname.includes('/api/platform/resources/image_2d:3') || url.pathname.includes('/api/platform/resources/image_2d%3A3')) {
+      await route.fulfill({ json: visibleUnifiedResources[2] || visibleUnifiedResources[1] });
+      return;
+    }
 
     const query = url.searchParams.get('q')?.toLowerCase() || '';
     const status = url.searchParams.get('status');
     const previewEnabled = url.searchParams.get('preview_enabled');
     const resourceType = url.searchParams.get('resource_type');
-    const allResources = [
-      unifiedDetail,
-      {
-        ...unifiedDetail,
-        id: 'image_2d:2',
-        source_id: '2',
-        title: 'document.png',
-        status: 'processing',
-        preview_enabled: false,
-        manifest_url: '/api/iiif/2/manifest',
-        detail_url: '/api/platform/resources/image_2d:2',
-        updated_at: '2024-01-01T11:00:00Z',
-        source_detail_url: '/api/assets/2',
-      },
-    ];
 
-    const filtered = allResources.filter((item) => {
+    const filtered = visibleUnifiedResources.filter((item) => {
       const matchesQuery =
         !query || [item.id, item.title, item.resource_type, item.source_id].some((value) => value.toLowerCase().includes(query));
       const matchesStatus = !status || item.status === status;
@@ -324,14 +458,14 @@ async function bootstrapCommonApi(page) {
 test.describe('Dashboard permissions', () => {
   test.beforeEach(async ({ page }) => {
     await bootstrapAuthenticatedState(page, systemAdminAuthContext);
-    await bootstrapCommonApi(page);
+    await bootstrapCommonApi(page, systemAdminAuthContext);
     await page.goto('/');
   });
 
   test('system admin sees the dashboard and resource table', async ({ page }) => {
     await expect(page).toHaveTitle(/MEAM Prototype/);
     await expect(page.getByTestId('assets-table')).toBeVisible();
-    await expect(page.locator('.ant-statistic-content-value').first()).toHaveText('2');
+    await expect(page.locator('.ant-statistic-content-value').first()).toHaveText('3');
     await expect(page.getByTestId('menu-8')).toBeVisible();
   });
 
@@ -344,9 +478,9 @@ test.describe('Dashboard permissions', () => {
 
   test('system admin can search unified resources', async ({ page }) => {
     await page.getByTestId('menu-5').click();
-    await page.getByTestId('platform-search').fill('document');
+    await page.getByTestId('platform-search').fill('owner_scope');
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('cell', { name: 'document.png' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'test_image.jpg' })).toHaveCount(0);
   });
 
@@ -361,7 +495,7 @@ test.describe('Dashboard permissions', () => {
 test.describe('Role visibility', () => {
   test.beforeEach(async ({ page }) => {
     await bootstrapAuthenticatedState(page, resourceUserAuthContext);
-    await bootstrapCommonApi(page);
+    await bootstrapCommonApi(page, resourceUserAuthContext);
     await page.goto('/');
   });
 
@@ -372,3 +506,27 @@ test.describe('Role visibility', () => {
     await expect(page.getByTestId('menu-8')).toHaveCount(0);
   });
 });
+
+test.describe('Collection owner scope', () => {
+  test.beforeEach(async ({ page }) => {
+    await bootstrapAuthenticatedState(page, collectionOwnerAuthContext);
+    await bootstrapCommonApi(page, collectionOwnerAuthContext);
+    await page.goto('/');
+  });
+
+  test('collection owner sees own scope resources but not other owner-only resources', async ({ page }) => {
+    await expect(page.getByTestId('assets-table')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'test_image.jpg' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'other_owner_image.jpg' })).toHaveCount(0);
+  });
+
+  test('collection owner can open scoped unified directory items', async ({ page }) => {
+    await page.getByTestId('menu-5').click();
+    await expect(page.getByTestId('platform-directory')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'test_image.jpg' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'other_owner_image.jpg' })).toHaveCount(0);
+  });
+});
+
