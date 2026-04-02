@@ -7,6 +7,7 @@ import {
   Divider,
   Form,
   Input,
+  Image,
   Layout,
   Menu,
   Modal,
@@ -383,6 +384,39 @@ const App: React.FC = () => {
   };
 
   const columns = [
+    {
+      title: '缩略图',
+      key: 'thumbnail',
+      width: 96,
+      render: (_value: unknown, record: AssetSummary) => (
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 10,
+            overflow: 'hidden',
+            border: '1px solid #e5e7eb',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Image
+            src={`/api/assets/${record.id}/preview`}
+            alt={record.filename}
+            preview={false}
+            loading="lazy"
+            fallback="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'><rect width='72' height='72' fill='%23eef2f7'/><text x='36' y='40' text-anchor='middle' font-size='12' fill='%2394a3b8'>No Preview</text></svg>"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        </div>
+      ),
+    },
     { title: 'ID', dataIndex: 'id', key: 'id' },
     { title: '文件名', dataIndex: 'filename', key: 'filename' },
     {
@@ -776,23 +810,53 @@ const App: React.FC = () => {
           {authContext.display_name}
         </Footer>
 
-        <Modal title="Mirador Viewer" open={previewVisible} onCancel={() => setPreviewVisible(false)} width={1000} footer={null} destroyOnHidden>
-          {previewVisible ? (
-            <MiradorViewer
-              manifestId={currentManifest}
-              onAddToApplication={(item) =>
-                addToApplicationCart({
-                  assetId: item.assetId,
-                  resourceId: item.resourceId,
-                  title: item.title,
-                  manifestUrl: item.manifestUrl,
-                  objectNumber: item.objectNumber,
-                  sourceLabel: item.sourceLabel,
-                })
-              }
-            />
-          ) : null}
-        </Modal>
+        {previewVisible ? (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 5000,
+              background: 'rgba(10, 12, 18, 0.92)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                color: '#fff',
+                borderBottom: '1px solid rgba(255,255,255,0.12)',
+                flex: '0 0 auto',
+              }}
+            >
+              <div>
+                <Text strong style={{ color: '#fff' }}>Mirador Viewer</Text>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>
+                  {currentManifest}
+                </div>
+              </div>
+              <Button onClick={() => setPreviewVisible(false)}>关闭预览</Button>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <MiradorViewer
+                manifestId={currentManifest}
+                onAddToApplication={(item) =>
+                  addToApplicationCart({
+                    assetId: item.assetId,
+                    resourceId: item.resourceId,
+                    title: item.title,
+                    manifestUrl: item.manifestUrl,
+                    objectNumber: item.objectNumber,
+                    sourceLabel: item.sourceLabel,
+                  })
+                }
+              />
+            </div>
+          </div>
+        ) : null}
       </Layout>
     </Layout>
   );

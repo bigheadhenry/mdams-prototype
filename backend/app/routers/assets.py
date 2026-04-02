@@ -1,6 +1,7 @@
 import os
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 from PIL import Image
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,7 @@ from ..permissions import CurrentUser, can_access_visibility_scope, ensure_curre
 from ..schemas import AssetDetailResponse, AssetOut
 from ..services.asset_detail import build_asset_detail_response
 from ..services.metadata_layers import build_metadata_layers, get_original_file_path
+from ..services.preview_images import ensure_preview_image
 
 router = APIRouter(tags=["assets"])
 
@@ -237,3 +239,21 @@ def get_asset_detail(
     if not _is_asset_visible_to_user(asset, user):
         raise HTTPException(status_code=403, detail="Asset is not visible to current user")
     return build_asset_detail_response(asset)
+
+
+@router.get("/assets/{asset_id}/preview")
+def get_asset_preview(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.view")),
+):
+    asset = _get_asset_or_404(asset_id, db)
+    user = ensure_current_user(user)
+    if not _is_asset_visible_to_user(asset, user):
+        raise HTTPException(status_code=403, detail="Asset is not visible to current user")
+
+    preview_path = ensure_preview_image(asset)
+    if not preview_path:
+        raise HTTPException(status_code=404, detail="Preview image not available")
+
+    return FileResponse(preview_path, media_type="image/jpeg", filename=os.path.basename(preview_path))

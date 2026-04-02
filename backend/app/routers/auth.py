@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -8,6 +8,7 @@ from ..schemas import AuthContextResponse, AuthLoginRequest, AuthLoginResponse, 
 from ..services.auth import authenticate_user, create_user_session, delete_session_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+SESSION_COOKIE_NAME = "mdams.session"
 
 
 def _serialize_context(user) -> AuthContextResponse:
@@ -49,17 +50,26 @@ def list_auth_users(db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=AuthLoginResponse)
-def login(payload: AuthLoginRequest, db: Session = Depends(get_db)):
+def login(payload: AuthLoginRequest, response: Response, db: Session = Depends(get_db)):
     user = authenticate_user(db, payload.username.strip(), payload.password)
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid username or password")
     session = create_user_session(db, user)
     context = get_current_user(db=db, authorization=f"Bearer {session.session_token}")
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session.session_token,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        max_age=60 * 60 * 12,
+    )
     return AuthLoginResponse(token=session.session_token, user=_serialize_context(context))
 
 
 @router.post("/logout")
 def logout(
+    response: Response,
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: Session = Depends(get_db),
 ):
@@ -67,4 +77,5 @@ def logout(
         scheme, _, token = authorization.partition(" ")
         if scheme.lower() == "bearer" and token:
             delete_session_token(db, token.strip())
+    response.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
     return {"status": "ok"}

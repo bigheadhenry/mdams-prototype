@@ -4,9 +4,18 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Mapping
 
+from .derivative_policy import infer_derivative_policy_from_metadata
+
 METADATA_SCHEMA_VERSION = "2.0"
 SOURCE_SYSTEM = "mdams_2d_image_subsystem"
 SOURCE_LABEL = "2D Image Subsystem"
+
+PROFILE_KEY_ALIASES = {
+    "activity": "business_activity",
+    "tree": "ancient_tree",
+    "building": "immovable_artifact",
+    "cultural_object": "movable_artifact",
+}
 
 RESOURCE_TYPE_LABELS = {
     "image_2d_cultural_object": "2D Cultural Object Image",
@@ -19,26 +28,32 @@ CORE_FIELD_LABELS = {
 }
 
 MANAGEMENT_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
-    ("project_type", "Project Type", ("project_type",)),
-    ("project_name", "Project Name", ("project_name",)),
-    ("photographer", "Photographer", ("photographer",)),
-    ("photographer_org", "Photographer Org", ("photographer_org",)),
-    ("copyright_owner", "Copyright Owner", ("copyright_owner",)),
-    ("capture_time", "Capture Time", ("capture_time",)),
-    ("image_category", "Image Category", ("image_category",)),
-    ("image_name", "Image Name", ("image_name",)),
-    ("capture_content", "Capture Content", ("capture_content",)),
-    ("representative_image", "Representative Image", ("representative_image",)),
-    ("remark", "Remark", ("remark",)),
-    ("tags", "Tags", ("tags",)),
-    ("record_account", "Record Account", ("record_account",)),
-    ("record_time", "Record Time", ("record_time",)),
-    ("image_record_time", "Image Record Time", ("image_record_time",)),
+    ("project_type", "Project Type", ("project_type", "项目类型")),
+    ("project_name", "Project Name", ("project_name", "项目名称")),
+    ("photographer", "Photographer", ("photographer", "摄影者")),
+    ("photographer_org", "Photographer Org", ("photographer_org", "摄影者单位")),
+    ("copyright_owner", "Copyright Owner", ("copyright_owner", "版权所属")),
+    ("capture_time", "Capture Time", ("capture_time", "拍摄时间", "拍摄/制作时间")),
+    ("image_category", "Image Category", ("image_category", "影像类别")),
+    ("image_name", "Image Name", ("image_name", "影像名称")),
+    ("capture_content", "Capture Content", ("capture_content", "拍摄内容", "拍摄/制作内容")),
+    ("representative_image", "Representative Image", ("representative_image", "是否为代表影像")),
+    ("remark", "Remark", ("remark", "备注")),
+    ("tags", "Tags", ("tags", "影像标签")),
+    ("record_account", "Record Account", ("record_account", "属性录入人员")),
+    ("record_time", "Record Time", ("record_time", "属性录入时间")),
+    ("image_record_time", "Image Record Time", ("image_record_time", "影像录入时间")),
 ]
 
 TECHNICAL_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
     ("original_file_name", "Original File Name", ("original_file_name", "original_filename")),
     ("image_file_name", "Image File Name", ("image_file_name",)),
+    ("iiif_access_file_name", "IIIF Access File Name", ("iiif_access_file_name",)),
+    ("iiif_access_file_path", "IIIF Access File Path", ("iiif_access_file_path",)),
+    ("iiif_access_mime_type", "IIIF Access MIME Type", ("iiif_access_mime_type",)),
+    ("preview_image_name", "Preview Image Name", ("preview_image_name",)),
+    ("preview_image_path", "Preview Image Path", ("preview_image_path",)),
+    ("preview_image_mime_type", "Preview Image MIME Type", ("preview_image_mime_type",)),
     ("identifier_type", "Identifier Type", ("identifier_type",)),
     ("identifier_value", "Identifier Value", ("identifier_value",)),
     ("file_size", "File Size", ("file_size",)),
@@ -54,6 +69,14 @@ TECHNICAL_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
     ("height", "Height", ("height",)),
     ("color_space", "Color Space", ("color_space",)),
     ("ingest_method", "Ingest Method", ("ingest_method",)),
+    ("derivative_rule_id", "Derivative Rule ID", ("derivative_rule_id",)),
+    ("derivative_strategy", "Derivative Strategy", ("derivative_strategy",)),
+    ("derivative_priority", "Derivative Priority", ("derivative_priority",)),
+    ("derivative_target_format", "Derivative Target Format", ("derivative_target_format",)),
+    ("derivative_source_family", "Derivative Source Family", ("derivative_source_family",)),
+    ("derivative_reason", "Derivative Reason", ("derivative_reason",)),
+    ("derivative_threshold_bytes", "Derivative Threshold Bytes", ("derivative_threshold_bytes",)),
+    ("derivative_threshold_pixels", "Derivative Threshold Pixels", ("derivative_threshold_pixels",)),
     ("fixity_sha256", "Fixity SHA256", ("fixity_sha256", "sha256", "SHA256")),
     ("conversion_method", "Conversion Method", ("conversion_method",)),
     ("original_file_path", "Original File Path", ("original_file_path",)),
@@ -64,39 +87,39 @@ TECHNICAL_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
 
 PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
     "movable_artifact": {
-        "label": "Movable Artifact",
-        "sheet": "Movable Artifact",
+        "label": "可移动文物",
+        "sheet": "可移动文物",
         "aliases": ("movable_artifact", "image_2d_cultural_object", "cultural_object", "artifact"),
         "fields": [
-            ("object_number", "Object Number", ("object_number",)),
-            ("object_name", "Object Name", ("object_name",)),
-            ("object_level", "Object Level", ("object_level",)),
-            ("object_category", "Object Category", ("object_category",)),
-            ("object_subcategory", "Object Subcategory", ("object_subcategory",)),
-            ("management_group", "Management Group", ("management_group",)),
-            ("photographer", "Photographer", ("photographer",)),
-            ("photographer_phone", "Photographer Phone", ("photographer_phone",)),
-            ("visible_to_custodians_only", "Visible To Custodians Only", ("visible_to_custodians_only",)),
+            ("object_number", "Object Number", ("object_number", "文物号")),
+            ("object_name", "Object Name", ("object_name", "文物名称")),
+            ("object_level", "Object Level", ("object_level", "文物级别")),
+            ("object_category", "Object Category", ("object_category", "文物类别")),
+            ("object_subcategory", "Object Subcategory", ("object_subcategory", "文物细类")),
+            ("management_group", "Management Group", ("management_group", "管理科组")),
+            ("photographer", "Photographer", ("photographer", "摄影者")),
+            ("photographer_phone", "Photographer Phone", ("photographer_phone", "摄影者电话")),
+            ("visible_to_custodians_only", "Visible To Custodians Only", ("visible_to_custodians_only", "仅责任人可见")),
         ],
     },
     "immovable_artifact": {
-        "label": "Immovable Artifact",
-        "sheet": "Immovable Artifact",
-        "aliases": ("immovable_artifact",),
+        "label": "不可移动文物",
+        "sheet": "不可移动文物",
+        "aliases": ("immovable_artifact", "building"),
         "fields": [
-            ("region_level_1", "Region Level 1", ("region_level_1",)),
-            ("region_level_2", "Region Level 2", ("region_level_2",)),
-            ("building_name", "Building Name", ("building_name",)),
-            ("orientation", "Orientation", ("orientation",)),
-            ("part_level_1", "Part Level 1", ("part_level_1",)),
-            ("part_level_2", "Part Level 2", ("part_level_2",)),
-            ("part_level_3", "Part Level 3", ("part_level_3",)),
-            ("building_component", "Building Component", ("building_component",)),
+            ("region_level_1", "Region Level 1", ("region_level_1", "一级区域")),
+            ("region_level_2", "Region Level 2", ("region_level_2", "二级区域")),
+            ("building_name", "Building Name", ("building_name", "文物建筑名称")),
+            ("orientation", "Orientation", ("orientation", "方位")),
+            ("part_level_1", "Part Level 1", ("part_level_1", "部位一级")),
+            ("part_level_2", "Part Level 2", ("part_level_2", "部位二级")),
+            ("part_level_3", "Part Level 3", ("part_level_3", "部位三级")),
+            ("building_component", "Building Component", ("building_component", "建筑构件")),
         ],
     },
     "art_photography": {
-        "label": "Art Photography",
-        "sheet": "Art Photography",
+        "label": "艺术摄影",
+        "sheet": "艺术摄影",
         "aliases": ("art_photography",),
         "fields": [
             ("art_photography_type", "Art Photography Type", ("art_photography_type",)),
@@ -113,17 +136,17 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         ],
     },
     "business_activity": {
-        "label": "Business Activity",
-        "sheet": "Business Activity",
-        "aliases": ("business_activity",),
+        "label": "业务活动",
+        "sheet": "业务活动",
+        "aliases": ("business_activity", "activity"),
         "fields": [
-            ("main_location", "Main Location", ("main_location",)),
-            ("main_person", "Main Person", ("main_person",)),
+            ("main_location", "Main Location", ("main_location", "主要地点")),
+            ("main_person", "Main Person", ("main_person", "主要人物")),
         ],
     },
     "panorama": {
-        "label": "Panorama",
-        "sheet": "Panorama",
+        "label": "全景",
+        "sheet": "全景",
         "aliases": ("panorama",),
         "fields": [
             ("panorama_type", "Panorama Type", ("panorama_type",)),
@@ -131,29 +154,29 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         ],
     },
     "ancient_tree": {
-        "label": "Ancient Tree",
-        "sheet": "Ancient Tree",
-        "aliases": ("ancient_tree",),
+        "label": "古树",
+        "sheet": "古树",
+        "aliases": ("ancient_tree", "tree"),
         "fields": [
-            ("archive_number", "Archive Number", ("archive_number",)),
-            ("plant_type", "Plant Type", ("plant_type",)),
-            ("plant_name", "Plant Name", ("plant_name",)),
-            ("region", "Region", ("region",)),
-            ("specific_location", "Specific Location", ("specific_location",)),
-            ("grade", "Grade", ("grade",)),
+            ("archive_number", "Archive Number", ("archive_number", "档案编号")),
+            ("plant_type", "Plant Type", ("plant_type", "植物类型")),
+            ("plant_name", "Plant Name", ("plant_name", "植物名称")),
+            ("region", "Region", ("region", "所在区域")),
+            ("specific_location", "Specific Location", ("specific_location", "具体位置")),
+            ("grade", "Grade", ("grade", "等级")),
         ],
     },
     "archaeology": {
-        "label": "Archaeology",
-        "sheet": "Archaeology",
+        "label": "考古",
+        "sheet": "考古",
         "aliases": ("archaeology",),
         "fields": [
-            ("archaeology_image_category", "Archaeology Image Category", ("archaeology_image_category",)),
+            ("archaeology_image_category", "Archaeology Image Category", ("archaeology_image_category", "考古影像分类")),
         ],
     },
     "other": {
-        "label": "Other",
-        "sheet": "Other",
+        "label": "其他",
+        "sheet": "其他",
         "aliases": ("other",),
         "fields": [],
     },
@@ -214,6 +237,24 @@ def _lookup_value(metadata: Mapping[str, Any], *keys: str) -> Any:
     return None
 
 
+def _canonicalize_profile_key(candidate: Any) -> str | None:
+    if candidate is None:
+        return None
+    candidate_text = str(candidate).strip()
+    if not candidate_text:
+        return None
+
+    if candidate_text in PROFILE_KEY_ALIASES:
+        return PROFILE_KEY_ALIASES[candidate_text]
+
+    for profile_key, definition in PROFILE_DEFINITIONS.items():
+        aliases = {profile_key, definition["label"], definition["sheet"], *definition.get("aliases", ())}
+        if candidate_text in aliases:
+            return profile_key
+
+    return candidate_text
+
+
 def _build_field_section(metadata: Mapping[str, Any], fields: list[tuple[str, str, tuple[str, ...]]]) -> dict[str, Any]:
     section: dict[str, Any] = {}
     for field_key, _field_label, aliases in fields:
@@ -246,15 +287,9 @@ def _resolve_profile_key(
     ]
 
     for candidate in candidates:
-        if not candidate:
-            continue
-        candidate_text = str(candidate).strip()
-        if not candidate_text:
-            continue
-        for profile_key, definition in PROFILE_DEFINITIONS.items():
-            aliases = {profile_key, definition["label"], definition["sheet"], *definition.get("aliases", ())}
-            if candidate_text in aliases:
-                return profile_key
+        normalized_candidate = _canonicalize_profile_key(candidate)
+        if normalized_candidate in PROFILE_DEFINITIONS:
+            return normalized_candidate
 
     for profile_key, definition in PROFILE_DEFINITIONS.items():
         if profile_key == "other":
@@ -328,6 +363,16 @@ def _build_technical_section(
         technical["format_name"] = asset_mime_type
         technical.setdefault("original_mime_type", asset_mime_type)
 
+    derivative_policy = infer_derivative_policy_from_metadata(
+        {
+            **dict(metadata),
+            "technical": technical,
+        }
+    )
+    for key, value in derivative_policy.items():
+        if value not in (None, "") and not technical.get(key):
+            technical[key] = value
+
     if technical.get("fixity_sha256") and not technical.get("checksum"):
         technical["checksum"] = technical["fixity_sha256"]
         technical.setdefault("checksum_algorithm", "SHA256")
@@ -385,7 +430,9 @@ def build_metadata_layers(
     )
 
     if profile_base.get("key"):
-        profile_key = str(profile_base["key"])
+        normalized_profile_key = _canonicalize_profile_key(profile_base["key"])
+        if normalized_profile_key:
+            profile_key = normalized_profile_key
 
     profile_key = profile_key if profile_key in PROFILE_DEFINITIONS else "other"
     profile_definition = PROFILE_DEFINITIONS[profile_key]
@@ -483,6 +530,15 @@ def get_original_file_path(layers_or_metadata: Mapping[str, Any] | None) -> str 
     technical = get_technical_metadata(layers_or_metadata)
     value = technical.get("original_file_path")
     return str(value) if value not in (None, "") else None
+
+
+def get_iiif_access_file_path(layers_or_metadata: Mapping[str, Any] | None) -> str | None:
+    technical = get_technical_metadata(layers_or_metadata)
+    for key in ("iiif_access_file_path", "preview_file_path"):
+        value = technical.get(key)
+        if value not in (None, ""):
+            return str(value)
+    return None
 
 
 def get_fixity_sha256(layers_or_metadata: Mapping[str, Any] | None) -> str | None:

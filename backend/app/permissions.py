@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .database import get_db
@@ -150,6 +150,7 @@ def _build_legacy_demo_user(user_id: str, collection_scope: set[int]) -> Current
 def get_current_user(
     db: Session = Depends(get_db),
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    session_token: Annotated[str | None, Cookie(alias="mdams.session")] = None,
     x_mdams_user: Annotated[str | None, Header(alias="X-MDAMS-User")] = None,
     x_mdams_collection_scope: Annotated[str | None, Header(alias="X-MDAMS-Collection-Scope")] = None,
 ) -> CurrentUser:
@@ -160,6 +161,12 @@ def get_current_user(
             if user is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session token")
             return _build_current_user_from_db_user(user)
+
+    if session_token:
+        user = get_user_by_session_token(db, session_token.strip())
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session token")
+        return _build_current_user_from_db_user(user)
 
     if x_mdams_user:
         legacy_scope = _parse_collection_scope(x_mdams_collection_scope)

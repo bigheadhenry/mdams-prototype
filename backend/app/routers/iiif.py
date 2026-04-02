@@ -1,4 +1,5 @@
 import os
+import json
 from urllib.parse import quote
 
 import httpx
@@ -13,6 +14,7 @@ from ..permissions import CurrentUser, can_access_visibility_scope, ensure_curre
 from ..services.metadata_layers import build_iiif_metadata_entries, build_metadata_layers, get_dimensions
 
 router = APIRouter(tags=["iiif"])
+IIIF_UPSTREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0)
 
 
 def _asset_visibility_scope(asset: Asset) -> str:
@@ -45,6 +47,19 @@ def _asset_collection_object_id(asset: Asset) -> int | None:
         if isinstance(core_collection_object_id, str) and core_collection_object_id.isdigit():
             return int(core_collection_object_id)
     return None
+
+
+def _asset_iiif_access_file_path(asset: Asset) -> str | None:
+    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    technical = metadata.get("technical") if isinstance(metadata, dict) else {}
+    if isinstance(technical, dict):
+        iiif_access_file_path = technical.get("iiif_access_file_path")
+        if isinstance(iiif_access_file_path, str) and iiif_access_file_path and os.path.exists(iiif_access_file_path):
+            return iiif_access_file_path
+        preview_file_path = technical.get("preview_file_path")
+        if isinstance(preview_file_path, str) and preview_file_path and os.path.exists(preview_file_path):
+            return preview_file_path
+    return asset.file_path
 
 
 def _assert_asset_visible(asset: Asset, user: CurrentUser) -> None:
@@ -116,7 +131,8 @@ def get_iiif_manifest(
     annotation_page_id = f"{api_base_url}/iiif/{asset_id}/page/1"
     annotation_id = f"{api_base_url}/iiif/{asset_id}/annotation/1"
 
-    actual_filename = os.path.basename(asset.file_path) if asset.file_path else asset.filename
+    iiif_file_path = _asset_iiif_access_file_path(asset)
+    actual_filename = os.path.basename(iiif_file_path) if iiif_file_path else asset.filename
     image_service_id = f"{api_base_url}/iiif/{asset_id}/service/{quote(actual_filename, safe='')}"
 
     metadata_layers = build_metadata_layers(
@@ -229,7 +245,8 @@ def proxy_iiif_image(
         raise HTTPException(status_code=404, detail="Asset not found")
     _assert_asset_visible(asset, user)
 
-    actual_filename = os.path.basename(asset.file_path) if asset.file_path else asset.filename
+    iiif_file_path = _asset_iiif_access_file_path(asset)
+    actual_filename = os.path.basename(iiif_file_path) if iiif_file_path else asset.filename
     requested_filename, _, suffix = image_path.partition("/")
     if requested_filename not in {actual_filename, asset.filename}:
         raise HTTPException(status_code=404, detail="Image service not found")
@@ -238,9 +255,24 @@ def proxy_iiif_image(
     if suffix:
         target_url = f"{target_url}/{suffix}"
 
-    upstream = httpx.get(target_url, timeout=30.0)
+    upstream = httpx.get(target_url, timeout=IIIF_UPSTREAM_TIMEOUT)
+    content_type = upstream.headers.get("content-type", "application/octet-stream")
+    content = upstream.content
+
+    if suffix.endswith("info.json") and "json" in content_type.lower():
+        try:
+          info_json = upstream.json()
+          proxy_base_url = f"{_api_base_url(request)}/iiif/{asset_id}/service/{quote(actual_filename, safe='')}"
+          info_json["@id"] = proxy_base_url
+          info_json["atId"] = proxy_base_url
+          info_json["id"] = proxy_base_url
+          content = json.dumps(info_json, ensure_ascii=False).encode("utf-8")
+          content_type = "application/json; charset=utf-8"
+        except Exception:
+          pass
+
     return Response(
-        content=upstream.content,
+        content=content,
         status_code=upstream.status_code,
-        media_type=upstream.headers.get("content-type", "application/octet-stream"),
+        media_type=content_type,
     )
