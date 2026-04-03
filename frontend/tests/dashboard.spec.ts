@@ -472,7 +472,7 @@ test.describe('Dashboard permissions', () => {
   test('system admin can open the unified resource directory', async ({ page }) => {
     await page.getByTestId('menu-5').click();
     await expect(page.getByTestId('platform-directory')).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'test_image.jpg' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'test_image.jpg' }).first()).toBeVisible();
     await expect(page.getByRole('cell', { name: 'image_2d:1' })).toBeVisible();
   });
 
@@ -480,7 +480,7 @@ test.describe('Dashboard permissions', () => {
     await page.getByTestId('menu-5').click();
     await page.getByTestId('platform-search').fill('owner_scope');
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' }).first()).toBeVisible();
     await expect(page.getByRole('cell', { name: 'test_image.jpg' })).toHaveCount(0);
   });
 
@@ -516,16 +516,16 @@ test.describe('Collection owner scope', () => {
 
   test('collection owner sees own scope resources but not other owner-only resources', async ({ page }) => {
     await expect(page.getByTestId('assets-table')).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'test_image.jpg' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'test_image.jpg' }).first()).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' }).first()).toBeVisible();
     await expect(page.getByRole('cell', { name: 'other_owner_image.jpg' })).toHaveCount(0);
   });
 
   test('collection owner can open scoped unified directory items', async ({ page }) => {
     await page.getByTestId('menu-5').click();
     await expect(page.getByTestId('platform-directory')).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'test_image.jpg' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'test_image.jpg' }).first()).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' }).first()).toBeVisible();
     await expect(page.getByRole('cell', { name: 'other_owner_image.jpg' })).toHaveCount(0);
   });
 });

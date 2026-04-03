@@ -46,6 +46,14 @@ frontend/frontend/
 frontend/unified-detail-layout.png
 backend/tests/__pycache__/
 
+# Local runtime outputs
+backend-dev.db
+backend/backend-dev.db
+backend/pytest_backend.db
+frontend/runtime/
+runtime/
+META-INF/
+
 # Local scratch and generated files
 pytest_backend.db
 reference/

@@ -1,9 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Progress, Spin, Space, Tag, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import mirador from 'mirador';
 import axios from 'axios';
+import MiradorAiPanel from './MiradorAiPanel';
 
 interface ApplicationCandidate {
   assetId: number;
@@ -42,7 +43,7 @@ const getStageLabel = (stage: PreviewLoadStage) => {
     case 'loading_tiles':
       return '正在生成 IIIF 切片';
     case 'ready':
-      return '预览已就绪';
+      return '预览已完成';
     case 'error':
       return '预览加载失败';
     default:
@@ -56,28 +57,17 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
   const [previewStage, setPreviewStage] = useState<PreviewLoadStage>('loading_manifest');
   const [previewProgress, setPreviewProgress] = useState(8);
   const [previewElapsedSeconds, setPreviewElapsedSeconds] = useState(0);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
-  const [previewImageReady, setPreviewImageReady] = useState(false);
-  const [previewImageError, setPreviewImageError] = useState(false);
   const [previewStats, setPreviewStats] = useState<{
     manifestLoadedMs?: number;
-    previewLoadedMs?: number;
     firstTileRenderedMs?: number;
   }>({});
 
   const previewStartAtRef = useRef<number>(performance.now());
   const firstTileReportedRef = useRef(false);
+  const viewerApiRef = useRef<any>(null);
 
   const stageLabel = useMemo(() => getStageLabel(previewStage), [previewStage]);
-  const statusLabel = useMemo(() => {
-    if (previewStage === 'loading_tiles' && previewImageReady) {
-      return '低清预览已显示，正在补高清切片';
-    }
-    if (previewStage === 'loading_tiles' && previewImageError) {
-      return '低清预览未就绪，正在直接请求高清切片';
-    }
-    return stageLabel;
-  }, [previewImageError, previewImageReady, previewStage, stageLabel]);
+  const statusLabel = useMemo(() => stageLabel, [stageLabel]);
 
   const isRendered = () => {
     const root = document.getElementById('mirador-viewer');
@@ -147,6 +137,7 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
     };
 
     const viewer = mirador.viewer(config);
+    viewerApiRef.current = viewer;
     let readyDetected = false;
 
     const elapsedTimer = window.setInterval(() => {
@@ -186,6 +177,9 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
       if (viewer && viewer.unmount) {
         viewer.unmount();
       }
+      if (viewerApiRef.current === viewer) {
+        viewerApiRef.current = null;
+      }
     };
   }, [manifest, manifestId]);
 
@@ -197,9 +191,6 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
         setPreviewStage('loading_manifest');
         setPreviewProgress(10);
         setPreviewElapsedSeconds(0);
-        setPreviewImageUrl(null);
-        setPreviewImageReady(false);
-        setPreviewImageError(false);
 
         const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
         const response = await axios.get(manifestId, {
@@ -236,7 +227,6 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
           }));
           setPreviewStage('loading_tiles');
           setPreviewProgress(45);
-          setPreviewImageUrl(`/api/assets/${assetId}/preview`);
           setManifest(response.data as Record<string, unknown>);
           setApplicationCandidate({
             assetId,
@@ -270,18 +260,27 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
   const canApply = useMemo(() => Boolean(applicationCandidate && onAddToApplication), [applicationCandidate, onAddToApplication]);
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        minHeight: 0,
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      aria-busy={previewStage !== 'ready'}
-    >
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          minHeight: 0,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'row',
+        }}
+        aria-busy={previewStage !== 'ready'}
+      >
+        <div
+          style={{
+            position: 'relative',
+            flex: 1,
+            minWidth: 0,
+            height: '100%',
+            overflow: 'hidden',
+          }}
+        >
       <Space
         direction="vertical"
         size="small"
@@ -293,7 +292,7 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
           alignItems: 'flex-end',
         }}
       >
-        {applicationCandidate ? <Tag color="blue">Asset #{applicationCandidate.assetId}</Tag> : null}
+        {applicationCandidate ? <Tag color="blue">资源 #{applicationCandidate.assetId}</Tag> : null}
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -324,48 +323,6 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
         }}
       />
 
-      {previewImageUrl ? (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 40,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-            pointerEvents: 'none',
-            background: 'linear-gradient(180deg, rgba(18, 20, 28, 0.92), rgba(18, 20, 28, 0.82))',
-            opacity: previewStage === 'ready' ? 0 : 1,
-            transition: 'opacity 360ms ease',
-          }}
-        >
-          <img
-            src={previewImageUrl}
-            alt=""
-            onLoad={() => {
-              setPreviewStats((current) => ({
-                ...current,
-                previewLoadedMs: Math.max(0, Math.round(performance.now() - previewStartAtRef.current)),
-              }));
-              setPreviewImageReady(true);
-              setPreviewProgress((current) => Math.max(current, 60));
-            }}
-            onError={() => {
-              setPreviewImageError(true);
-            }}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              filter: previewImageReady ? 'blur(0px)' : 'blur(1px)',
-              transform: previewImageReady ? 'scale(1)' : 'scale(1.01)',
-              transition: 'filter 240ms ease, transform 240ms ease',
-            }}
-          />
-        </div>
-      ) : null}
-
       {previewStage !== 'ready' ? (
         <div
           style={{
@@ -394,7 +351,7 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
               <Space align="center" size={12}>
                 <Spin />
                 <div style={{ fontWeight: 600 }}>
-                  {previewStage === 'loading_tiles' && previewImageReady ? '低清预览已显示，正在补高清切片' : statusLabel}
+                  {statusLabel}
                 </div>
               </Space>
               <Progress percent={previewProgress} status={previewStage === 'error' ? 'exception' : 'active'} showInfo />
@@ -407,16 +364,17 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.58)', lineHeight: 1.6 }}>
                 {previewStats.manifestLoadedMs ? `manifest ${previewStats.manifestLoadedMs} ms` : 'manifest pending'}
                 {' · '}
-                {previewStats.previewLoadedMs ? `thumbnail ${previewStats.previewLoadedMs} ms` : 'thumbnail pending'}
-                {' · '}
                 {previewStats.firstTileRenderedMs ? `first tile ${previewStats.firstTileRenderedMs} ms` : 'tile pending'}
               </div>
             </Space>
           </div>
         </div>
       ) : null}
+        </div>
+        <MiradorAiPanel manifestId={manifestId} currentCandidate={applicationCandidate} viewerApiRef={viewerApiRef} />
     </div>
   );
 };
 
 export default MiradorViewer;
+

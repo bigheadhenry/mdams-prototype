@@ -210,3 +210,57 @@ YYYY-MM-DD
 - 变更内容：在 `docs/NEXT_PHASE_PLAN.md` 中新增二维影像缩略图规格与生成策略待办项，明确后续需要定义缩略图尺寸、格式、预生成策略、即时切片边界和失败降级规则。
 - 验证结果：文档已更新，内容已人工核对。
 - 备注：该项暂不进入主链路实现，后续作为独立优化任务推进。
+
+### 2026-04-02 - Mirador AI 控制面板与日志链路
+- 修改范围：Mirador 前端视图、AI 控制面板、后端 AI 解析路由、OpenAI 配置、前端类型定义、环境变量示例、工作日志。
+- 变更内容：为 Mirador 浏览页增加右侧 AI 控制面板，支持自然语言控制缩放、平移、重置、适配窗口，以及关键词检索和对比图打开确认；后端新增 AI 解析与资源搜索接口，并接入 OpenAI 作为意图解析层；同时补充前后端操作日志，记录用户输入、AI 计划、候选图选择、确认和执行结果，便于后续回溯。
+- 验证结果：`python -m py_compile backend/app/config.py backend/app/main.py backend/app/routers/ai_mirador.py` 通过；`npm run build` 通过；`npx eslint src/MiradorViewer.tsx src/MiradorAiPanel.tsx src/types/assets.ts src/types/mirador.d.ts --max-warnings 0` 通过。
+- 备注：本次变更重点是把 AI 控制做成可追踪、可确认、可回放的交互链路，后续可继续扩展为数据库审计日志。
+
+### 2026-04-02 - Mirador 比较模式与动作日志补全
+- 修改范围：Mirador AI 面板、后端 AI 意图解析、工作日志。
+- 变更内容：补全比较模式的真实状态切换逻辑，新增“进入/退出比较模式”和“关闭对比”控制，按照 Mirador 的 `mosaic` / `elastic` 工作区状态切换并保持窗口日志可见；后端对“比较模式”“单图模式”“退出对比”等指令做了更明确的意图识别，避免被误判为普通找图。
+- 验证结果：`python -m py_compile backend/app/config.py backend/app/main.py backend/app/routers/ai_mirador.py` 通过；`npm run build` 通过；`npx eslint src/MiradorViewer.tsx src/MiradorAiPanel.tsx src/types/assets.ts src/types/mirador.d.ts --max-warnings 0` 通过。
+- 备注：现在比较模式不仅能开关，而且能在面板中看到当前模式、窗口数和完整动作日志。
+
+### 2026-04-02 - Moonshot 模型接入
+- 修改范围：后端 AI 配置、环境变量示例、工作日志。
+- 变更内容：将 AI 接入默认切换为 Moonshot 的 OpenAI 兼容服务地址，新增 `MOONSHOT_API_KEY`、`MOONSHOT_BASE_URL` 和 `MOONSHOT_MODEL` 配置，并保留 `OPENAI_*` 作为兼容覆盖；默认服务地址指向 `https://api.moonshot.cn/v1`，默认模型改为 `kimi-k2.5`。
+- 验证结果：配置文件和环境变量示例已更新，尚未做真实 API 调用验证，因为当前环境未设置有效 key。
+- 备注：Moonshot 文档的 Chat API 使用 OpenAI 兼容方式接入，后端现有调用逻辑可以直接复用。
+
+### 2026-04-02 - Moonshot 联通性验证
+- 修改范围：本地 `.env`、Moonshot API 连通性、工作日志。
+- 变更内容：在本地 `C:\Users\bighe\OneDrive\AI\Codex\.env` 填入 Moonshot 配置后，直接向 `POST /v1/chat/completions` 发送最小 JSON 请求，验证模型服务、Key 和返回格式是否可用。
+- 验证结果：请求返回 `200`，模型 `kimi-k2.5` 可正常返回 JSON，响应内容为 `{"ping":"pong"}`。
+- 备注：这次验证说明 Moonshot 链路已经可用；后续若手动启动后端，需要确保进程实际加载了同样的环境变量。
+
+### 2026-04-02 - 后端自动读取 .env
+- 修改范围：后端配置加载、工作日志。
+- 变更内容：在 `backend/app/config.py` 增加轻量 `.env` 自动加载逻辑，启动后端时会优先读取项目父目录中的本地 `.env` 文件，再解析数据库、Moonshot 和其他运行配置。
+- 验证结果：配置文件已更新，随后可通过启动后端或运行配置导入来验证环境变量是否自动生效。
+- 备注：这样本地改 `.env` 后无需手动导出环境变量，启动体验更顺手。
+
+### 2026-04-02 - .env 加载顺序修正
+- 修改范围：后端配置加载、工作日志。
+- 变更内容：修正 `.env` 搜索顺序，改为先读取更上层目录中的配置，再读取更接近仓库的配置，避免仓库根目录里空的 `.env` 抢先占位导致父目录配置未生效。
+- 验证结果：重新导入 `backend.app.config` 后，能够正确读到 `C:\Users\bighe\OneDrive\AI\Codex\.env` 里的 `MOONSHOT_API_KEY`，`has_key` 验证为 `True`。
+- 备注：这一步把本地配置加载路径彻底理顺了，后端启动时就能直接吃到你填好的环境变量。
+
+### 2026-04-02 - Mirador AI 后端回归测试补充
+- 修改范围：Mirador AI 后端测试、工作日志。
+- 变更内容：新增 `backend/tests/test_ai_mirador.py`，覆盖 OpenAI / Moonshot 计划注入后的对比搜索、无候选图时回退到普通搜索、以及 `search_assets` 的可见性过滤；测试直接调用 AI 路由函数，验证返回计划、候选图、权限边界和 manifest 生成路径。
+- 验证结果：`python -m pytest backend\tests\test_ai_mirador.py -q` 通过，`3 passed`；`python -m pytest backend\tests -q` 通过，`37 passed`。
+- 备注：后续继续扩展 Mirador AI 时，可以先补这里的回归，再改功能逻辑。
+
+### 2026-04-02 - Mirador AI 前端回归测试补充
+- 修改范围：Mirador AI 前端测试、Mirador AI 面板锚点、资产列表预览按钮、dashboard 回归测试、工作日志。
+- 变更内容：新增 `frontend/tests/mirador-ai.spec.ts`，覆盖打开资产预览、唤出 AI 面板、提交自然语言指令、展示候选图与确认态、切换候选目标；同时为 AI 面板补充稳定的 `data-testid`，为资产列表预览按钮补充测试锚点，并修正 dashboard 回归里对重复单元格文本的严格定位问题。
+- 验证结果：`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；`npm run test` 通过，`24 passed`；`npm run build` 通过。
+- 备注：这次把前端 AI 交互和既有 dashboard 回归一起收紧了，后面继续加 AI 功能时可以直接沿用这套测试入口。
+
+### 2026-04-03 - 代码审计与数据恢复
+- 修改范围：后端配置、Mirador 前端、三维管理页、参考资源导入、工作日志、测试回归、忽略规则。
+- 变更内容：审计并修正 `.env` 自动加载顺序、清理前端 lint 警告、恢复 Mirador 和 AI 面板中文文案；同时把 `reference/资源包` 重新导入当前 SQLite 库，恢复 12 条二维影像资源索引，并将测试产物与临时数据库加入 `.gitignore`。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`38 passed`；`npm run lint` 通过；`npm run build` 通过；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；参考资源导入脚本 dry-run 与正式导入均可执行。
+- 备注：当前前端“no data”问题的根因是数据库资产记录为空，不是图片文件缺失；已恢复索引，后续如需继续扩容可重复运行参考导入脚本。

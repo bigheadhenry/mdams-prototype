@@ -453,6 +453,7 @@ const App: React.FC = () => {
             详情
           </Button>
           <Button
+            data-testid={`asset-preview-button-${record.id}`}
             icon={<EyeOutlined />}
             disabled={record.status === 'processing'}
             onClick={() => {

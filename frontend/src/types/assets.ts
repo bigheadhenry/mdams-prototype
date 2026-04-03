@@ -166,6 +166,52 @@ export interface AssetAccessSummary {
   preview_enabled: boolean;
 }
 
+export interface MiradorSearchResult {
+  asset_id: number;
+  title: string;
+  manifest_url: string;
+  resource_id: string;
+  object_number?: string | null;
+  filename?: string | null;
+  score?: number;
+  reasons?: string[];
+}
+
+export interface MiradorAIPlan {
+  action:
+    | 'zoom_in'
+    | 'zoom_out'
+    | 'pan_left'
+    | 'pan_right'
+    | 'pan_up'
+    | 'pan_down'
+    | 'reset_view'
+    | 'fit_to_window'
+    | 'search_assets'
+    | 'open_compare'
+    | 'switch_compare_mode'
+    | 'close_compare'
+    | 'noop';
+  assistant_message: string;
+  requires_confirmation?: boolean;
+  search_query?: string | null;
+  search_results?: MiradorSearchResult[];
+  target_asset?: MiradorSearchResult | null;
+  compare_mode?: 'single' | 'side_by_side' | null;
+  pan_pixels?: number | null;
+  zoom_factor?: number | null;
+}
+
+export interface MiradorAIRequest {
+  prompt: string;
+  current_asset_id?: number | null;
+  current_manifest_url?: string | null;
+  current_title?: string | null;
+  current_object_number?: string | null;
+  current_resource_id?: string | null;
+  max_candidates?: number;
+}
+
 export interface UnifiedResourceSourceSummary {
   source_system: string;
   source_label: string;

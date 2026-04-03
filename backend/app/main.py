@@ -7,6 +7,7 @@ from .database import SessionLocal
 from .routers.auth import router as auth_router
 from .routers.assets import router as assets_router
 from .routers.applications import router as applications_router
+from .routers.ai_mirador import router as ai_mirador_router
 from .routers.downloads import router as downloads_router
 from .routers.health import build_health_payload, healthcheck, readiness, router as health_router
 from .routers.iiif import router as iiif_router
@@ -56,6 +57,7 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(assets_router)
 app.include_router(applications_router)
+app.include_router(ai_mirador_router)
 app.include_router(iiif_router)
 app.include_router(downloads_router)
 app.include_router(ingest_router)
