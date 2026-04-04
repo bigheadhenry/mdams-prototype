@@ -80,8 +80,9 @@ def test_asset_list_filters_owner_only_scope(db_session):
     assert {asset.id for asset in admin_assets} == {open_asset.id, owner_asset.id}
 
 
-def test_iiif_manifest_blocks_hidden_assets(db_session):
+def test_iiif_manifest_blocks_hidden_assets(db_session, monkeypatch):
     owner_asset = _create_asset(db_session, asset_id=2001, filename="hidden.jpg", visibility_scope="owner_only", collection_object_id=42)
+    monkeypatch.setattr(iiif_router.config, "CANTALOUPE_PUBLIC_URL", "http://localhost:8182/iiif/2")
 
     public_user = get_current_user(x_mdams_user="resource-user")
     owner_user = get_current_user(x_mdams_user="collection-owner", x_mdams_collection_scope="42")
@@ -102,6 +103,4 @@ def test_iiif_manifest_blocks_hidden_assets(db_session):
         user=owner_user,
     )
     assert manifest["id"].endswith(f"/iiif/{owner_asset.id}/manifest")
-    assert manifest["items"][0]["items"][0]["items"][0]["body"]["service"][0]["id"].endswith(
-        f"/iiif/{owner_asset.id}/service/hidden.jpg"
-    )
+    assert manifest["items"][0]["items"][0]["items"][0]["body"]["service"][0]["id"] == "http://localhost:8182/iiif/2/hidden.jpg"

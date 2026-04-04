@@ -112,6 +112,10 @@ def _cantaloupe_base_url(request: Request) -> str:
     return "http://localhost:8182/iiif/2"
 
 
+def _cantaloupe_image_service_url(request: Request, actual_filename: str) -> str:
+    return f"{_cantaloupe_base_url(request)}/{quote(actual_filename, safe='')}"
+
+
 @router.get("/iiif/{asset_id}/manifest")
 def get_iiif_manifest(
     asset_id: int,
@@ -133,7 +137,7 @@ def get_iiif_manifest(
 
     iiif_file_path = _asset_iiif_access_file_path(asset)
     actual_filename = os.path.basename(iiif_file_path) if iiif_file_path else asset.filename
-    image_service_id = f"{api_base_url}/iiif/{asset_id}/service/{quote(actual_filename, safe='')}"
+    image_service_id = _cantaloupe_image_service_url(request, actual_filename)
 
     metadata_layers = build_metadata_layers(
         asset_id=asset.id,
@@ -251,7 +255,7 @@ def proxy_iiif_image(
     if requested_filename not in {actual_filename, asset.filename}:
         raise HTTPException(status_code=404, detail="Image service not found")
 
-    target_url = f"{_cantaloupe_base_url(request)}/{quote(actual_filename, safe='')}"
+    target_url = _cantaloupe_image_service_url(request, actual_filename)
     if suffix:
         target_url = f"{target_url}/{suffix}"
 

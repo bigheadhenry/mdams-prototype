@@ -264,3 +264,33 @@ YYYY-MM-DD
 - 变更内容：审计并修正 `.env` 自动加载顺序、清理前端 lint 警告、恢复 Mirador 和 AI 面板中文文案；同时把 `reference/资源包` 重新导入当前 SQLite 库，恢复 12 条二维影像资源索引，并将测试产物与临时数据库加入 `.gitignore`。
 - 验证结果：`python -m pytest backend\tests -q` 通过，`38 passed`；`npm run lint` 通过；`npm run build` 通过；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；参考资源导入脚本 dry-run 与正式导入均可执行。
 - 备注：当前前端“no data”问题的根因是数据库资产记录为空，不是图片文件缺失；已恢复索引，后续如需继续扩容可重复运行参考导入脚本。
+
+### 2026-04-04 - Mirador IIIF 直连 Cantaloupe
+- 修改范围：IIIF 路由、配置默认值、单测、环境变量示例、工作日志。
+- 变更内容：把 manifest 中的 image service 从后端代理路径改为直接指向 Cantaloupe 公共地址，保持旧的 proxy 路由作为兼容入口；同时把本地默认 `CANTALOUPE_PUBLIC_URL` 调整为 `http://localhost:8182/iiif/2`，并同步更新测试断言与 `.env.example`。
+- 验证结果：当前只修复了 `backend/tests/test_asset_visibility.py` 的旧路径断言，后续需要重新跑 `python -m pytest backend\\tests -q` 以确认全量后端测试通过。
+- 备注：这是对照 `mirador-compare` 的第一步优化，目标是减少浏览器到首图之间的请求绕行，让 Mirador 更快拿到 IIIF service。
+
+### 2026-04-04 - Mirador 直连 Cantaloupe 预检修复
+- 修改范围：Mirador 前端请求拦截、工作日志。
+- 变更内容：给 Mirador 的统一请求预处理器加了白名单，只对后端 `api/auth` 请求附加 `Authorization` 头，不再把这个头带到 Cantaloupe 的 IIIF 请求上，避免跨域预检卡住图片加载。
+- 验证结果：`npm run build` 通过；前端构建后可热更新到当前运行中的 Vite 开发服务。
+- 备注：这一步对应你截图里“预览一直白屏”的现象，根因是直接 Cantaloupe 请求被额外鉴权头触发了预检，但浏览器侧不需要也不应该给图片服务带 token。
+
+### 2026-04-04 - 列表缩略图缓存失效修复
+- 修改范围：缩略图缓存生成逻辑、回归测试、工作日志。
+- 变更内容：把列表页缩略图的缓存键从固定的 `asset-{id}.preview.jpg` 改成带源文件指纹的路径，改为按 `asset id + 源文件 mtime/size` 匹配；同一个资产一旦源文件变化，就会自动生成新的缩略图文件，避免继续复用旧错图。
+- 验证结果：新增 `backend/tests/test_preview_images.py`，`python -m pytest backend\\tests\\test_preview_images.py -q` 通过，`1 passed`；`python -m pytest backend\\tests -q` 通过，`39 passed`。
+- 备注：这能修正你看到的“列表缩略图和大图不一致”的问题，本质是旧预览缓存没有失效，而不是 Mirador 主图加载慢。
+
+### 2026-04-04 - 缩略图浏览器缓存切断
+- 修改范围：资产列表前端、缩略图接口缓存头、工作日志。
+- 变更内容：列表页缩略图 URL 追加 `created_at + file_size` 版本标识，并给 `/assets/{id}/preview` 响应加上 `Cache-Control: no-store`，确保浏览器不会继续复用旧的缩略图响应。
+- 验证结果：前端代码已更新，后端需要重启后才能生效；下一轮刷新页面时会强制取新图。
+- 备注：这一步是专门针对“我改了缩略图逻辑但页面还是看见旧图”的情况，避免浏览器或中间缓存把旧响应留住。
+
+### 2026-04-04 - Mirador AI 执行层加固
+- 修改范围：Mirador AI 面板、Mirador Viewer、前端回归测试、工作日志。
+- 变更内容：重写 `frontend/src/MiradorAiPanel.tsx` 的执行层，给 `zoom/pan/reset/fit` 增加真实视口变更校验，优先直连 OSD viewer 执行动作，并在 `viewerApiRef.current.actions` 不可用时回退到 Mirador 官方 action creator；同时让 AI 面板显式感知 `MiradorViewer` 的 ready 状态，在 viewer 未完成初始化前禁用快捷控制和确认按钮，避免“按钮可点但实际未就绪”的假执行。
+- 验证结果：`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；`npm run build` 通过。
+- 备注：这一步先把现有动作的执行可靠性补扎实了；Playwright 仍主要覆盖计划流和候选图确认，后续如果要把“真实缩放/平移成功”也做成稳定 E2E，需要再补更贴近 Mirador 运行态的 viewport 测试桩。

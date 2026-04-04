@@ -15,8 +15,15 @@ PREVIEW_MAX_WIDTH = 1600
 PREVIEW_JPEG_QUALITY = 82
 
 
-def get_preview_image_path(asset: Asset) -> str:
+def _source_fingerprint(source_path: str) -> str:
+    stat = os.stat(source_path)
+    return f"{stat.st_mtime_ns}-{stat.st_size}"
+
+
+def get_preview_image_path(asset: Asset, source_path: str | None = None) -> str:
     base_dir = os.path.join(config.UPLOAD_DIR, PREVIEW_DIR_NAME)
+    if source_path and os.path.exists(source_path):
+        return os.path.join(base_dir, f"asset-{asset.id}-{_source_fingerprint(source_path)}{PREVIEW_FILE_SUFFIX}")
     return os.path.join(base_dir, f"asset-{asset.id}{PREVIEW_FILE_SUFFIX}")
 
 
@@ -80,7 +87,7 @@ def ensure_preview_image(asset: Asset) -> str | None:
     if not source_path:
         return None
 
-    preview_path = get_preview_image_path(asset)
+    preview_path = get_preview_image_path(asset, source_path)
     if os.path.exists(preview_path):
         return preview_path
 

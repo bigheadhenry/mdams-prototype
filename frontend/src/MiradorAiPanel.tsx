@@ -28,6 +28,13 @@ import {
   ZoomOutOutlined,
 } from '@ant-design/icons';
 import { OSDReferences } from 'mirador/dist/cjs/src/plugins/OSDReferences';
+import {
+  addWindow as addMiradorWindow,
+  focusWindow as focusMiradorWindow,
+  removeWindow as removeMiradorWindow,
+  updateViewport as updateMiradorViewport,
+  updateWorkspace as updateMiradorWorkspace,
+} from 'mirador/dist/cjs/src/state/actions';
 import type { MiradorAIPlan, MiradorSearchResult } from './types/assets';
 
 interface ApplicationCandidate {
@@ -43,6 +50,7 @@ interface MiradorAiPanelProps {
   manifestId: string;
   currentCandidate: ApplicationCandidate | null;
   viewerApiRef: React.MutableRefObject<any>;
+  viewerReady: boolean;
 }
 
 interface ChatMessage {
@@ -62,12 +70,13 @@ interface ActionLogEntry {
 type WorkspaceMode = 'mosaic' | 'elastic';
 
 const AUTH_TOKEN_KEY = 'mdams.auth.token';
+const VIEWPORT_EPSILON = 0.0001;
 
 const initialMessages: ChatMessage[] = [
   {
     id: 'welcome',
     role: 'assistant',
-    content: '你可以直接告诉我：放大、缩小、平移，或者帮你找图并打开对比。',
+    content: '可以直接告诉我放大、缩小、平移、适配窗口，或者让我帮你找图并打开比较模式。',
   },
 ];
 
@@ -102,6 +111,52 @@ const getCurrentViewport = (store: any) => {
   return slice?.viewers?.[windowId] || null;
 };
 
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+
+const nearlyEqual = (a: number, b: number, epsilon = VIEWPORT_EPSILON) => Math.abs(a - b) <= epsilon;
+
+const didViewportChange = (
+  before: { x: number; y: number; zoom: number } | null,
+  after: { x: number; y: number; zoom: number } | null,
+) => {
+  if (!before || !after) return false;
+  return (
+    !nearlyEqual(before.x, after.x) ||
+    !nearlyEqual(before.y, after.y) ||
+    !nearlyEqual(before.zoom, after.zoom)
+  );
+};
+
+const getViewerViewportSnapshot = (windowId: string | null) => {
+  if (!windowId) return null;
+  const viewerRef = OSDReferences.get(windowId)?.current;
+  const viewport = viewerRef?.viewport;
+  if (!viewport?.getCenter || !viewport?.getZoom) return null;
+
+  const center = viewport.getCenter(true);
+  return {
+    x: Number(center?.x ?? 0),
+    y: Number(center?.y ?? 0),
+    zoom: Number(viewport.getZoom(true) ?? 1),
+  };
+};
+
+const getStoreViewportSnapshot = (store: any) => {
+  const viewport = getCurrentViewport(store);
+  if (!viewport) return null;
+  return {
+    x: Number(viewport.x ?? 0),
+    y: Number(viewport.y ?? 0),
+    zoom: Number(viewport.zoom ?? 1),
+  };
+};
+
+const getViewportSnapshot = (store: any, windowId: string | null) =>
+  getViewerViewportSnapshot(windowId) || getStoreViewportSnapshot(store);
+
 const withAuthHeaders = () => {
   const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
   return token ? { Authorization: `Bearer ${token}` } : undefined;
@@ -128,11 +183,11 @@ const getActionLabel = (action: MiradorAIPlan['action']) => {
     case 'search_assets':
       return '搜索图像';
     case 'open_compare':
-      return '打开对比';
+      return '打开比较';
     case 'switch_compare_mode':
       return '切换比较模式';
     case 'close_compare':
-      return '关闭对比';
+      return '关闭比较';
     default:
       return '未知动作';
   }
@@ -142,7 +197,7 @@ const getCompareModeLabel = (mode: WorkspaceMode) => (mode === 'mosaic' ? '比�
 
 const nowLabel = () => new Date().toLocaleTimeString();
 
-const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCandidate, viewerApiRef }) => {
+const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCandidate, viewerApiRef, viewerReady }) => {
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [logEntries, setLogEntries] = useState<ActionLogEntry[]>([]);
@@ -188,147 +243,235 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
     logger(`[MiradorAI] ${title}`, detail || '');
   };
 
+  const waitFor = async (predicate: () => boolean, attempts = 10, intervalMs = 40) => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      if (predicate()) return true;
+      await wait(intervalMs);
+    }
+    return predicate();
+  };
+
   const dispatchMirador = (action: any) => {
     const api = viewerApiRef.current;
-    if (!api?.store || !api?.actions) {
-      throw new Error('Mirador 视图尚未就绪');
+    if (!api?.store) {
+      throw new Error('Mirador viewer is not ready yet.');
     }
     api.store.dispatch(action);
   };
 
+  const getMiradorAction = <T extends (...args: any[]) => any>(actionFromApi: T | undefined, fallback: T): T =>
+    (actionFromApi || fallback) as T;
+
   const setWorkspaceMode = (mode: WorkspaceMode) => {
     const api = viewerApiRef.current;
-    if (!api?.actions) {
-      throw new Error('Mirador 视图尚未就绪');
-    }
-    dispatchMirador(api.actions.updateWorkspace({ type: mode }));
+    dispatchMirador(getMiradorAction(api?.actions?.updateWorkspace, updateMiradorWorkspace)({ type: mode }));
   };
 
-  const ensureCompareMode = (mode: WorkspaceMode, reason: string) => {
+  const ensureCompareMode = async (mode: WorkspaceMode, reason: string) => {
     setWorkspaceMode(mode);
-    appendLog('success', '切换比较状态', `${getCompareModeLabel(mode)} - ${reason}`);
-    setStatusMessage(`已切换到 ${getCompareModeLabel(mode)}。`);
+    const updated = await waitFor(() => getWorkspaceMode(viewerApiRef.current?.store) === mode);
+    if (!updated) {
+      throw new Error(`Failed to switch to ${getCompareModeLabel(mode)}.`);
+    }
+
+    appendLog('success', 'Compare mode updated', `${getCompareModeLabel(mode)} - ${reason}`);
+    setStatusMessage(`已切换到${getCompareModeLabel(mode)}`);
   };
 
-  const applyViewportAction = (action: MiradorAIPlan['action'], panPixels = 120, zoomFactor = 1.2) => {
+  const applyViewportAction = async (action: MiradorAIPlan['action'], panPixels = 120, zoomFactor = 1.2) => {
     const api = viewerApiRef.current;
     const store = api?.store;
     const windowId = getCurrentWindowId(store);
-    if (!api?.actions || !store || !windowId) {
-      throw new Error('Mirador 视图尚未就绪');
+    if (!store || !windowId) {
+      throw new Error('Mirador viewer is not ready yet.');
     }
 
-    const viewport = getCurrentViewport(store);
+    const viewerRef = OSDReferences.get(windowId)?.current;
+    const viewerViewport = viewerRef?.viewport;
+    const before = getViewportSnapshot(store, windowId);
+    const storeViewport = getCurrentViewport(store);
     const next = {
-      flip: viewport?.flip ?? false,
-      rotation: viewport?.rotation ?? 0,
-      x: viewport?.x ?? 0,
-      y: viewport?.y ?? 0,
-      zoom: viewport?.zoom ?? 1,
+      flip: storeViewport?.flip ?? false,
+      rotation: storeViewport?.rotation ?? 0,
+      x: storeViewport?.x ?? 0,
+      y: storeViewport?.y ?? 0,
+      zoom: storeViewport?.zoom ?? 1,
     };
 
-    switch (action) {
-      case 'zoom_in':
-        next.zoom = Math.max(0.01, next.zoom * zoomFactor);
-        break;
-      case 'zoom_out':
-        next.zoom = Math.max(0.01, next.zoom / zoomFactor);
-        break;
-      case 'pan_left':
-        next.x -= panPixels;
-        break;
-      case 'pan_right':
-        next.x += panPixels;
-        break;
-      case 'pan_up':
-        next.y -= panPixels;
-        break;
-      case 'pan_down':
-        next.y += panPixels;
-        break;
-      case 'reset_view':
-      case 'fit_to_window': {
-        const viewerRef = OSDReferences.get(windowId)?.current;
-        if (viewerRef?.viewport?.goHome) {
-          viewerRef.viewport.goHome(true);
-          return;
-        }
-        next.x = 0;
-        next.y = 0;
-        next.zoom = 1;
-        break;
+    const panRatio = Math.max(panPixels / 600, 0.05);
+    let handledByViewer = false;
+
+    if (viewerViewport) {
+      switch (action) {
+        case 'zoom_in':
+          if (viewerViewport.zoomBy) {
+            viewerViewport.zoomBy(zoomFactor, undefined, true);
+            viewerViewport.applyConstraints?.();
+            handledByViewer = true;
+          }
+          break;
+        case 'zoom_out':
+          if (viewerViewport.zoomBy) {
+            viewerViewport.zoomBy(1 / zoomFactor, undefined, true);
+            viewerViewport.applyConstraints?.();
+            handledByViewer = true;
+          }
+          break;
+        case 'pan_left':
+        case 'pan_right':
+        case 'pan_up':
+        case 'pan_down':
+          if (viewerViewport.getCenter && viewerViewport.getBounds && viewerViewport.panTo) {
+            const center = viewerViewport.getCenter(true);
+            const bounds = viewerViewport.getBounds(true);
+            const nextCenter = {
+              x:
+                action === 'pan_left'
+                  ? center.x - bounds.width * panRatio
+                  : action === 'pan_right'
+                    ? center.x + bounds.width * panRatio
+                    : center.x,
+              y:
+                action === 'pan_up'
+                  ? center.y - bounds.height * panRatio
+                  : action === 'pan_down'
+                    ? center.y + bounds.height * panRatio
+                    : center.y,
+            };
+            viewerViewport.panTo(nextCenter, true);
+            viewerViewport.applyConstraints?.();
+            handledByViewer = true;
+          }
+          break;
+        case 'reset_view':
+        case 'fit_to_window':
+          if (viewerViewport.goHome) {
+            viewerViewport.goHome(true);
+            viewerViewport.applyConstraints?.();
+            handledByViewer = true;
+          }
+          break;
+        default:
+          break;
       }
-      default:
-        return;
     }
 
-    dispatchMirador(api.actions.updateViewport(windowId, next));
+    if (!handledByViewer) {
+      switch (action) {
+        case 'zoom_in':
+          next.zoom = Math.max(0.01, next.zoom * zoomFactor);
+          break;
+        case 'zoom_out':
+          next.zoom = Math.max(0.01, next.zoom / zoomFactor);
+          break;
+        case 'pan_left':
+          next.x -= panPixels;
+          break;
+        case 'pan_right':
+          next.x += panPixels;
+          break;
+        case 'pan_up':
+          next.y -= panPixels;
+          break;
+        case 'pan_down':
+          next.y += panPixels;
+          break;
+        case 'reset_view':
+        case 'fit_to_window':
+          next.x = 0;
+          next.y = 0;
+          next.zoom = 1;
+          break;
+        default:
+          return;
+      }
+
+      dispatchMirador(getMiradorAction(api?.actions?.updateViewport, updateMiradorViewport)(windowId, next));
+    }
+
+    const updated = await waitFor(() => didViewportChange(before, getViewportSnapshot(store, windowId)));
+    if (!updated) {
+      throw new Error(`${getActionLabel(action)}没有真正生效。`);
+    }
   };
 
   const openCompareTarget = async (target: MiradorSearchResult) => {
     const api = viewerApiRef.current;
     if (!api?.store || !api?.actions) {
-      throw new Error('Mirador 视图尚未就绪');
+      throw new Error('Mirador viewer is not ready yet.');
     }
 
     const response = await axios.get(target.manifest_url, {
       headers: withAuthHeaders(),
     });
 
+    const beforeCount = getWindowIds(api.store).length;
     const windowId = `compare-${target.asset_id}-${Date.now()}`;
     dispatchMirador(
-      api.actions.addWindow({
+      getMiradorAction(api.actions?.addWindow, addMiradorWindow)({
         id: windowId,
         manifestId: target.manifest_url,
         manifest: response.data,
       }),
     );
-    dispatchMirador(api.actions.focusWindow(windowId, true));
-    ensureCompareMode('mosaic', `opened ${target.title} (#${target.asset_id})`);
-    appendLog('success', '打开对比图', `${target.title} (#${target.asset_id})`);
+    dispatchMirador(getMiradorAction(api.actions?.focusWindow, focusMiradorWindow)(windowId, true));
+
+    const opened = await waitFor(() => getWindowIds(api.store).length === beforeCount + 1);
+    if (!opened) {
+      throw new Error('比较窗口没有成功打开。');
+    }
+
+    await ensureCompareMode('mosaic', `opened ${target.title} (#${target.asset_id})`);
+    appendLog('success', 'Opened compare target', `${target.title} (#${target.asset_id})`);
   };
 
-  const toggleCompareMode = () => {
+  const toggleCompareMode = async () => {
     const store = viewerApiRef.current?.store;
     const currentMode = getWorkspaceMode(store);
     const windowCount = getWindowIds(store).length;
 
     if (currentMode === 'elastic') {
       if (windowCount < 2 && !selectedTarget) {
-        appendLog('warning', '切换比较模式失败', '当前只有一个窗口，先打开一张对比图');
-        setStatusMessage('请先打开一张对比图，再进入比较模式。');
+        appendLog('warning', 'Compare mode not available', 'Open a second image before entering compare mode.');
+        setStatusMessage('请先打开一张比较图，再进入比较模式。');
         return;
       }
-      ensureCompareMode('mosaic', 'toggle on');
+      await ensureCompareMode('mosaic', 'toggle on');
       return;
     }
 
-    ensureCompareMode('elastic', 'toggle off');
+    await ensureCompareMode('elastic', 'toggle off');
   };
 
-  const closeCompare = () => {
+  const closeCompare = async () => {
     const api = viewerApiRef.current;
     const store = api?.store;
     if (!api?.actions || !store) {
-      throw new Error('Mirador 视图尚未就绪');
+      throw new Error('Mirador viewer is not ready yet.');
     }
 
     const windowIds = getWindowIds(store);
     if (windowIds.length <= 1) {
-      ensureCompareMode('elastic', 'single window remains');
-      appendLog('info', '关闭对比跳过', '当前只剩一个窗口');
+      await ensureCompareMode('elastic', 'single window remains');
+      appendLog('info', 'Close compare skipped', 'Only one window is open.');
       return;
     }
 
     const currentWindowId = getCurrentWindowId(store);
     const removeTarget = windowIds.find((id) => id !== currentWindowId) || windowIds[windowIds.length - 1];
+    const beforeCount = windowIds.length;
     if (removeTarget) {
-      dispatchMirador(api.actions.removeWindow(removeTarget));
-      appendLog('success', '关闭对比图', removeTarget);
+      dispatchMirador(getMiradorAction(api.actions?.removeWindow, removeMiradorWindow)(removeTarget));
+      appendLog('success', 'Closed compare target', removeTarget);
+    }
+
+    const closed = await waitFor(() => getWindowIds(store).length === beforeCount - 1);
+    if (!closed) {
+      throw new Error('比较窗口没有成功关闭。');
     }
 
     if (getWindowIds(store).length <= 1) {
-      ensureCompareMode('elastic', 'after close');
+      await ensureCompareMode('elastic', 'after close');
     }
   };
 
@@ -350,7 +493,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
 
       if (nextPlan.action === 'open_compare') {
         if (!target) {
-          throw new Error('还没有可打开的候选图。');
+          throw new Error('还没有可用于打开比较的候选图。');
         }
         await openCompareTarget(target);
         return;
@@ -358,12 +501,12 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
 
       if (nextPlan.action === 'switch_compare_mode') {
         const desiredMode = nextPlan.compare_mode === 'single' ? 'elastic' : 'mosaic';
-        ensureCompareMode(desiredMode, nextPlan.compare_mode ? `explicit ${nextPlan.compare_mode}` : 'toggle');
+        await ensureCompareMode(desiredMode, nextPlan.compare_mode ? `explicit ${nextPlan.compare_mode}` : 'toggle');
         return;
       }
 
       if (nextPlan.action === 'close_compare') {
-        closeCompare();
+        await closeCompare();
         return;
       }
 
@@ -372,9 +515,9 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
         return;
       }
 
-      applyViewportAction(nextPlan.action, nextPlan.pan_pixels ?? 120, nextPlan.zoom_factor ?? 1.2);
+      await applyViewportAction(nextPlan.action, nextPlan.pan_pixels ?? 120, nextPlan.zoom_factor ?? 1.2);
       appendLog('success', '视图已更新', getActionLabel(nextPlan.action));
-      setStatusMessage(`已执行 ${getActionLabel(nextPlan.action)}。`);
+      setStatusMessage(`已执行${getActionLabel(nextPlan.action)}`);
     } catch (error) {
       const text = error instanceof Error ? error.message : '执行失败';
       setErrorMessage(text);
@@ -411,7 +554,11 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
       const nextPlan = response.data as MiradorAIPlan;
       setPlan(nextPlan);
       appendMessage('assistant', nextPlan.assistant_message);
-      appendLog('info', 'AI 生成计划', `${getActionLabel(nextPlan.action)}${nextPlan.requires_confirmation ? ' / 需要确认' : ''}`);
+      appendLog(
+        'info',
+        'AI 生成计划',
+        `${getActionLabel(nextPlan.action)}${nextPlan.requires_confirmation ? ' / 需要确认' : ''}`,
+      );
 
       const firstTarget = nextPlan.target_asset || nextPlan.search_results?.[0] || null;
       setSelectedTarget(firstTarget);
@@ -429,7 +576,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
     } catch (error) {
       const text = error instanceof Error ? error.message : 'AI 解析失败';
       setErrorMessage(text);
-      appendMessage('assistant', `抱歉，${text}`);
+      appendMessage('assistant', `抱歉，这次没有成功：${text}`);
       appendLog('error', 'AI 解析失败', text);
       message.error(text);
     } finally {
@@ -481,10 +628,10 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
           </Space>
           <Space wrap>
             <Tag color={compareMode === 'mosaic' ? 'green' : 'default'}>{getCompareModeLabel(compareMode)}</Tag>
-            <Tag color="purple">{windowCount} 窗口</Tag>
+            <Tag color="purple">{windowCount} 个窗口</Tag>
           </Space>
           <Typography.Paragraph style={{ color: 'rgba(255,255,255,0.68)', marginBottom: 0 }}>
-            你可以直接告诉我如何操作当前图像，或者让我帮你找图、打开对比、切换比较模式。
+            这里既支持自然语言指令，也支持直接点按按钮。视口动作现在会在执行后做一次校验，避免面板显示成功但画面没有变化。
           </Typography.Paragraph>
         </Space>
       </div>
@@ -492,28 +639,28 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'auto', flex: 1 }}>
         <Card size="small" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
           <Space wrap>
-            <Button icon={<ZoomInOutlined />} onClick={() => handleQuickAction('zoom_in')}>
+            <Button data-testid="mirador-ai-zoom-in" icon={<ZoomInOutlined />} onClick={() => void handleQuickAction('zoom_in')} disabled={!viewerReady || busy}>
               放大
             </Button>
-            <Button icon={<ZoomOutOutlined />} onClick={() => handleQuickAction('zoom_out')}>
+            <Button data-testid="mirador-ai-zoom-out" icon={<ZoomOutOutlined />} onClick={() => void handleQuickAction('zoom_out')} disabled={!viewerReady || busy}>
               缩小
             </Button>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => handleQuickAction('pan_left')}>
+            <Button data-testid="mirador-ai-pan-left" icon={<ArrowLeftOutlined />} onClick={() => void handleQuickAction('pan_left')} disabled={!viewerReady || busy}>
               左移
             </Button>
-            <Button icon={<ArrowRightOutlined />} onClick={() => handleQuickAction('pan_right')}>
+            <Button data-testid="mirador-ai-pan-right" icon={<ArrowRightOutlined />} onClick={() => void handleQuickAction('pan_right')} disabled={!viewerReady || busy}>
               右移
             </Button>
-            <Button icon={<ArrowUpOutlined />} onClick={() => handleQuickAction('pan_up')}>
+            <Button data-testid="mirador-ai-pan-up" icon={<ArrowUpOutlined />} onClick={() => void handleQuickAction('pan_up')} disabled={!viewerReady || busy}>
               上移
             </Button>
-            <Button icon={<ArrowDownOutlined />} onClick={() => handleQuickAction('pan_down')}>
+            <Button data-testid="mirador-ai-pan-down" icon={<ArrowDownOutlined />} onClick={() => void handleQuickAction('pan_down')} disabled={!viewerReady || busy}>
               下移
             </Button>
-            <Button icon={<ReloadOutlined />} onClick={() => handleQuickAction('reset_view')}>
+            <Button data-testid="mirador-ai-reset" icon={<ReloadOutlined />} onClick={() => void handleQuickAction('reset_view')} disabled={!viewerReady || busy}>
               重置
             </Button>
-            <Button icon={<AimOutlined />} onClick={() => handleQuickAction('fit_to_window')}>
+            <Button data-testid="mirador-ai-fit" icon={<AimOutlined />} onClick={() => void handleQuickAction('fit_to_window')} disabled={!viewerReady || busy}>
               适配
             </Button>
           </Space>
@@ -527,15 +674,15 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
         >
           <Space direction="vertical" size={10} style={{ width: '100%' }}>
             <Space wrap>
-              <Button type="primary" onClick={() => toggleCompareMode()} icon={<CompareModeIcon />}>
+              <Button data-testid="mirador-ai-toggle-compare" type="primary" onClick={() => void toggleCompareMode()} icon={<CompareModeIcon />} disabled={!viewerReady || busy}>
                 {compareMode === 'mosaic' ? '退出比较模式' : '进入比较模式'}
               </Button>
-              <Button danger onClick={() => closeCompare()} icon={<CloseCircleOutlined />}>
-                关闭对比
+              <Button data-testid="mirador-ai-close-compare" danger onClick={() => void closeCompare()} icon={<CloseCircleOutlined />} disabled={!viewerReady || busy}>
+                关闭比较
               </Button>
             </Space>
             <Typography.Text style={{ color: 'rgba(255,255,255,0.64)' }}>
-              当前窗口数：{windowCount}，模式为 {getCompareModeLabel(compareMode)}。
+              当前共有 {windowCount} 个窗口，工作区处于 {getCompareModeLabel(compareMode)}。
             </Typography.Text>
           </Space>
         </Card>
@@ -551,7 +698,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
               data-testid="mirador-ai-prompt"
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              placeholder="例如：放大一点，再帮我找一张类似的图打开对比"
+              placeholder="例如：放大一点，然后帮我找一张类似的图并打开比较"
               autoSize={{ minRows: 3, maxRows: 6 }}
               onPressEnter={(event) => {
                 if (!event.shiftKey) {
@@ -561,11 +708,11 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
               }}
             />
             <Space>
-              <Button data-testid="mirador-ai-send" type="primary" icon={<SearchOutlined />} onClick={() => void handleSubmit()} loading={busy}>
+              <Button data-testid="mirador-ai-send" type="primary" icon={<SearchOutlined />} onClick={() => void handleSubmit()} loading={busy} disabled={!viewerReady}>
                 发送
               </Button>
               {plan?.requires_confirmation ? (
-                <Button data-testid="mirador-ai-confirm" icon={<CheckOutlined />} onClick={() => void confirmPending()} loading={busy}>
+                <Button data-testid="mirador-ai-confirm" icon={<CheckOutlined />} onClick={() => void confirmPending()} loading={busy} disabled={!viewerReady}>
                   确认执行
                 </Button>
               ) : null}
@@ -573,8 +720,8 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
           </Space>
         </Card>
 
-        {errorMessage ? <Alert type="error" showIcon message="执行失败" description={errorMessage} /> : null}
-        {statusMessage ? <Alert type="info" showIcon message={statusMessage} /> : null}
+        {errorMessage ? <Alert data-testid="mirador-ai-error" type="error" showIcon message="执行失败" description={errorMessage} /> : null}
+        {statusMessage ? <Alert data-testid="mirador-ai-status" type="info" showIcon message={statusMessage} /> : null}
 
         {plan ? (
           <Card
@@ -651,7 +798,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
               </Typography.Text>
               {selectedTarget ? (
                 <Typography.Text style={{ color: 'rgba(255,255,255,0.62)' }}>
-                  对比目标：{selectedTarget.title}
+                  比较目标：{selectedTarget.title}
                 </Typography.Text>
               ) : null}
               <Space>
@@ -740,6 +887,6 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
   );
 };
 
-const CompareModeIcon = () => <span style={{ fontWeight: 700 }}>⇄</span>;
+const CompareModeIcon = () => <span style={{ fontWeight: 700 }}>对</span>;
 
 export default MiradorAiPanel;

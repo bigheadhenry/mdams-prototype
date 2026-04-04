@@ -21,6 +21,7 @@ interface MiradorViewerProps {
 }
 
 const AUTH_TOKEN_KEY = 'mdams.auth.token';
+const AUTH_HEADER_HOST_PATHS = ['/api', '/auth'];
 
 type PreviewLoadStage = 'loading_manifest' | 'initializing_viewer' | 'loading_tiles' | 'ready' | 'error';
 
@@ -48,6 +49,15 @@ const getStageLabel = (stage: PreviewLoadStage) => {
       return '预览加载失败';
     default:
       return '正在加载预览';
+  }
+};
+
+const shouldAttachAuthHeader = (url: string) => {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return AUTH_HEADER_HOST_PATHS.some((path) => parsed.pathname.startsWith(path));
+  } catch {
+    return false;
   }
 };
 
@@ -123,11 +133,14 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
         preprocessors: [
           (url: string, options: any) => {
             const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+            if (!token || !shouldAttachAuthHeader(url)) {
+              return options;
+            }
             return {
               ...options,
               headers: {
                 ...(options?.headers || {}),
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                Authorization: `Bearer ${token}`,
               },
             };
           },
@@ -371,8 +384,13 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
         </div>
       ) : null}
         </div>
-        <MiradorAiPanel manifestId={manifestId} currentCandidate={applicationCandidate} viewerApiRef={viewerApiRef} />
-    </div>
+        <MiradorAiPanel
+          manifestId={manifestId}
+          currentCandidate={applicationCandidate}
+          viewerApiRef={viewerApiRef}
+          viewerReady={previewStage === 'ready'}
+        />
+      </div>
   );
 };
 

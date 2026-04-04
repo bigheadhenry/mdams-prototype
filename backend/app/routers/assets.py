@@ -256,4 +256,12 @@ def get_asset_preview(
     if not preview_path:
         raise HTTPException(status_code=404, detail="Preview image not available")
 
-    return FileResponse(preview_path, media_type="image/jpeg", filename=os.path.basename(preview_path))
+    return FileResponse(
+        preview_path,
+        media_type="image/jpeg",
+        filename=os.path.basename(preview_path),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+        },
+    )

@@ -94,6 +94,12 @@ const manifest = {
   ],
 };
 
+const compareManifest = {
+  ...manifest,
+  id: 'http://localhost:3000/api/iiif/2/manifest',
+  label: { en: ['blue_vase_study.jpg'] },
+};
+
 const transparentPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aUeUAAAAASUVORK5CYII=',
   'base64',
@@ -124,7 +130,15 @@ async function bootstrapMiradorAi(page) {
     await route.fulfill({ json: assets });
   });
 
-  await page.route('**/api/assets/1/preview', async (route) => {
+  await page.route('**/api/assets/1/preview**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: transparentPng,
+    });
+  });
+
+  await page.route('**/assets/1/preview**', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'image/png',
@@ -136,21 +150,26 @@ async function bootstrapMiradorAi(page) {
     await route.fulfill({ json: manifest });
   });
 
-  await page.route('**/iiif/2/test_image/info.json', async (route) => {
-    await route.fulfill({
-      json: {
-        '@context': 'http://iiif.io/api/image/3/context.json',
-        id: 'http://localhost:3000/iiif/2/test_image',
-        type: 'ImageService3',
-        protocol: 'http://iiif.io/api/image',
-        width: 1000,
-        height: 1000,
-        profile: 'level2',
-      },
-    });
+  await page.route('**/api/iiif/2/manifest', async (route) => {
+    await route.fulfill({ json: compareManifest });
   });
 
   await page.route('**/iiif/2/test_image/**', async (route) => {
+    if (route.request().url().endsWith('/info.json')) {
+      await route.fulfill({
+        json: {
+          '@context': 'http://iiif.io/api/image/3/context.json',
+          id: 'http://localhost:3000/iiif/2/test_image',
+          type: 'ImageService3',
+          protocol: 'http://iiif.io/api/image',
+          width: 1000,
+          height: 1000,
+          profile: 'level2',
+        },
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: 'image/png',
@@ -160,10 +179,22 @@ async function bootstrapMiradorAi(page) {
 
   await page.route('**/api/ai/mirador/interpret', async (route) => {
     const body = route.request().postDataJSON() as { prompt?: string } | undefined;
+    if (body?.prompt?.includes('放大')) {
+      await route.fulfill({
+        json: {
+          action: 'zoom_in',
+          assistant_message: '我会先放大当前图像。',
+          requires_confirmation: false,
+          prompt_echo: body.prompt,
+        },
+      });
+      return;
+    }
+
     await route.fulfill({
       json: {
         action: 'open_compare',
-        assistant_message: '我找到两张可对比的图像，请确认后打开对比。',
+        assistant_message: '我找到了两张可用于比较的图像，请确认后打开比较。',
         requires_confirmation: true,
         search_query: 'blue vase',
         compare_mode: 'side_by_side',
@@ -217,8 +248,9 @@ test.describe('Mirador AI panel', () => {
 
     await expect(page.getByTestId('mirador-ai-panel')).toBeVisible();
     await expect(page.getByText('Mirador Viewer')).toBeVisible();
+    await expect(page.getByTestId('mirador-ai-send')).toBeEnabled({ timeout: 15000 });
 
-    await page.getByTestId('mirador-ai-prompt').fill('帮我找一张类似的图并打开对比');
+    await page.getByTestId('mirador-ai-prompt').fill('帮我找一张类似的图并打开比较');
     await page.getByTestId('mirador-ai-send').click();
 
     await expect(page.getByTestId('mirador-ai-plan')).toBeVisible({ timeout: 15000 });
@@ -230,4 +262,5 @@ test.describe('Mirador AI panel', () => {
     await page.getByTestId('mirador-ai-candidate-2').click();
     await expect(page.getByTestId('mirador-ai-confirmation')).toContainText('Blue Vase Study', { timeout: 15000 });
   });
+
 });

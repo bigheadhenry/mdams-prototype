@@ -60,6 +60,11 @@ const { Paragraph, Text, Title } = Typography;
 
 const AUTH_TOKEN_KEY = 'mdams.auth.token';
 
+const buildPreviewUrl = (record: AssetSummary) => {
+  const version = encodeURIComponent(`${record.created_at}-${record.file_size}`);
+  return `/api/assets/${record.id}/preview?v=${version}`;
+};
+
 const MENU_LABELS: Record<MenuKey, string> = {
   '1': '总览',
   '2': '二维资源',
@@ -403,7 +408,7 @@ const App: React.FC = () => {
           }}
         >
           <Image
-            src={`/api/assets/${record.id}/preview`}
+            src={buildPreviewUrl(record)}
             alt={record.filename}
             preview={false}
             loading="lazy"
