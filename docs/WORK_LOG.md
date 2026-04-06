@@ -300,3 +300,9 @@ YYYY-MM-DD
 - 变更内容：围绕“录入人员先建记录、摄影师后传图匹配”的新流程，新增 `ImageRecord` 相关后端与前端骨架，包括记录列表/表单/详情/工作台、记录提交与退回、待上传记录池、临时上传分析、显式确认绑定/替换；同时补充 `image_record_validation` 和 `iiif_access` 服务，把校验拆成提交校验与绑定后校验两阶段，并把 PSB / 大 TIFF 的 IIIF 访问策略收敛到“原件保留、访问副本独立、Mirador 只读访问副本”的方向。另新增 4 份阶段基线文档，分别固定角色拆分、匹配机制、验证规则和 IIIF 访问格式策略。
 - 验证结果：`python -m pytest backend\tests\test_image_records.py backend\tests\test_iiif_access_phase1.py backend\tests\test_ingest.py backend\tests\test_derivative_policy.py backend\tests\test_metadata_layers.py -q` 通过，`25 passed`；`npm run build` 通过。
 - 备注：这次提交的重点是把 Phase 1 的业务边界和实现骨架一起推到仓库里，后续新线程可以直接以 4 份 `IMAGE_*_PHASE1_PLAN.md` 文档为固定实施基线继续推进。
+
+### 2026-04-06 - 影像记录上传链路修复与摄影师替换入口恢复
+- 修改范围：影像记录绑定/替换路由、IIIF 访问副本衍生触发、PSB/PSD 探测兜底、摄影师工作台与详情页、后端与前端回归测试、工作日志。
+- 变更内容：修正 `ImageRecord` 的确认绑定与替换流程，使其复用统一的 IIIF 访问策略判断，必要时将新资产置为 `processing` 并触发 `generate_iiif_access_derivative`；补充临时上传分析的 ExifTool / `pyvips` 兜底，避免 PSD/PSB 因 Pillow 无法读取而被误判为不可绑定；同时将摄影师工作台从仅看 `ready_for_upload` 扩展为可继续查看自己 `uploaded_pending_validation` 的已指派记录，并允许在详情页重新进入替换上传流程。
+- 验证结果：`pytest backend\tests\test_image_records.py -q` 通过，`10 passed`；`pytest backend\tests\test_iiif_access_phase1.py -q` 通过，`3 passed`；`npm run build` 通过；`npx playwright test tests/dashboard.spec.ts` 通过，`27 passed`。
+- 备注：Playwright 运行期间仍有现存的 Vite 代理 `ECONNREFUSED` 日志噪音，但不影响用例通过；本次修复主要收敛了影像记录上传链路与摄影师替换闭环。
