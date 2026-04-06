@@ -12,6 +12,7 @@ from ..schemas import (
     UnifiedResourceSummary,
 )
 from ..services.asset_detail import build_asset_detail_response
+from ..services.iiif_access import is_iiif_ready
 from ..services.metadata_layers import PROFILE_DEFINITIONS, build_metadata_layers
 from .base import PlatformSourceAdapter
 from .registry import registry
@@ -127,7 +128,7 @@ def list_unified_resources_filtered(
             if normalized_query not in search_blob:
                 continue
 
-        asset_preview_enabled = asset.status == "ready"
+        asset_preview_enabled = is_iiif_ready(asset)
         if preview_enabled is not None and preview_enabled != asset_preview_enabled:
             continue
         resources.append(
@@ -160,7 +161,7 @@ def get_unified_resource(resource_id: str, db: Session) -> UnifiedResourceDetail
         raise LookupError("Resource not found")
 
     source_record = build_asset_detail_response(asset)
-    preview_enabled = asset.status == "ready"
+    preview_enabled = is_iiif_ready(asset)
     layers = build_metadata_layers(
         asset_id=asset.id,
         asset_filename=asset.filename,

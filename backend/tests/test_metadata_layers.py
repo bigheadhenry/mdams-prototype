@@ -30,7 +30,7 @@ def test_build_metadata_layers_defaults_to_other_when_no_object_metadata():
     assert layers["technical"]["width"] == 800
     assert layers["technical"]["height"] == 600
     assert layers["technical"]["original_file_name"] == "sample.jpg"
-    assert get_original_file_path(layers) is None
+    assert get_original_file_path(layers) == "/tmp/sample.jpg"
 
 
 def test_build_metadata_layers_detects_business_activity_profile():

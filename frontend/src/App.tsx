@@ -6,8 +6,8 @@ import {
   Col,
   Divider,
   Form,
-  Input,
   Image,
+  Input,
   Layout,
   Menu,
   Modal,
@@ -37,13 +37,14 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import MiradorViewer from './MiradorViewer';
-import IngestDemo from './components/IngestDemo';
 import AssetDetail from './components/AssetDetail';
-import PlatformDirectory from './components/PlatformDirectory';
-import UnifiedResourceDetail from './components/UnifiedResourceDetail';
-import ThreeDManagement from './components/ThreeDManagement';
 import ApplicationCart from './components/ApplicationCart';
 import ApplicationManagement from './components/ApplicationManagement';
+import ImageRecordWorkbench from './components/ImageRecordWorkbench';
+import IngestDemo from './components/IngestDemo';
+import PlatformDirectory from './components/PlatformDirectory';
+import ThreeDManagement from './components/ThreeDManagement';
+import UnifiedResourceDetail from './components/UnifiedResourceDetail';
 import {
   can,
   getRoleLabels,
@@ -60,20 +61,21 @@ const { Paragraph, Text, Title } = Typography;
 
 const AUTH_TOKEN_KEY = 'mdams.auth.token';
 
-const buildPreviewUrl = (record: AssetSummary) => {
-  const version = encodeURIComponent(`${record.created_at}-${record.file_size}`);
-  return `/api/assets/${record.id}/preview?v=${version}`;
-};
-
 const MENU_LABELS: Record<MenuKey, string> = {
   '1': '总览',
   '2': '二维资源',
   '3': '申请车',
-  '4': '入库与处理',
+  '4': '入库处理',
   '5': '统一资源目录',
   '6': '统一资源详情',
   '7': '三维管理',
   '8': '申请管理',
+  '9': '影像信息录入',
+};
+
+const buildPreviewUrl = (record: AssetSummary) => {
+  const version = encodeURIComponent(`${record.created_at}-${record.file_size}`);
+  return `/api/assets/${record.id}/preview?v=${version}`;
 };
 
 const App: React.FC = () => {
@@ -112,6 +114,9 @@ const App: React.FC = () => {
     : false;
   const canView3D = authContext ? can(authContext, 'three_d.view') : false;
   const canViewPlatform = authContext ? can(authContext, 'platform.view') : false;
+  const canUseImageRecords = authContext
+    ? can(authContext, 'image.record.list') || can(authContext, 'image.record.view_ready_for_upload')
+    : false;
 
   const applyToken = useCallback((token: string | null) => {
     if (token) {
@@ -149,6 +154,10 @@ const App: React.FC = () => {
       setAuthContext(null);
       setApplications([]);
       setAssets([]);
+      setApplicationCart([]);
+      setSelectedAssetId(null);
+      setSelectedUnifiedResourceId(null);
+      setSelectedKey('1');
     }
   }, [applyToken]);
 
@@ -190,10 +199,11 @@ const App: React.FC = () => {
       }
       if (!silent) setLoading(true);
       try {
-        const res = await axios.get<AssetSummary[]>('/api/assets');
-        setAssets(res.data);
-      } catch (err) {
-        console.warn('Failed to load assets', err);
+        const response = await axios.get<AssetSummary[]>('/api/assets');
+        setAssets(response.data);
+      } catch (error) {
+        console.warn('failed to load assets', error);
+        setAssets([]);
       } finally {
         if (!silent) setLoading(false);
       }
@@ -207,10 +217,10 @@ const App: React.FC = () => {
       return;
     }
     try {
-      const res = await axios.get<ApplicationSummary[]>('/api/applications');
-      setApplications(res.data);
-    } catch (err) {
-      console.warn('Failed to load applications', err);
+      const response = await axios.get<ApplicationSummary[]>('/api/applications');
+      setApplications(response.data);
+    } catch (error) {
+      console.warn('failed to load applications', error);
       setApplications([]);
     }
   }, [authContext, canCreateApplications, canManageApplications]);
@@ -223,8 +233,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
-    const hasProcessing = assets.some((asset) => asset.status === 'processing');
-    if (hasProcessing) {
+    if (assets.some((asset) => asset.status === 'processing')) {
       interval = setInterval(() => {
         void fetchAssets(true);
       }, 3000);
@@ -234,13 +243,13 @@ const App: React.FC = () => {
     };
   }, [assets, fetchAssets]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (assetId: number) => {
     try {
-      await axios.delete(`/api/assets/${id}`);
+      await axios.delete(`/api/assets/${assetId}`);
       message.success('资源已删除');
       void fetchAssets();
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       message.error('删除失败');
     }
   };
@@ -306,8 +315,8 @@ const App: React.FC = () => {
         message.success('申请单已提交');
         setApplicationCart([]);
         void fetchApplications();
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
         message.error('申请提交失败');
       } finally {
         setApplicationsSubmitting(false);
@@ -324,8 +333,8 @@ const App: React.FC = () => {
         });
         message.success('申请单已通过');
         await fetchApplications();
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
         message.error('审批失败');
       }
     },
@@ -340,8 +349,8 @@ const App: React.FC = () => {
         });
         message.success('申请单已拒绝');
         await fetchApplications();
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
         message.error('拒绝失败');
       }
     },
@@ -365,8 +374,8 @@ const App: React.FC = () => {
         window.URL.revokeObjectURL(url);
         message.success('交付包已生成');
         await fetchApplications();
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
         message.error('交付包导出失败');
       }
     },
@@ -379,7 +388,7 @@ const App: React.FC = () => {
       const response = await axios.post<AuthLoginResponse>('/api/auth/login', payload);
       applyToken(response.data.token);
       setAuthContext(response.data.user);
-      message.success(`已登录：${response.data.user.display_name}`);
+      message.success(`已登录: ${response.data.user.display_name}`);
     } catch (error) {
       console.error(error);
       message.error('登录失败，请检查用户名和密码');
@@ -388,7 +397,7 @@ const App: React.FC = () => {
     }
   };
 
-  const columns = [
+  const assetColumns = [
     {
       title: '缩略图',
       key: 'thumbnail',
@@ -413,11 +422,7 @@ const App: React.FC = () => {
             preview={false}
             loading="lazy"
             fallback="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'><rect width='72' height='72' fill='%23eef2f7'/><text x='36' y='40' text-anchor='middle' font-size='12' fill='%2394a3b8'>No Preview</text></svg>"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </div>
       ),
@@ -428,7 +433,7 @@ const App: React.FC = () => {
       title: '大小',
       dataIndex: 'file_size',
       key: 'file_size',
-      render: (val: number) => `${(val / 1024 / 1024).toFixed(2)} MB`,
+      render: (value: number) => `${(value / 1024 / 1024).toFixed(2)} MB`,
     },
     { title: '类型', dataIndex: 'mime_type', key: 'mime_type' },
     {
@@ -518,6 +523,7 @@ const App: React.FC = () => {
         { key: '6', icon: <FileTextOutlined />, label: <span data-testid="menu-6">{MENU_LABELS['6']}</span> },
         { key: '7', icon: <DatabaseOutlined />, label: <span data-testid="menu-7">{MENU_LABELS['7']}</span> },
         { key: '8', icon: <FileTextOutlined />, label: <span data-testid="menu-8">{MENU_LABELS['8']}</span> },
+        { key: '9', icon: <FileTextOutlined />, label: <span data-testid="menu-9">{MENU_LABELS['9']}</span> },
       ] as Array<{ key: MenuKey; icon: React.ReactNode; label: React.ReactNode }>).filter((item) =>
         visibleMenuKeys.includes(item.key),
       ),
@@ -534,7 +540,7 @@ const App: React.FC = () => {
         </Col>
         <Col span={8}>
           <Card>
-            <Statistic title="申请草稿数" value={applicationCart.length} />
+            <Statistic title="申请车条目" value={applicationCart.length} />
           </Card>
         </Col>
         <Col span={8}>
@@ -544,7 +550,14 @@ const App: React.FC = () => {
         </Col>
       </Row>
 
-      <Card title="当前登录上下文" extra={<Button icon={<ReloadOutlined />} onClick={() => void fetchAssets()}>刷新资源</Button>}>
+      <Card
+        title="当前登录上下文"
+        extra={
+          <Button icon={<ReloadOutlined />} onClick={() => void fetchAssets()}>
+            刷新资源
+          </Button>
+        }
+      >
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Text strong>{authContext?.display_name}</Text>
           <Space wrap>
@@ -554,18 +567,17 @@ const App: React.FC = () => {
               </Tag>
             ))}
           </Space>
+          <Paragraph style={{ marginBottom: 0 }}>当前可见菜单: {visibleMenuKeys.map((key) => MENU_LABELS[key]).join(' / ')}</Paragraph>
           <Paragraph style={{ marginBottom: 0 }}>
-            当前可见菜单：{visibleMenuKeys.map((key) => MENU_LABELS[key]).join(' / ')}
-          </Paragraph>
-          <Paragraph style={{ marginBottom: 0 }}>
-            认证模式：{authContext?.auth_mode}，责任范围：{authContext?.collection_scope.length ? authContext.collection_scope.join(', ') : '无'}
+            认证模式: {authContext?.auth_mode}，责任范围:{' '}
+            {authContext?.collection_scope.length ? authContext.collection_scope.join(', ') : '无'}
           </Paragraph>
         </Space>
       </Card>
 
       {canViewImages ? (
         <div data-testid="assets-table" style={{ marginTop: 24 }}>
-          <Table dataSource={assets} columns={columns} rowKey="id" loading={loading} />
+          <Table dataSource={assets} columns={assetColumns} rowKey="id" loading={loading} />
         </div>
       ) : null}
     </>
@@ -578,7 +590,7 @@ const App: React.FC = () => {
           <Card>
             <Space direction="vertical" align="center">
               <LoadingOutlined />
-              <Text>正在初始化登录上下文…</Text>
+              <Text>正在初始化登录上下文...</Text>
             </Space>
           </Card>
         </Content>
@@ -596,13 +608,11 @@ const App: React.FC = () => {
                 <Title level={3} style={{ margin: 0 }}>
                   MDAMS 登录
                 </Title>
-                <Text type="secondary">
-                  当前已接入真实用户、角色关系和登录上下文。默认测试密码为 `mdams123`。
-                </Text>
+                <Text type="secondary">当前已接入真实用户、角色关系和登录上下文。默认测试密码为 `mdams123`。</Text>
               </Space>
 
               <Form layout="vertical" onFinish={(values) => void handleLogin(values)}>
-                <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请选择或填写用户名' }]}>
+                <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请选择或输入用户名' }]}>
                   <Select
                     showSearch
                     placeholder="选择测试用户"
@@ -660,12 +670,12 @@ const App: React.FC = () => {
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
-          onClick={(e) => {
-            setSelectedKey(e.key as MenuKey);
-            if (e.key !== '2') {
+          onClick={(event) => {
+            setSelectedKey(event.key as MenuKey);
+            if (event.key !== '2') {
               setSelectedAssetId(null);
             }
-            if (e.key !== '6') {
+            if (event.key !== '6') {
               setSelectedUnifiedResourceId(null);
             }
           }}
@@ -685,7 +695,7 @@ const App: React.FC = () => {
             </Col>
             <Col>
               <Space>
-                <Text type="secondary">默认测试密码：mdams123</Text>
+                <Text type="secondary">默认测试密码: mdams123</Text>
                 <Button icon={<LogoutOutlined />} onClick={() => void logout()}>
                   退出登录
                 </Button>
@@ -735,7 +745,7 @@ const App: React.FC = () => {
               ) : (
                 <Card>
                   <Tag color="blue">统一资源详情</Tag>
-                  <Paragraph>请先从统一资源目录中选择一个资源。</Paragraph>
+                  <Paragraph>请先从统一资源目录中选择一条资源。</Paragraph>
                   <Button type="primary" onClick={() => setSelectedKey('5')}>
                     返回统一资源目录
                   </Button>
@@ -743,7 +753,23 @@ const App: React.FC = () => {
               )
             ) : (
               <>
-                {selectedKey === '1' && renderDashboard()}
+                {selectedKey === '1' ? renderDashboard() : null}
+
+                {selectedKey === '2' && canViewImages ? (
+                  <div data-testid="assets-table">
+                    <Table dataSource={assets} columns={assetColumns} rowKey="id" loading={loading} />
+                  </div>
+                ) : null}
+
+                {selectedKey === '3' && canCreateApplications ? (
+                  <ApplicationCart
+                    items={applicationCart}
+                    onRemove={removeFromApplicationCart}
+                    onUpdateNote={updateApplicationNote}
+                    onSubmit={submitApplication}
+                    submitting={applicationsSubmitting}
+                  />
+                ) : null}
 
                 {selectedKey === '4' && canUploadImages ? (
                   <IngestDemo
@@ -790,20 +816,8 @@ const App: React.FC = () => {
                   />
                 ) : null}
 
-                {selectedKey === '3' && canCreateApplications ? (
-                  <ApplicationCart
-                    items={applicationCart}
-                    onRemove={removeFromApplicationCart}
-                    onUpdateNote={updateApplicationNote}
-                    onSubmit={submitApplication}
-                    submitting={applicationsSubmitting}
-                  />
-                ) : null}
-
-                {selectedKey === '2' && canViewImages ? (
-                  <div data-testid="assets-table">
-                    <Table dataSource={assets} columns={columns} rowKey="id" loading={loading} />
-                  </div>
+                {selectedKey === '9' && canUseImageRecords ? (
+                  <ImageRecordWorkbench authContext={authContext} availableUsers={availableUsers} />
                 ) : null}
               </>
             )}
@@ -811,7 +825,7 @@ const App: React.FC = () => {
         </Content>
 
         <Footer style={{ textAlign: 'center' }}>
-          MDAMS Prototype · Auth context
+          MDAMS Prototype
           <Divider type="vertical" />
           {authContext.display_name}
         </Footer>
@@ -839,10 +853,10 @@ const App: React.FC = () => {
               }}
             >
               <div>
-                <Text strong style={{ color: '#fff' }}>Mirador Viewer</Text>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>
-                  {currentManifest}
-                </div>
+                <Text strong style={{ color: '#fff' }}>
+                  Mirador Viewer
+                </Text>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{currentManifest}</div>
               </div>
               <Button onClick={() => setPreviewVisible(false)}>关闭预览</Button>
             </div>

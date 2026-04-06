@@ -9,6 +9,88 @@ export interface AssetSummary {
   created_at: string;
 }
 
+export interface ImageRecordAssetBinding {
+  asset_id: number;
+  filename?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+}
+
+export interface ImageRecordValidationState {
+  ready_for_submit: boolean;
+  missing_fields: string[];
+  missing_labels: string[];
+}
+
+export interface ImageRecordDuplicateAssetMatch {
+  asset_id: number;
+  filename?: string | null;
+  image_record_id?: number | null;
+  status?: string | null;
+}
+
+export interface ImageRecordPendingUpload {
+  token: string;
+  filename: string;
+  file_size: number;
+  mime_type?: string | null;
+  extension?: string | null;
+  width?: number | null;
+  height?: number | null;
+  format_name?: string | null;
+  sha256: string;
+  uploaded_at: string;
+  filename_matches: string[];
+  warnings: string[];
+  duplicate_assets: ImageRecordDuplicateAssetMatch[];
+  can_confirm_bind: boolean;
+  can_confirm_replace: boolean;
+}
+
+export interface ImageRecordSummary {
+  id: number;
+  record_no: string;
+  title: string;
+  status: string;
+  resource_type: string;
+  visibility_scope: string;
+  collection_object_id?: number | null;
+  profile_key: string;
+  profile_label?: string | null;
+  project_name?: string | null;
+  image_category?: string | null;
+  object_number?: string | null;
+  created_by_user_id?: number | null;
+  created_by_display_name?: string | null;
+  submitted_by_user_id?: number | null;
+  submitted_by_display_name?: string | null;
+  assigned_photographer_user_id?: number | null;
+  assigned_photographer_display_name?: string | null;
+  created_at: string;
+  updated_at: string;
+  submitted_at?: string | null;
+  asset?: ImageRecordAssetBinding | null;
+}
+
+export interface ImageRecordDetailResponse extends ImageRecordSummary {
+  metadata_info: AssetMetadataLayers;
+  validation: ImageRecordValidationState;
+  pending_upload?: ImageRecordPendingUpload | null;
+}
+
+export interface ImageRecordSavePayload {
+  record_no?: string | null;
+  title?: string | null;
+  resource_type?: string | null;
+  visibility_scope?: string | null;
+  collection_object_id?: number | null;
+  profile_key?: string | null;
+  management?: Record<string, unknown>;
+  profile_fields?: Record<string, unknown>;
+  raw_metadata?: Record<string, unknown>;
+  assigned_photographer_user_id?: number | null;
+}
+
 export interface ApplicationCartItem {
   assetId: number;
   resourceId: string;

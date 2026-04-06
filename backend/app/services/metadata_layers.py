@@ -353,11 +353,15 @@ def _build_technical_section(
     if asset_filename and not technical.get("original_file_name"):
         technical["original_file_name"] = asset_filename
 
+    if asset_file_path and not technical.get("original_file_path"):
+        technical["original_file_path"] = asset_file_path
+
     if asset_file_path and not technical.get("image_file_name"):
         technical["image_file_name"] = asset_file_path.rsplit("\\", 1)[-1].rsplit("/", 1)[-1]
 
     if asset_file_size is not None and not technical.get("file_size"):
         technical["file_size"] = asset_file_size
+        technical.setdefault("original_file_size", asset_file_size)
 
     if asset_mime_type and not technical.get("format_name"):
         technical["format_name"] = asset_mime_type
@@ -534,10 +538,9 @@ def get_original_file_path(layers_or_metadata: Mapping[str, Any] | None) -> str 
 
 def get_iiif_access_file_path(layers_or_metadata: Mapping[str, Any] | None) -> str | None:
     technical = get_technical_metadata(layers_or_metadata)
-    for key in ("iiif_access_file_path", "preview_file_path"):
-        value = technical.get(key)
-        if value not in (None, ""):
-            return str(value)
+    value = technical.get("iiif_access_file_path")
+    if value not in (None, ""):
+        return str(value)
     return None
 
 

@@ -16,9 +16,24 @@ def test_build_derivative_policy_marks_large_tiff_for_pyramidal_copy():
     )
 
     assert policy["derivative_strategy"] == "generate_pyramidal_tiff"
-    assert policy["derivative_priority"] == "recommended"
+    assert policy["derivative_priority"] == "required"
     assert policy["derivative_target_format"] == "image/tiff"
     assert policy["derivative_rule_id"] == "tiff_large_pyramidal_tiled_copy"
+
+
+def test_build_derivative_policy_marks_psb_as_mandatory_access_copy():
+    policy = build_derivative_policy(
+        filename="master.psb",
+        mime_type="application/octet-stream",
+        file_size=2 * 1024 * 1024,
+        width=1200,
+        height=900,
+    )
+
+    assert policy["derivative_strategy"] == "generate_pyramidal_tiff"
+    assert policy["derivative_priority"] == "required"
+    assert policy["derivative_target_format"] == "image/tiff"
+    assert policy["derivative_rule_id"] == "psb_mandatory_access_bigtiff"
 
 
 def test_build_derivative_policy_keeps_normal_jpeg():
@@ -48,5 +63,5 @@ def test_infer_derivative_policy_reads_layered_metadata():
         }
     )
 
-    assert policy["derivative_rule_id"] == "tiff_large_pyramidal_tiled_copy"
+    assert policy["derivative_rule_id"] == "psb_mandatory_access_bigtiff"
     assert policy["derivative_strategy"] == "generate_pyramidal_tiff"

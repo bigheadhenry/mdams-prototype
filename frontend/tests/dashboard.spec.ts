@@ -11,6 +11,15 @@ const systemAdminAuthContext = {
     'image.delete',
     'image.upload',
     'image.ingest_review',
+    'image.record.create',
+    'image.record.view',
+    'image.record.edit',
+    'image.record.submit',
+    'image.record.return',
+    'image.record.list',
+    'image.record.view_ready_for_upload',
+    'image.file.upload',
+    'image.file.match',
     'three_d.view',
     'three_d.edit',
     'three_d.upload',
@@ -20,6 +29,42 @@ const systemAdminAuthContext = {
     'application.review',
     'application.export',
     'system.manage',
+  ],
+  collection_scope: [],
+  auth_mode: 'session',
+};
+
+const imageMetadataEntryAuthContext = {
+  user_id: 'image_metadata_entry',
+  display_name: 'Image Metadata Entry',
+  roles: ['image_metadata_entry'],
+  permissions: [
+    'dashboard.view',
+    'image.view',
+    'platform.view',
+    'image.record.create',
+    'image.record.view',
+    'image.record.edit',
+    'image.record.submit',
+    'image.record.return',
+    'image.record.list',
+  ],
+  collection_scope: [],
+  auth_mode: 'session',
+};
+
+const imagePhotographerAuthContext = {
+  user_id: 'image_photographer',
+  display_name: 'Image Photographer Upload',
+  roles: ['image_photographer_upload'],
+  permissions: [
+    'dashboard.view',
+    'image.view',
+    'platform.view',
+    'image.record.view',
+    'image.record.view_ready_for_upload',
+    'image.file.upload',
+    'image.file.match',
   ],
   collection_scope: [],
   auth_mode: 'session',
@@ -45,18 +90,35 @@ const collectionOwnerAuthContext = {
 
 const availableUsers = [
   {
+    id: 1,
     username: 'system_admin',
     display_name: 'System Admin',
     roles: [{ key: 'system_admin', label: 'System Admin' }],
     collection_scope: [],
   },
   {
+    id: 2,
+    username: 'image_metadata_entry',
+    display_name: 'Image Metadata Entry',
+    roles: [{ key: 'image_metadata_entry', label: 'Image Metadata Entry' }],
+    collection_scope: [],
+  },
+  {
+    id: 3,
+    username: 'image_photographer',
+    display_name: 'Image Photographer Upload',
+    roles: [{ key: 'image_photographer_upload', label: 'Image Photographer Upload' }],
+    collection_scope: [],
+  },
+  {
+    id: 4,
     username: 'resource_user',
     display_name: 'Resource User',
     roles: [{ key: 'resource_user', label: 'Resource User' }],
     collection_scope: [],
   },
   {
+    id: 5,
     username: 'collection_owner',
     display_name: 'Collection Owner',
     roles: [{ key: 'collection_owner', label: 'Collection Owner' }],
@@ -249,6 +311,86 @@ async function bootstrapAuthenticatedState(page, authContext = systemAdminAuthCo
 }
 
 async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
+  const imageRecords = [
+    {
+      id: 11,
+      record_no: 'IR-20260406-000011',
+      title: 'North Gate Inspection',
+      status: 'draft',
+      resource_type: 'image_2d_cultural_object',
+      visibility_scope: 'open',
+      collection_object_id: 101,
+      profile_key: 'business_activity',
+      profile_label: '业务活动',
+      project_name: 'Spring Survey',
+      image_category: 'documentation',
+      object_number: null,
+      created_by_user_id: 2,
+      created_by_display_name: 'Image Metadata Entry',
+      submitted_by_user_id: null,
+      submitted_by_display_name: null,
+      assigned_photographer_user_id: 3,
+      assigned_photographer_display_name: 'Image Photographer Upload',
+      created_at: '2024-01-01T10:00:00Z',
+      updated_at: '2024-01-01T10:00:00Z',
+      submitted_at: null,
+      asset: null,
+    },
+    {
+      id: 12,
+      record_no: 'IR-20260406-000012',
+      title: 'South Gate Overview',
+      status: 'ready_for_upload',
+      resource_type: 'image_2d_cultural_object',
+      visibility_scope: 'open',
+      collection_object_id: 101,
+      profile_key: 'business_activity',
+      profile_label: '业务活动',
+      project_name: 'Spring Survey',
+      image_category: 'documentation',
+      object_number: 'OBJ-12',
+      created_by_user_id: 2,
+      created_by_display_name: 'Image Metadata Entry',
+      submitted_by_user_id: 2,
+      submitted_by_display_name: 'Image Metadata Entry',
+      assigned_photographer_user_id: 3,
+      assigned_photographer_display_name: 'Image Photographer Upload',
+      created_at: '2024-01-02T10:00:00Z',
+      updated_at: '2024-01-02T10:00:00Z',
+      submitted_at: '2024-01-02T10:10:00Z',
+      asset: null,
+    },
+    {
+      id: 13,
+      record_no: 'IR-20260406-000013',
+      title: 'Roof Detail Retake',
+      status: 'uploaded_pending_validation',
+      resource_type: 'image_2d_cultural_object',
+      visibility_scope: 'open',
+      collection_object_id: 101,
+      profile_key: 'movable_artifact',
+      profile_label: '可移动文物',
+      project_name: 'Spring Survey',
+      image_category: 'documentation',
+      object_number: 'OBJ-13',
+      created_by_user_id: 2,
+      created_by_display_name: 'Image Metadata Entry',
+      submitted_by_user_id: 2,
+      submitted_by_display_name: 'Image Metadata Entry',
+      assigned_photographer_user_id: 3,
+      assigned_photographer_display_name: 'Image Photographer Upload',
+      created_at: '2024-01-03T10:00:00Z',
+      updated_at: '2024-01-03T10:20:00Z',
+      submitted_at: '2024-01-03T10:10:00Z',
+      asset: {
+        asset_id: 401,
+        filename: 'roof-detail-v1.tif',
+        status: 'processing',
+        created_at: '2024-01-03T10:20:00Z',
+      },
+    },
+  ];
+
   const visibleAssets = [
     {
       id: 1,
@@ -360,6 +502,65 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
 
   await page.route('/api/assets', async (route) => {
     await route.fulfill({ json: visibleAssets });
+  });
+
+  await page.route('**/api/image-records**', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/api/image-records')) {
+      const isPhotographer = authContext.roles.includes('image_photographer_upload');
+      const visibleRecords = isPhotographer
+        ? imageRecords.filter(
+            (item) =>
+              item.assigned_photographer_user_id === 3
+              && (item.status === 'ready_for_upload' || item.status === 'uploaded_pending_validation'),
+          )
+        : imageRecords;
+      await route.fulfill({ json: visibleRecords });
+      return;
+    }
+    if (url.pathname.endsWith('/api/image-records/ready-for-upload')) {
+      await route.fulfill({ json: imageRecords.filter((item) => item.status === 'draft' ? false : true) });
+      return;
+    }
+    if (url.pathname.endsWith('/api/image-records/11')) {
+      await route.fulfill({
+        json: {
+          ...imageRecords[0],
+          metadata_info: {
+            schema_version: '2.0',
+            core: {
+              resource_type: 'image_2d_cultural_object',
+              title: 'North Gate Inspection',
+              status: 'draft',
+              visibility_scope: 'open',
+              collection_object_id: 101,
+              profile_key: 'business_activity',
+              record_no: 'IR-20260406-000011',
+            },
+            management: {
+              project_name: 'Spring Survey',
+              image_category: 'documentation',
+            },
+            profile: {
+              key: 'business_activity',
+              label: '业务活动',
+              sheet: '业务活动',
+              fields: {
+                main_location: 'Hall A',
+              },
+            },
+            raw_metadata: {},
+          },
+          validation: {
+            ready_for_submit: true,
+            missing_fields: [],
+            missing_labels: [],
+          },
+        },
+      });
+      return;
+    }
+    await route.fulfill({ json: [] });
   });
 
   await page.route('**/api/assets/1', async (route) => {
@@ -504,6 +705,36 @@ test.describe('Role visibility', () => {
     await expect(page.getByTestId('menu-3')).toBeVisible();
     await expect(page.getByTestId('menu-4')).toHaveCount(0);
     await expect(page.getByTestId('menu-8')).toHaveCount(0);
+  });
+});
+
+test.describe('Image record workspace', () => {
+  test.beforeEach(async ({ page }) => {
+    await bootstrapAuthenticatedState(page, imageMetadataEntryAuthContext);
+    await bootstrapCommonApi(page, imageMetadataEntryAuthContext);
+    await page.goto('/');
+  });
+
+  test('image metadata entry user can open image record workbench', async ({ page }) => {
+    await expect(page.getByTestId('menu-9')).toBeVisible();
+    await page.getByTestId('menu-9').click();
+    await expect(page.getByTestId('image-record-list')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'IR-20260406-000011' })).toBeVisible();
+  });
+});
+
+test.describe('Photographer ready pool', () => {
+  test.beforeEach(async ({ page }) => {
+    await bootstrapAuthenticatedState(page, imagePhotographerAuthContext);
+    await bootstrapCommonApi(page, imagePhotographerAuthContext);
+    await page.goto('/');
+  });
+
+  test('photographer can open the ready-for-upload pool', async ({ page }) => {
+    await expect(page.getByTestId('menu-9')).toBeVisible();
+    await page.getByTestId('menu-9').click();
+    await expect(page.getByText('Assigned upload workbench')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Roof Detail Retake' })).toBeVisible();
   });
 });
 

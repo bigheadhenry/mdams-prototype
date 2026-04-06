@@ -12,12 +12,13 @@ from .routers.downloads import router as downloads_router
 from .routers.health import build_health_payload, healthcheck, readiness, router as health_router
 from .routers.iiif import router as iiif_router
 from .routers.ingest import router as ingest_router
+from .routers.image_records import router as image_records_router
 from .routers.platform import router as platform_router
 from .routers.three_d import router as three_d_router
 from .services.auth import seed_auth_data
 
 
-def _ensure_asset_scope_columns() -> None:
+def _ensure_sqlite_schema_compatibility() -> None:
     if engine.dialect.name != "sqlite":
         return
 
@@ -28,17 +29,22 @@ def _ensure_asset_scope_columns() -> None:
         statements.append("ALTER TABLE assets ADD COLUMN visibility_scope VARCHAR DEFAULT 'open'")
     if "collection_object_id" not in existing_columns:
         statements.append("ALTER TABLE assets ADD COLUMN collection_object_id INTEGER")
-
-    if not statements:
-        return
+    if "image_record_id" not in existing_columns:
+        statements.append("ALTER TABLE assets ADD COLUMN image_record_id INTEGER")
 
     with engine.begin() as connection:
         for statement in statements:
             connection.execute(text(statement))
+        connection.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_assets_image_record_id "
+                "ON assets(image_record_id) WHERE image_record_id IS NOT NULL"
+            )
+        )
 
 # Initialize DB tables
 Base.metadata.create_all(bind=engine)
-_ensure_asset_scope_columns()
+_ensure_sqlite_schema_compatibility()
 with SessionLocal() as session:
     seed_auth_data(session)
 
@@ -61,5 +67,6 @@ app.include_router(ai_mirador_router)
 app.include_router(iiif_router)
 app.include_router(downloads_router)
 app.include_router(ingest_router)
+app.include_router(image_records_router)
 app.include_router(three_d_router)
 app.include_router(platform_router)

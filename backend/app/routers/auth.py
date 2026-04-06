@@ -32,6 +32,7 @@ def list_auth_users(db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.id.asc()).all()
     return [
         AuthUserSummary(
+            id=user.id,
             username=user.username,
             display_name=user.display_name,
             roles=[

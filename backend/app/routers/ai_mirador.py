@@ -14,6 +14,7 @@ from .. import config
 from ..database import get_db
 from ..models import Asset
 from ..permissions import CurrentUser, ensure_current_user, require_permission
+from ..services.iiif_access import is_iiif_ready
 from ..services.metadata_layers import get_metadata_layers
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -262,6 +263,8 @@ def _search_assets(
         if current_asset_id is not None and asset.id == current_asset_id:
             continue
         if not _is_asset_visible_to_user(asset, user):
+            continue
+        if not is_iiif_ready(asset):
             continue
         score, reasons = _score_asset(asset, query)
         if score > 0:

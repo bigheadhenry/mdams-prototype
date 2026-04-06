@@ -1,5 +1,5 @@
-import os
 import json
+import os
 from urllib.parse import quote
 
 import httpx
@@ -11,6 +11,11 @@ from .. import config
 from ..database import get_db
 from ..models import Asset
 from ..permissions import CurrentUser, can_access_visibility_scope, ensure_current_user, require_permission
+from ..services.iiif_access import (
+    get_asset_iiif_access_file_path,
+    is_iiif_ready,
+    requires_iiif_access_derivative,
+)
 from ..services.metadata_layers import build_iiif_metadata_entries, build_metadata_layers, get_dimensions
 
 router = APIRouter(tags=["iiif"])
@@ -47,19 +52,6 @@ def _asset_collection_object_id(asset: Asset) -> int | None:
         if isinstance(core_collection_object_id, str) and core_collection_object_id.isdigit():
             return int(core_collection_object_id)
     return None
-
-
-def _asset_iiif_access_file_path(asset: Asset) -> str | None:
-    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
-    technical = metadata.get("technical") if isinstance(metadata, dict) else {}
-    if isinstance(technical, dict):
-        iiif_access_file_path = technical.get("iiif_access_file_path")
-        if isinstance(iiif_access_file_path, str) and iiif_access_file_path and os.path.exists(iiif_access_file_path):
-            return iiif_access_file_path
-        preview_file_path = technical.get("preview_file_path")
-        if isinstance(preview_file_path, str) and preview_file_path and os.path.exists(preview_file_path):
-            return preview_file_path
-    return asset.file_path
 
 
 def _assert_asset_visible(asset: Asset, user: CurrentUser) -> None:
@@ -116,6 +108,33 @@ def _cantaloupe_image_service_url(request: Request, actual_filename: str) -> str
     return f"{_cantaloupe_base_url(request)}/{quote(actual_filename, safe='')}"
 
 
+def _resolve_iiif_source_path(asset: Asset) -> str:
+    iiif_source_path = get_asset_iiif_access_file_path(
+        asset,
+        allow_original_fallback=True,
+        require_exists=True,
+    )
+    if iiif_source_path:
+        return iiif_source_path
+
+    metadata_layers = build_metadata_layers(
+        asset_id=asset.id,
+        asset_filename=asset.filename,
+        asset_file_path=asset.file_path,
+        asset_file_size=asset.file_size,
+        asset_mime_type=asset.mime_type,
+        asset_status=asset.status,
+        asset_resource_type=asset.resource_type,
+        asset_visibility_scope=_asset_visibility_scope(asset),
+        asset_collection_object_id=_asset_collection_object_id(asset),
+        asset_created_at=asset.created_at,
+        metadata=asset.metadata_info or {},
+    )
+    if requires_iiif_access_derivative(metadata_layers):
+        raise HTTPException(status_code=409, detail="IIIF access derivative is not ready")
+    raise HTTPException(status_code=404, detail="IIIF source file not found")
+
+
 @router.get("/iiif/{asset_id}/manifest")
 def get_iiif_manifest(
     asset_id: int,
@@ -128,6 +147,7 @@ def get_iiif_manifest(
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     _assert_asset_visible(asset, user)
+    iiif_source_path = _resolve_iiif_source_path(asset)
     api_base_url = _api_base_url(request)
 
     manifest_id = f"{api_base_url}/iiif/{asset_id}/manifest"
@@ -135,8 +155,7 @@ def get_iiif_manifest(
     annotation_page_id = f"{api_base_url}/iiif/{asset_id}/page/1"
     annotation_id = f"{api_base_url}/iiif/{asset_id}/annotation/1"
 
-    iiif_file_path = _asset_iiif_access_file_path(asset)
-    actual_filename = os.path.basename(iiif_file_path) if iiif_file_path else asset.filename
+    actual_filename = os.path.basename(iiif_source_path)
     image_service_id = _cantaloupe_image_service_url(request, actual_filename)
 
     metadata_layers = build_metadata_layers(
@@ -169,7 +188,7 @@ def get_iiif_manifest(
         },
         "summary": {
             "en": [f"MDAMS asset {asset.id}"],
-            "zh-cn": [f"MDAMS 资源 {asset.id}"],
+            "zh-cn": [f"MDAMS asset {asset.id}"],
         },
         "homepage": [
             {
@@ -177,7 +196,7 @@ def get_iiif_manifest(
                 "type": "Text",
                 "label": {
                     "en": ["MDAMS Asset Detail"],
-                    "zh-cn": ["MDAMS 资源详情"],
+                    "zh-cn": ["MDAMS Asset Detail"],
                 },
                 "format": "text/html",
             }
@@ -249,8 +268,8 @@ def proxy_iiif_image(
         raise HTTPException(status_code=404, detail="Asset not found")
     _assert_asset_visible(asset, user)
 
-    iiif_file_path = _asset_iiif_access_file_path(asset)
-    actual_filename = os.path.basename(iiif_file_path) if iiif_file_path else asset.filename
+    iiif_source_path = _resolve_iiif_source_path(asset)
+    actual_filename = os.path.basename(iiif_source_path)
     requested_filename, _, suffix = image_path.partition("/")
     if requested_filename not in {actual_filename, asset.filename}:
         raise HTTPException(status_code=404, detail="Image service not found")
@@ -265,18 +284,19 @@ def proxy_iiif_image(
 
     if suffix.endswith("info.json") and "json" in content_type.lower():
         try:
-          info_json = upstream.json()
-          proxy_base_url = f"{_api_base_url(request)}/iiif/{asset_id}/service/{quote(actual_filename, safe='')}"
-          info_json["@id"] = proxy_base_url
-          info_json["atId"] = proxy_base_url
-          info_json["id"] = proxy_base_url
-          content = json.dumps(info_json, ensure_ascii=False).encode("utf-8")
-          content_type = "application/json; charset=utf-8"
+            info_json = upstream.json()
+            proxy_base_url = f"{_api_base_url(request)}/iiif/{asset_id}/service/{quote(actual_filename, safe='')}"
+            info_json["@id"] = proxy_base_url
+            info_json["atId"] = proxy_base_url
+            info_json["id"] = proxy_base_url
+            content = json.dumps(info_json, ensure_ascii=False).encode("utf-8")
+            content_type = "application/json; charset=utf-8"
         except Exception:
-          pass
+            pass
 
     return Response(
         content=content,
         status_code=upstream.status_code,
         media_type=content_type,
+        headers={"Cache-Control": "no-store"} if is_iiif_ready(asset) else None,
     )

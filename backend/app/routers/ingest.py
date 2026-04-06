@@ -10,8 +10,13 @@ from .. import config
 from ..database import get_db
 from ..models import Asset
 from ..schemas import IngestSipResponse
-from ..tasks import convert_psb_to_bigtiff
+from ..services.iiif_access import (
+    get_asset_iiif_access_file_path,
+    mark_asset_derivative_pending,
+    mark_asset_ready_with_original_access,
+)
 from ..services.metadata_layers import build_metadata_layers
+from ..tasks import generate_iiif_access_derivative
 from ..utils.metadata import extract_metadata
 
 router = APIRouter(
@@ -19,6 +24,7 @@ router = APIRouter(
     tags=["ingest"],
     responses={404: {"description": "Not found"}},
 )
+
 
 @router.post("/sip", response_model=IngestSipResponse)
 async def ingest_sip(
@@ -28,95 +34,70 @@ async def ingest_sip(
 ):
     """
     Receive SIP (Submission Information Package) with BagIt-like verification.
-    接收 SIP 包并进行 BagIt 风格的校验。
-    
+    鎺ユ敹 SIP 鍖呭苟杩涜 BagIt 椋庢牸鐨勬牎楠屻€?
+
     - **file**: The binary file stream (image).
     - **manifest**: JSON string containing metadata and client-side calculated SHA256 hash.
     """
-    
-    # 1. Parse Manifest
+
     try:
         manifest_data = json.loads(manifest)
         client_hash = manifest_data.get("hash")
         client_metadata = manifest_data.get("metadata", {})
-        
+
         if not client_hash:
             raise HTTPException(status_code=400, detail="Manifest missing SHA256 hash")
-            
+
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON manifest")
 
-    # 2. Receive File & Calculate Server-side Hash (Streamed)
-    # 边接收边计算 Hash，避免多次读取 IO
     sha256_hash = hashlib.sha256()
     file_location = os.path.join(config.UPLOAD_DIR, file.filename)
-    
-    # Use a temporary file first to ensure integrity before "committing" to storage
     temp_location = file_location + ".tmp"
-    
+
     try:
         with open(temp_location, "wb") as buffer:
-            # 64KB chunks
             while content := await file.read(64 * 1024):
                 sha256_hash.update(content)
                 buffer.write(content)
-                
+
         server_hash = sha256_hash.hexdigest()
-        
-        # 3. Fixity Check (BagIt Verification)
-        # 完整性校验
         if server_hash.lower() != client_hash.lower():
             os.remove(temp_location)
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"Fixity Check Failed! Client: {client_hash}, Server: {server_hash}"
             )
-            
-        # 4. Finalize Storage
-        # 校验通过，重命名为正式文件
+
         if os.path.exists(file_location):
-             # Overwrite strategy for prototype
-             os.remove(file_location)
+            os.remove(file_location)
         os.rename(temp_location, file_location)
-        
-        # 5. Save to Database
+
         file_size = os.path.getsize(file_location)
-        
-        # Check if PSB
-        is_psb = file.filename.lower().endswith('.psb')
-        initial_status = "processing" if is_psb else "ready"
-        
-        # Extract Metadata using ExifTool
         exif_metadata = extract_metadata(file_location)
 
-        # Extract dimensions
-        # 1. Try Pillow for non-PSB (fastest for standard formats)
         width, height = 0, 0
-        if not is_psb:
-            try:
-                with Image.open(file_location) as img:
-                    width, height = img.size
-            except Exception as e:
-                print(f"Error extracting dimensions with Pillow: {e}")
+        try:
+            with Image.open(file_location) as img:
+                width, height = img.size
+        except Exception:
+            pass
 
-        # 2. Fallback/Primary for PSB: Use ExifTool dimensions if Pillow skipped or failed
         if width == 0 or height == 0:
             try:
-                # Check 'File' group (standard location for ImageWidth/ImageHeight in ExifTool JSON)
-                file_group = exif_metadata.get('File', {})
-                width = file_group.get('ImageWidth', 0)
-                height = file_group.get('ImageHeight', 0)
-                
-                # If still 0, check Composite:ImageSize
+                file_group = exif_metadata.get("File", {})
+                width = file_group.get("ImageWidth", 0)
+                height = file_group.get("ImageHeight", 0)
+
                 if width == 0 or height == 0:
-                    composite_group = exif_metadata.get('Composite', {})
-                    image_size = composite_group.get('ImageSize') # e.g. "1024x768"
-                    if image_size and 'x' in str(image_size):
-                        w, h = str(image_size).split('x')
-                        width = int(w)
-                        height = int(h)
-            except Exception as e:
-                print(f"Error extracting dimensions with ExifTool: {e}")
+                    composite_group = exif_metadata.get("Composite", {})
+                    image_size = composite_group.get("ImageSize")
+                    if image_size and "x" in str(image_size):
+                        image_width, image_height = str(image_size).split("x", 1)
+                        width = int(image_width)
+                        height = int(image_height)
+            except Exception as exc:
+                print(f"Error extracting dimensions with ExifTool: {exc}")
 
         file_group = exif_metadata.get("File", {})
         image_file_name = file.filename
@@ -128,12 +109,13 @@ async def ingest_sip(
             collection_object_id = int(collection_object_id)
         if not isinstance(collection_object_id, int):
             collection_object_id = None
+
         final_metadata = build_metadata_layers(
             asset_filename=file.filename,
             asset_file_path=file_location,
             asset_file_size=file_size,
             asset_mime_type=file.content_type,
-            asset_status=initial_status,
+            asset_status="processing",
             asset_resource_type="image_2d_cultural_object",
             asset_visibility_scope=normalized_visibility_scope,
             asset_collection_object_id=collection_object_id,
@@ -161,7 +143,7 @@ async def ingest_sip(
                 "collection_object_id": collection_object_id,
             },
         )
-        
+
         db_asset = Asset(
             filename=file.filename,
             file_path=file_location,
@@ -169,21 +151,24 @@ async def ingest_sip(
             mime_type=file.content_type,
             visibility_scope=normalized_visibility_scope,
             collection_object_id=collection_object_id,
-            status=initial_status,
+            status="processing",
             resource_type="image_2d_cultural_object",
-            process_message="等待处理" if initial_status == "processing" else "处理完成，可预览",
+            process_message="SIP received and awaiting IIIF access decision.",
             metadata_info=final_metadata
         )
-        
+
+        if get_asset_iiif_access_file_path(db_asset, allow_original_fallback=False):
+            mark_asset_ready_with_original_access(db_asset)
+        else:
+            mark_asset_derivative_pending(db_asset)
+
         db.add(db_asset)
         db.commit()
         db.refresh(db_asset)
-        
-        # Trigger background conversion for PSB
-        if is_psb:
-            convert_psb_to_bigtiff.delay(db_asset.id, file_location)
 
-        
+        if db_asset.status == "processing":
+            generate_iiif_access_derivative.delay(db_asset.id, file_location)
+
         return {
             "status": "success",
             "message": "SIP Ingested and Verified",
@@ -191,9 +176,8 @@ async def ingest_sip(
             "fixity_check": "PASS",
             "sha256": server_hash
         }
-        
+
     except Exception as e:
-        # Cleanup temp file on error
         if os.path.exists(temp_location):
             os.remove(temp_location)
         raise e

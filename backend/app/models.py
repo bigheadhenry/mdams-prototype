@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey, Boolean
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -13,6 +13,7 @@ class Asset(Base):
     mime_type = Column(String)
     visibility_scope = Column(String, default="open", index=True)
     collection_object_id = Column(Integer, index=True, nullable=True)
+    image_record_id = Column(Integer, ForeignKey("image_records.id", ondelete="SET NULL"), unique=True, index=True, nullable=True)
     metadata_info = Column(JSON, nullable=True)  # Store Exif/IPTC as JSON
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     resource_type = Column(String, default="image_2d_cultural_object")
@@ -21,6 +22,7 @@ class Asset(Base):
     # Status: processing, ready, error
     status = Column(String, default="processing")
     application_items = relationship("ApplicationItem", back_populates="asset")
+    image_record = relationship("ImageRecord", back_populates="asset", uselist=False)
 
 
 class User(Base):
@@ -46,6 +48,24 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="UserSession.id",
+    )
+    created_image_records = relationship(
+        "ImageRecord",
+        back_populates="created_by_user",
+        foreign_keys="ImageRecord.created_by_user_id",
+        order_by="ImageRecord.id",
+    )
+    submitted_image_records = relationship(
+        "ImageRecord",
+        back_populates="submitted_by_user",
+        foreign_keys="ImageRecord.submitted_by_user_id",
+        order_by="ImageRecord.id",
+    )
+    assigned_image_records = relationship(
+        "ImageRecord",
+        back_populates="assigned_photographer_user",
+        foreign_keys="ImageRecord.assigned_photographer_user_id",
+        order_by="ImageRecord.id",
     )
 
 
@@ -88,6 +108,35 @@ class UserSession(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="sessions")
+
+
+class ImageRecord(Base):
+    __tablename__ = "image_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    record_no = Column(String, unique=True, index=True, nullable=False)
+    title = Column(String, nullable=True)
+    status = Column(String, default="draft", index=True)
+    resource_type = Column(String, default="image_2d_cultural_object")
+    visibility_scope = Column(String, default="open", index=True)
+    collection_object_id = Column(Integer, index=True, nullable=True)
+    profile_key = Column(String, default="other", index=True)
+    metadata_info = Column(JSON, nullable=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    submitted_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    assigned_photographer_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    submitted_at = Column(DateTime(timezone=True), nullable=True)
+
+    asset = relationship("Asset", back_populates="image_record", uselist=False)
+    created_by_user = relationship("User", back_populates="created_image_records", foreign_keys=[created_by_user_id])
+    submitted_by_user = relationship("User", back_populates="submitted_image_records", foreign_keys=[submitted_by_user_id])
+    assigned_photographer_user = relationship(
+        "User",
+        back_populates="assigned_image_records",
+        foreign_keys=[assigned_photographer_user_id],
+    )
 
 
 class Application(Base):

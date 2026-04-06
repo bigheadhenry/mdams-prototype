@@ -184,6 +184,125 @@ class IngestSipResponse(BaseModel):
     sha256: str
 
 
+class ImageRecordAssetBinding(BaseModel):
+    asset_id: int
+    filename: str | None = None
+    status: str | None = None
+    created_at: datetime | None = None
+
+
+class ImageRecordValidationRule(BaseModel):
+    code: str
+    level: str
+    field: str | None = None
+    message: str
+    blocking: bool = False
+    requires_confirmation: bool = False
+
+
+class ImageRecordValidationResult(BaseModel):
+    validation_status: str = "not_run"
+    validation_summary: str | None = None
+    validation_report: list[ImageRecordValidationRule] = Field(default_factory=list)
+    has_blocking_errors: bool = False
+    has_warnings: bool = False
+    requires_confirmation: bool = False
+
+
+class ImageRecordValidationState(BaseModel):
+    ready_for_submit: bool
+    missing_fields: list[str] = Field(default_factory=list)
+    missing_labels: list[str] = Field(default_factory=list)
+    validation_status: str = "not_run"
+    validation_summary: str | None = None
+    validation_report: list[ImageRecordValidationRule] = Field(default_factory=list)
+    has_blocking_errors: bool = False
+    has_warnings: bool = False
+    requires_confirmation: bool = False
+
+
+class ImageRecordDuplicateAssetMatch(BaseModel):
+    asset_id: int
+    filename: str | None = None
+    image_record_id: int | None = None
+    status: str | None = None
+
+
+class ImageRecordPendingUpload(BaseModel):
+    token: str
+    filename: str
+    file_size: int
+    mime_type: str | None = None
+    extension: str | None = None
+    width: int | None = None
+    height: int | None = None
+    format_name: str | None = None
+    sha256: str
+    uploaded_at: datetime
+    filename_matches: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    duplicate_assets: list[ImageRecordDuplicateAssetMatch] = Field(default_factory=list)
+    validation: ImageRecordValidationResult | None = None
+    can_confirm_bind: bool = False
+    can_confirm_replace: bool = False
+
+
+class ImageRecordSaveRequest(BaseModel):
+    record_no: str | None = None
+    title: str | None = None
+    resource_type: str | None = "image_2d_cultural_object"
+    visibility_scope: str | None = "open"
+    collection_object_id: int | None = None
+    profile_key: str | None = "other"
+    management: dict[str, Any] = Field(default_factory=dict)
+    profile_fields: dict[str, Any] = Field(default_factory=dict)
+    raw_metadata: dict[str, Any] = Field(default_factory=dict)
+    assigned_photographer_user_id: int | None = None
+
+
+class ImageRecordActionRequest(BaseModel):
+    note: str | None = None
+
+
+class ImageRecordConfirmRequest(BaseModel):
+    temp_upload_token: str
+    note: str | None = None
+
+
+class ImageRecordSummary(BaseModel):
+    id: int
+    record_no: str
+    title: str
+    status: str
+    resource_type: str
+    visibility_scope: str
+    collection_object_id: int | None = None
+    profile_key: str
+    profile_label: str | None = None
+    project_name: str | None = None
+    image_category: str | None = None
+    object_number: str | None = None
+    created_by_user_id: int | None = None
+    created_by_display_name: str | None = None
+    submitted_by_user_id: int | None = None
+    submitted_by_display_name: str | None = None
+    assigned_photographer_user_id: int | None = None
+    assigned_photographer_display_name: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    submitted_at: datetime | None = None
+    asset: ImageRecordAssetBinding | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ImageRecordDetailResponse(ImageRecordSummary):
+    metadata_info: dict[str, Any] = Field(default_factory=dict)
+    validation: ImageRecordValidationState
+    pending_upload: ImageRecordPendingUpload | None = None
+    binding_validation: ImageRecordValidationResult | None = None
+
+
 class ApplicationCreateItemRequest(BaseModel):
     asset_id: int
     requested_variant: str | None = "current"
@@ -440,6 +559,7 @@ class AuthRoleResponse(BaseModel):
 
 
 class AuthUserSummary(BaseModel):
+    id: int
     username: str
     display_name: str
     roles: list[AuthRoleResponse] = Field(default_factory=list)

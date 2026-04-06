@@ -11,8 +11,15 @@ from ..models import Asset
 from ..permissions import CurrentUser, can_access_visibility_scope, ensure_current_user, require_permission
 from ..schemas import AssetDetailResponse, AssetOut
 from ..services.asset_detail import build_asset_detail_response
+from ..services.iiif_access import (
+    get_asset_iiif_access_file_path,
+    get_asset_original_file_path,
+    mark_asset_derivative_pending,
+    mark_asset_ready_with_original_access,
+)
 from ..services.metadata_layers import build_metadata_layers, get_original_file_path
 from ..services.preview_images import ensure_preview_image
+from ..tasks import generate_iiif_access_derivative
 
 router = APIRouter(tags=["assets"])
 
@@ -78,15 +85,15 @@ async def upload_file(
         mime_type=file.content_type,
         visibility_scope=normalized_visibility_scope,
         collection_object_id=normalized_collection_object_id,
-        status="ready",
+        status="processing",
         resource_type="image_2d_cultural_object",
-        process_message="文件已上传并完成基础登记。",
+        process_message="Asset upload received.",
         metadata_info=build_metadata_layers(
             asset_filename=file.filename,
             asset_file_path=file_location,
             asset_file_size=file_size,
             asset_mime_type=file.content_type,
-            asset_status="ready",
+            asset_status="processing",
             asset_resource_type="image_2d_cultural_object",
             asset_visibility_scope=normalized_visibility_scope,
             asset_collection_object_id=normalized_collection_object_id,
@@ -110,9 +117,18 @@ async def upload_file(
             },
         ),
     )
+
+    if get_asset_iiif_access_file_path(db_asset, allow_original_fallback=False):
+        mark_asset_ready_with_original_access(db_asset)
+    else:
+        mark_asset_derivative_pending(db_asset)
+
     db.add(db_asset)
     db.commit()
     db.refresh(db_asset)
+
+    if db_asset.status == "processing":
+        generate_iiif_access_derivative.delay(db_asset.id, file_location)
 
     return db_asset
 
@@ -212,12 +228,20 @@ def delete_asset(
     asset = _get_asset_or_404(asset_id, db)
 
     try:
-        if os.path.exists(asset.file_path):
-            os.remove(asset.file_path)
-        if asset.metadata_info:
-            original_path = get_original_file_path(asset.metadata_info)
-            if original_path and original_path != asset.file_path and os.path.exists(original_path):
-                os.remove(original_path)
+        removable_paths = {
+            asset.file_path,
+            get_original_file_path(asset.metadata_info),
+            get_asset_original_file_path(asset),
+            get_asset_iiif_access_file_path(asset, allow_original_fallback=False, require_exists=False),
+        }
+        metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+        technical = metadata.get("technical") if isinstance(metadata, dict) else {}
+        if isinstance(technical, dict):
+            removable_paths.add(technical.get("preview_image_path"))
+
+        for removable_path in removable_paths:
+            if isinstance(removable_path, str) and removable_path and os.path.exists(removable_path):
+                os.remove(removable_path)
     except Exception as exc:
         print(f"Error deleting files for asset {asset_id}: {exc}")
 

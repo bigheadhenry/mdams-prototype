@@ -11,7 +11,12 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Asset
-from ..services.metadata_layers import get_fixity_sha256, get_original_file_path
+from ..services.iiif_access import (
+    get_asset_iiif_access_file_path,
+    get_asset_original_file_path,
+    get_asset_primary_file_path,
+)
+from ..services.metadata_layers import get_fixity_sha256
 
 router = APIRouter(tags=["downloads"])
 
@@ -23,22 +28,32 @@ def _get_asset_or_404(asset_id: int, db: Session) -> Asset:
     return asset
 
 
+def _calculate_sha256(filepath: str) -> str:
+    sha256_hash = hashlib.sha256()
+    with open(filepath, "rb") as file_handle:
+        for byte_block in iter(lambda: file_handle.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
+
 @router.get("/assets/{asset_id}/download")
 def download_asset_file(asset_id: int, db: Session = Depends(get_db)):
     asset = _get_asset_or_404(asset_id, db)
+    download_path = get_asset_primary_file_path(asset, require_exists=True)
 
-    if not asset.file_path or not os.path.exists(asset.file_path):
+    if not download_path:
         raise HTTPException(status_code=404, detail="Physical file not found")
 
-    actual_filename = os.path.basename(asset.file_path)
-    return FileResponse(asset.file_path, filename=actual_filename)
+    actual_filename = os.path.basename(download_path)
+    return FileResponse(download_path, filename=actual_filename)
 
 
 @router.get("/assets/{asset_id}/download-bag")
 def download_asset_bag(asset_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     asset = _get_asset_or_404(asset_id, db)
 
-    if not os.path.exists(asset.file_path):
+    original_file_path = get_asset_original_file_path(asset)
+    if not original_file_path or not os.path.exists(original_file_path):
         raise HTTPException(status_code=404, detail="Physical file not found")
 
     temp_dir = tempfile.mkdtemp()
@@ -49,54 +64,48 @@ def download_asset_bag(asset_id: int, background_tasks: BackgroundTasks, db: Ses
     os.makedirs(data_dir, exist_ok=True)
 
     try:
-        actual_filename = os.path.basename(asset.file_path)
-        dest_path = os.path.join(data_dir, actual_filename)
-        shutil.copy2(asset.file_path, dest_path)
+        manifest_entries: list[str] = []
+        fixity_sha256 = get_fixity_sha256(asset.metadata_info) or _calculate_sha256(original_file_path)
 
-        original_file_path = get_original_file_path(asset.metadata_info)
-        fixity_sha256 = get_fixity_sha256(asset.metadata_info) or "unknown"
+        original_basename = os.path.basename(original_file_path)
+        dest_original_path = os.path.join(data_dir, original_basename)
+        shutil.copy2(original_file_path, dest_original_path)
+        manifest_entries.append(f"{fixity_sha256}  data/{original_basename}")
 
-        manifest_entries = []
-        manifest_entries.append(f"{fixity_sha256}  data/{actual_filename}")
+        iiif_access_path = get_asset_iiif_access_file_path(
+            asset,
+            allow_original_fallback=False,
+            require_exists=True,
+        )
+        if iiif_access_path and iiif_access_path != original_file_path:
+            iiif_access_basename = os.path.basename(iiif_access_path)
+            dest_access_path = os.path.join(data_dir, iiif_access_basename)
+            shutil.copy2(iiif_access_path, dest_access_path)
+            manifest_entries.append(f"{_calculate_sha256(iiif_access_path)}  data/{iiif_access_basename}")
 
-        if original_file_path and os.path.exists(original_file_path) and original_file_path != asset.file_path:
-            original_basename = os.path.basename(original_file_path)
-            dest_original_path = os.path.join(data_dir, original_basename)
-            shutil.copy2(original_file_path, dest_original_path)
-            manifest_entries.append(f"{fixity_sha256}  data/{original_basename}")
-
-            def calculate_sha256(filepath):
-                sha256_hash = hashlib.sha256()
-                with open(filepath, "rb") as f:
-                    for byte_block in iter(lambda: f.read(4096), b""):
-                        sha256_hash.update(byte_block)
-                return sha256_hash.hexdigest()
-
-            converted_hash = calculate_sha256(asset.file_path)
-            manifest_entries[0] = f"{converted_hash}  data/{actual_filename}"
-
-        with open(os.path.join(bag_root, "manifest-sha256.txt"), "w", encoding="utf-8") as f:
+        with open(os.path.join(bag_root, "manifest-sha256.txt"), "w", encoding="utf-8") as file_handle:
             for entry in manifest_entries:
-                f.write(f"{entry}\n")
+                file_handle.write(f"{entry}\n")
 
-        with open(os.path.join(bag_root, "bagit.txt"), "w", encoding="utf-8") as f:
-            f.write("BagIt-Version: 1.0\n")
-            f.write("Tag-File-Character-Encoding: UTF-8\n")
+        with open(os.path.join(bag_root, "bagit.txt"), "w", encoding="utf-8") as file_handle:
+            file_handle.write("BagIt-Version: 1.0\n")
+            file_handle.write("Tag-File-Character-Encoding: UTF-8\n")
 
-        with open(os.path.join(bag_root, "bag-info.txt"), "w", encoding="utf-8") as f:
-            f.write("Source-Organization: MEAM Prototype\n")
-            f.write(f"Bagging-Date: {datetime.now().strftime('%Y-%m-%d')}\n")
-            f.write(f"Payload-Oxum: {asset.file_size}.1\n")
-            if original_file_path:
-                f.write(f"Original-File: {os.path.basename(original_file_path)}\n")
+        with open(os.path.join(bag_root, "bag-info.txt"), "w", encoding="utf-8") as file_handle:
+            file_handle.write("Source-Organization: MEAM Prototype\n")
+            file_handle.write(f"Bagging-Date: {datetime.now().strftime('%Y-%m-%d')}\n")
+            file_handle.write(f"Payload-Oxum: {asset.file_size}.1\n")
+            file_handle.write(f"Original-File: {original_basename}\n")
+            if iiif_access_path and iiif_access_path != original_file_path:
+                file_handle.write(f"IIIF-Access-File: {os.path.basename(iiif_access_path)}\n")
 
         zip_filename = f"{bag_name}.zip"
         zip_path = os.path.join(temp_dir, zip_filename)
 
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for root, dirs, files in os.walk(bag_root):
-                for file in files:
-                    file_path = os.path.join(root, file)
+            for root, _dirs, files in os.walk(bag_root):
+                for filename in files:
+                    file_path = os.path.join(root, filename)
                     arcname = os.path.relpath(file_path, temp_dir)
                     zipf.write(file_path, arcname)
 
@@ -104,6 +113,6 @@ def download_asset_bag(asset_id: int, background_tasks: BackgroundTasks, db: Ses
 
         return FileResponse(zip_path, media_type="application/zip", filename=zip_filename)
 
-    except Exception as e:
+    except Exception as exc:
         shutil.rmtree(temp_dir)
-        raise HTTPException(status_code=500, detail=f"Failed to generate bag: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate bag: {str(exc)}")

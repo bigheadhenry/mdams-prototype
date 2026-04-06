@@ -53,7 +53,10 @@ def _source_family(*, filename: str | None, mime_type: str | None) -> str:
 
 
 def _pick_rule_id(source_family: str, file_size: int, pixel_count: int) -> str:
-    if source_family in {"tiff", "psb"}:
+    if source_family == "psb":
+        return "psb_mandatory_access_bigtiff"
+
+    if source_family == "tiff":
         if file_size >= TIFF_SIZE_THRESHOLD_BYTES or pixel_count >= TIFF_PIXEL_THRESHOLD:
             return "tiff_large_pyramidal_tiled_copy"
         return "tiff_keep_original"
@@ -85,7 +88,7 @@ def build_derivative_policy(
         return {
             "derivative_rule_id": rule_id,
             "derivative_strategy": "generate_pyramidal_tiff",
-            "derivative_priority": "recommended",
+            "derivative_priority": "required",
             "derivative_target_format": "image/tiff",
             "derivative_source_family": source_family,
             "derivative_reason": (
@@ -93,6 +96,20 @@ def build_derivative_policy(
             ),
             "derivative_threshold_bytes": TIFF_SIZE_THRESHOLD_BYTES,
             "derivative_threshold_pixels": TIFF_PIXEL_THRESHOLD,
+        }
+
+    if rule_id == "psb_mandatory_access_bigtiff":
+        return {
+            "derivative_rule_id": rule_id,
+            "derivative_strategy": "generate_pyramidal_tiff",
+            "derivative_priority": "required",
+            "derivative_target_format": "image/tiff",
+            "derivative_source_family": source_family,
+            "derivative_reason": (
+                "PSB assets require a pyramidal BigTIFF access copy for stable IIIF delivery."
+            ),
+            "derivative_threshold_bytes": None,
+            "derivative_threshold_pixels": None,
         }
 
     if rule_id == "jpeg_large_access_copy":

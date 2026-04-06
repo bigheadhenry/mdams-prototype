@@ -294,3 +294,9 @@ YYYY-MM-DD
 - 变更内容：重写 `frontend/src/MiradorAiPanel.tsx` 的执行层，给 `zoom/pan/reset/fit` 增加真实视口变更校验，优先直连 OSD viewer 执行动作，并在 `viewerApiRef.current.actions` 不可用时回退到 Mirador 官方 action creator；同时让 AI 面板显式感知 `MiradorViewer` 的 ready 状态，在 viewer 未完成初始化前禁用快捷控制和确认按钮，避免“按钮可点但实际未就绪”的假执行。
 - 验证结果：`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；`npm run build` 通过。
 - 备注：这一步先把现有动作的执行可靠性补扎实了；Playwright 仍主要覆盖计划流和候选图确认，后续如果要把“真实缩放/平移成功”也做成稳定 E2E，需要再补更贴近 Mirador 运行态的 viewport 测试桩。
+
+### 2026-04-06 - 影像记录拆分与 IIIF 访问层 Phase 1 基线
+- 修改范围：影像记录模型与权限、影像记录路由与验证服务、IIIF 访问副本服务、资产/入库/详情/IIIF 路由、前端录入工作台与权限菜单、类型定义、回归测试、阶段方案文档、工作日志。
+- 变更内容：围绕“录入人员先建记录、摄影师后传图匹配”的新流程，新增 `ImageRecord` 相关后端与前端骨架，包括记录列表/表单/详情/工作台、记录提交与退回、待上传记录池、临时上传分析、显式确认绑定/替换；同时补充 `image_record_validation` 和 `iiif_access` 服务，把校验拆成提交校验与绑定后校验两阶段，并把 PSB / 大 TIFF 的 IIIF 访问策略收敛到“原件保留、访问副本独立、Mirador 只读访问副本”的方向。另新增 4 份阶段基线文档，分别固定角色拆分、匹配机制、验证规则和 IIIF 访问格式策略。
+- 验证结果：`python -m pytest backend\tests\test_image_records.py backend\tests\test_iiif_access_phase1.py backend\tests\test_ingest.py backend\tests\test_derivative_policy.py backend\tests\test_metadata_layers.py -q` 通过，`25 passed`；`npm run build` 通过。
+- 备注：这次提交的重点是把 Phase 1 的业务边界和实现骨架一起推到仓库里，后续新线程可以直接以 4 份 `IMAGE_*_PHASE1_PLAN.md` 文档为固定实施基线继续推进。
