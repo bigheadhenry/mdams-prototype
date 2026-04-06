@@ -312,3 +312,9 @@ YYYY-MM-DD
 - 变更内容：将原本平铺的 `docs/` 重组为中文分类目录，统一整理为总览、架构设计、产品与流程、实施方案、部署与运维、参考资料、图示、研究八个分区；重写根 `README.md` 使其与当前项目实现保持一致，并修复原有坏链；同时补齐此前缺失的专题文档，包括 `API_ROUTE_MAP.md`、`PLATFORM_SOURCE_ADAPTERS.md`、`THREE_D_SUBSYSTEM_ARCHITECTURE.md`、`IMAGE_RECORD_WORKBENCH_GUIDE.md`、`ENVIRONMENT_VARIABLES.md`、`SCRIPT_AND_JOB_GUIDE.md`、`REFERENCE_DATASET_GUIDE.md` 等，使文档覆盖到当前后端路由、统一平台、三维子系统、图像记录工作台、环境变量和参考资源导入链路。
 - 验证结果：对仓库内 Markdown 本地链接执行检查，结果为 `NO_BROKEN_LOCAL_LINKS`；本轮未运行代码测试，因为修改范围仅限文档，但所有重写内容均已对照当前 `backend/app/*`、`frontend/src/*`、`docker-compose.yml` 和 `.env.example` 实际实现核对。
 - 备注：当前文档体系已经基本形成单一正式入口，后续应以 `docs/` 为唯一主文档目录；根目录中的历史 Markdown 文档仍可在下一轮继续收敛为跳转页或归档说明，以彻底消除重复入口。
+
+### 2026-04-06 - PostgreSQL 测试环境固化与本机联调打通
+- 修改范围：后端测试夹具、健康检查测试、资产可见性测试、批处理脚本默认数据库连接、本地 PostgreSQL 管理脚本、本地 compose、README、部署与运维文档、工作日志。
+- 变更内容：将 `backend/tests` 统一切换为 PostgreSQL 测试库工作流，新增 `TEST_DATABASE_URL` 约定，并让测试在缺失数据库时给出明确跳过原因；修正测试夹具中 SQLAlchemy URL 密码被掩码导致的认证失败问题；把多个 `backend/scripts/*` 的默认 `--database-url` 从 `backend-dev.db` 改为 PostgreSQL；新增仓库根目录 `manage_local_postgres.ps1` 与 `docker-compose.local-postgres.yml`，用于在本机一键启动、查看、停止、重置独立 PostgreSQL 测试环境；同时删除 `docs/01-总览/DEMO_FLOW.md` 和 `docs/01-总览/DOCUMENTATION_UPDATE_PLAN.md` 两份旧文档，使其与本轮结构调整一并收敛。
+- 验证结果：使用 `.\manage_local_postgres.ps1 up` 在本机拉起 `mdams-local-postgres`，主机侧 `localhost:5432` 可用，`meam_db` 与 `meam_db_test` 均可正常连接；执行 `python -m pytest backend\tests`，结果为 `55 passed`。
+- 备注：当前仓库已经具备稳定的本机 PostgreSQL 测试基线；后续如继续推进数据库侧演进，建议下一步补齐 Alembic 迁移链，逐步替代 `Base.metadata.create_all()` 的启动式建表方式。
