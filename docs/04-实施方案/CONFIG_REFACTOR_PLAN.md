@@ -4,8 +4,8 @@
 
 当前配置说明和部署入口请以以下文档为准：
 
-- [`SETUP_AND_DEPLOYMENT.md`](SETUP_AND_DEPLOYMENT.md)
-- [`README.md`](../README.md)
+- [`SETUP_AND_DEPLOYMENT.md`](../05-部署与运维/SETUP_AND_DEPLOYMENT.md)
+- [`README.md`](../../README.md)
 
 当前仓库的配置原则已经收敛为：
 

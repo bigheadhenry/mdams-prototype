@@ -1,105 +1,150 @@
-﻿# MDAMS Prototype
+# MDAMS Prototype
 
-MDAMS Prototype 是一个面向博物馆馆内业务的数字资源管理原型，当前重点已经从“单一二维影像 PoC”推进到“二维影像子系统 + 三维数据管理子系统 + 统一平台入口 + 利用申请流程 + 登录权限框架”的组合形态。
+MDAMS Prototype 是一个面向馆内业务场景的数字资源管理原型仓库。它当前不再只是“单一二维影像上传 PoC”，而是已经形成了一个由二维影像子系统、三维资源子系统、统一平台目录、利用申请流程、登录与权限框架组成的可持续开发底座。
 
-这个仓库的目标不是先堆出一个大而全的 DAMS，而是先把几条关键链路做实：
+当前阶段更准确的定位是：
 
-- 二维资源入库、元数据、IIIF 预览、下载与利用申请
-- 三维资源对象、版本、Web 展示版、对象级聚合管理
-- 统一资源目录、统一详情与来源接入适配
-- 馆内用户登录、角色、权限与资源范围控制
-- 可持续的测试分层与工作日志
+> 一个可稳定运行、可持续迭代、可用于演示与验证的馆内数字资源管理原型，而不是完整生产级 DAMS。
 
-## 当前已实现的能力
+## 当前已覆盖的能力
 
-### 二维影像子系统
+### 二维影像
 
-- 基础文件上传与资源列表
-- SIP 风格入库与 fixity 校验
-- PSB / BigTIFF 处理
-- IIIF Manifest 生成
-- Mirador 预览
-- 原文件与 BagIt ZIP 下载
-- 申请车、申请单、审批与交付包导出
-- 资源可见范围与藏品责任范围控制
+- 资产上传、列表、详情与预览图
+- 图像记录 `ImageRecord` 录入、提交、退回、待上传池
+- 文件与记录匹配、基础校验、重复检测
+- IIIF Manifest 生成与 Mirador 预览
+- 原文件下载与 BagIt 下载
+- 衍生文件策略与 IIIF access 流程
 
-### 三维数据管理子系统
+### 利用申请
 
-- 三维资源对象与多文件资源包管理
-- 模型、点云、倾斜摄影图像分角色保存
-- 版本号与 Web 展示状态管理
-- 对象级聚合视图与对象级概览
-- 三维 Web 查看器
-- 藏品对象关联与生产链路记录
-- 长期保存状态与展示状态分离
+- 申请车
+- 申请单提交
+- 审批通过 / 拒绝
+- 交付包导出
+
+### 三维资源
+
+- 三维对象与版本管理
+- 多文件资源包上传
+- 模型 / 点云 / 倾斜摄影等角色区分
+- Web 查看摘要与对象详情
 
 ### 统一平台
 
+- 统一来源注册
 - 统一资源目录
-- 统一详情页
-- 来源注册表与适配器
-- 二维 / 三维来源接入
-- 按 profile、状态、资源类型、可见范围筛选
+- 统一资源详情
+- 按状态、类型、profile、预览能力筛选
 
 ### 权限与登录
 
-- 用户、角色、会话、登录上下文
-- 前端菜单按角色可见
-- 后端关键接口按权限保护
-- `RBAC + scope` 权限模型
-- `collection_owner` 藏品责任范围过滤
+- 内置测试用户与角色播种
+- 登录、会话、上下文接口
+- 前端菜单按角色裁剪
+- 后端权限校验与范围控制
+- `collection_owner` 责任范围过滤
 
-### 测试与日志
+### 测试与工程支撑
 
-- 后端 pytest 分层
-- 前端 Playwright 登录态回归
-- 三维元数据字典契约测试
-- 三维生产链路测试
-- 工作日志机制
+- 后端 `pytest` 测试
+- 前端 `Playwright` 回归测试
+- 参考资源导入与校验脚本
+- 工作日志与阶段文档
 
 ## 技术栈
 
-- 前端：React 18 + Vite + TypeScript + Ant Design + Mirador + model-viewer
+- 前端：React 18 + Vite + TypeScript + Ant Design
+- 二维预览：Mirador
+- 三维展示：`@google/model-viewer`
 - 后端：FastAPI + SQLAlchemy + Pydantic
 - 数据库：PostgreSQL
 - 异步任务：Celery + Redis
 - 图像服务：Cantaloupe IIIF Server
-- 三维预览：`@google/model-viewer`
 - 测试：pytest + Playwright
+
+## 仓库结构
+
+```text
+mdams-prototype/
+|- backend/        FastAPI API、服务层、脚本、测试
+|- frontend/       React 前端、Playwright 测试、静态资源
+|- docs/           项目正式文档主目录
+|- cantaloupe/     Cantaloupe 构建与相关配置
+|- reference/      参考资源包与导入样例
+|- uploads/        本地开发默认挂载目录
+|- docker-compose.yml
+|- .env.example
+```
 
 ## 快速开始
 
-### 1. 准备环境
+### 1. 准备环境变量
 
-复制 `.env.example` 为 `.env`，并根据你的本机环境调整以下配置：
+复制示例配置：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+至少确认以下变量符合你的本机环境：
 
 - `HOST_MUSEUM_PATH`
-- `UPLOAD_DIR`
 - `DATABASE_URL`
 - `REDIS_URL`
 - `API_PUBLIC_URL`
 - `CANTALOUPE_PUBLIC_URL`
 
-> 如果你在 Windows 上使用中文路径或 NAS 路径，建议确认 `.env` 以 UTF-8 保存。
+说明：
 
-### 2. 启动服务
+- `HOST_MUSEUM_PATH` 是宿主机目录，会被挂载到容器内 `/app/uploads`
+- `API_PUBLIC_URL` 和 `CANTALOUPE_PUBLIC_URL` 必须是浏览器可访问的地址
+- 如果你希望浏览器统一走前端代理，`CANTALOUPE_PUBLIC_URL` 本地建议使用 `http://localhost:3000/iiif/2`
 
-```bash
+### 2. 启动容器
+
+```powershell
 docker compose up -d --build
 ```
 
 ### 3. 打开系统
 
 - 前端：`http://localhost:3000`
-- 后端 API：`http://localhost:8000`
-- 接口文档：`http://localhost:8000/docs`
+- 后端 API 文档：`http://localhost:8000/docs`
+- 健康检查：`http://localhost:8000/health`
+- 就绪检查：`http://localhost:8000/ready`
 - Cantaloupe：`http://localhost:8182`
+
+## 默认测试账号
+
+系统启动后会自动播种一组测试用户，默认密码统一为：
+
+```text
+mdams123
+```
+
+常用账号包括：
+
+- `system_admin`
+- `resource_user`
+- `collection_owner`
+- `image_metadata_entry`
+- `image_photographer`
+- `image_editor`
+- `image_ingest`
+- `image_review`
+- `image_manager`
+- `three_d_operator`
+- `application_review`
+
+登录相关接口见后端 `auth` 路由，前端登录页会直接读取 `/api/auth/users` 列出可用账号。
 
 ## 常用开发命令
 
 ### 前端
 
-```bash
+```powershell
 cd frontend
 npm install
 npm run dev
@@ -110,46 +155,51 @@ npm run test
 
 ### 后端
 
-```bash
+```powershell
 cd backend
 python -m pytest
-python -m py_compile app/*.py
 ```
 
-## 主要文档
+## 当前主要后端模块
 
-- 部署与配置：[`docs/SETUP_AND_DEPLOYMENT.md`](docs/SETUP_AND_DEPLOYMENT.md)
-- 验收清单：[`docs/ACCEPTANCE_CHECKLIST.md`](docs/ACCEPTANCE_CHECKLIST.md)
-- 项目状态：[`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md)
-- 下一阶段计划：[`docs/NEXT_PHASE_PLAN.md`](docs/NEXT_PHASE_PLAN.md)
-- 统一元数据参考：[`docs/UNIFIED_METADATA_REFERENCE.md`](docs/UNIFIED_METADATA_REFERENCE.md)
-- 对象 Profile 规则：[`docs/OBJECT_PROFILE_RULES.md`](docs/OBJECT_PROFILE_RULES.md)
-- 用户类型与权限矩阵：[`docs/USER_ROLE_PERMISSION_MATRIX.md`](docs/USER_ROLE_PERMISSION_MATRIX.md)
-- 前端菜单可见矩阵：[`docs/FRONTEND_MENU_VISIBILITY_MATRIX.md`](docs/FRONTEND_MENU_VISIBILITY_MATRIX.md)
-- 认证与 IIIF 整合方案：[`docs/AUTH_AND_IIIF_INTEGRATION_PLAN.md`](docs/AUTH_AND_IIIF_INTEGRATION_PLAN.md)
-- 测试策略：[`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md)
-- 三维 PRD 对照：[`docs/THREE_D_PRD_ALIGNMENT.md`](docs/THREE_D_PRD_ALIGNMENT.md)
-- 工作日志：[`docs/WORK_LOG.md`](docs/WORK_LOG.md)
+后端当前包含以下主要路由分区：
 
-## 当前判断
+- `auth`
+- `assets`
+- `applications`
+- `downloads`
+- `health`
+- `iiif`
+- `ingest`
+- `image-records`
+- `platform`
+- `three-d`
+- `ai`
 
-这个仓库现在更接近一个“稳定的馆内数字资源底座”，而不是完整生产级 DAMS。已经验证的部分包括：
+这意味着项目当前已经明确覆盖了登录权限、二维资产、图像记录、统一平台、三维资源、利用申请和 AI 辅助 Mirador 面板等模块，而不是仅仅停留在文件上传阶段。
 
-- 二维影像资源管理与 IIIF 预览
-- 三维数字对象管理与浏览器查看
-- 统一平台目录与统一详情
-- 馆内角色权限与资源范围控制
-- 资源申请与交付闭环
+## 文档入口
 
-后续工作会继续围绕这几个方向推进：
+项目正式文档请从这里进入：
 
-- 继续完善统一平台层
-- 继续完善二维 / 三维子系统
-- 继续补齐权限、治理与长期保存能力
-- 继续增强测试分层与回归质量
+- 文档总入口：[docs/README.md](docs/README.md)
+- 当前文档更新方案：[docs/01-总览/DOCUMENTATION_UPDATE_PLAN.md](docs/01-总览/DOCUMENTATION_UPDATE_PLAN.md)
 
-## 备注
+建议优先阅读：
 
-- 本仓库包含本地测试资源、样例模型和开发脚本。
-- 运行时生成物、数据库文件和测试报告不应提交到仓库。
-- 项目变更会持续记录在 `docs/WORK_LOG.md`。
+- 先从 `docs/README.md` 进入完整目录
+- 当前这轮治理基线见 `docs/01-总览/DOCUMENTATION_UPDATE_PLAN.md`
+- 部署、状态、权限、测试、日志等专题文档统一放在 `docs/` 内各分区
+
+## 当前边界
+
+当前仓库已经能支持演示和持续开发，但仍然属于原型阶段，主要边界包括：
+
+- 权限模型已经建立，但还不是完整生产级身份治理
+- 平台聚合已经可用，但来源接入和统一检索仍在持续完善
+- 三维子系统已经有对象、版本和浏览链路，但规范化程度还可继续增强
+- 长期保存、治理、审计、迁移与监控能力仍需后续补齐
+
+## 与旧文档的关系
+
+根目录里仍有一些历史 Markdown 文档，它们将逐步被 `docs/` 中的新结构替代。后续应以 `docs/` 为唯一正式文档主目录，以免出现重复入口和内容漂移。

@@ -306,3 +306,9 @@ YYYY-MM-DD
 - 变更内容：修正 `ImageRecord` 的确认绑定与替换流程，使其复用统一的 IIIF 访问策略判断，必要时将新资产置为 `processing` 并触发 `generate_iiif_access_derivative`；补充临时上传分析的 ExifTool / `pyvips` 兜底，避免 PSD/PSB 因 Pillow 无法读取而被误判为不可绑定；同时将摄影师工作台从仅看 `ready_for_upload` 扩展为可继续查看自己 `uploaded_pending_validation` 的已指派记录，并允许在详情页重新进入替换上传流程。
 - 验证结果：`pytest backend\tests\test_image_records.py -q` 通过，`10 passed`；`pytest backend\tests\test_iiif_access_phase1.py -q` 通过，`3 passed`；`npm run build` 通过；`npx playwright test tests/dashboard.spec.ts` 通过，`27 passed`。
 - 备注：Playwright 运行期间仍有现存的 Vite 代理 `ECONNREFUSED` 日志噪音，但不影响用例通过；本次修复主要收敛了影像记录上传链路与摄影师替换闭环。
+
+### 2026-04-06 - 文档体系重构与总入口更新
+- 修改范围：根 `README.md`、`docs/` 目录结构、项目状态、测试策略、权限矩阵、菜单矩阵、工作流、部署与运维、认证与 IIIF、图像记录工作台、API 路由、平台适配器、三维子系统、环境变量、脚本说明、参考数据说明、文档索引、工作日志。
+- 变更内容：将原本平铺的 `docs/` 重组为中文分类目录，统一整理为总览、架构设计、产品与流程、实施方案、部署与运维、参考资料、图示、研究八个分区；重写根 `README.md` 使其与当前项目实现保持一致，并修复原有坏链；同时补齐此前缺失的专题文档，包括 `API_ROUTE_MAP.md`、`PLATFORM_SOURCE_ADAPTERS.md`、`THREE_D_SUBSYSTEM_ARCHITECTURE.md`、`IMAGE_RECORD_WORKBENCH_GUIDE.md`、`ENVIRONMENT_VARIABLES.md`、`SCRIPT_AND_JOB_GUIDE.md`、`REFERENCE_DATASET_GUIDE.md` 等，使文档覆盖到当前后端路由、统一平台、三维子系统、图像记录工作台、环境变量和参考资源导入链路。
+- 验证结果：对仓库内 Markdown 本地链接执行检查，结果为 `NO_BROKEN_LOCAL_LINKS`；本轮未运行代码测试，因为修改范围仅限文档，但所有重写内容均已对照当前 `backend/app/*`、`frontend/src/*`、`docker-compose.yml` 和 `.env.example` 实际实现核对。
+- 备注：当前文档体系已经基本形成单一正式入口，后续应以 `docs/` 为唯一主文档目录；根目录中的历史 Markdown 文档仍可在下一轮继续收敛为跳转页或归档说明，以彻底消除重复入口。
