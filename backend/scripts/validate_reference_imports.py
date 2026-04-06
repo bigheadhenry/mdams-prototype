@@ -8,6 +8,8 @@ from pathlib import Path
 
 from starlette.requests import Request
 
+DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://meam:meam_secret@localhost:5432/meam_db")
+
 
 def _bootstrap_app(database_url: str, upload_dir: str) -> None:
     os.environ.setdefault("DATABASE_URL", database_url)
@@ -49,7 +51,7 @@ def _write_markdown(output_path: Path, rows: list[dict[str, object]]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Validate imported reference assets in the current 2D subsystem.")
-    parser.add_argument("--database-url", default="sqlite:///backend-dev.db", help="Database URL to use.")
+    parser.add_argument("--database-url", default=DEFAULT_DATABASE_URL, help="PostgreSQL database URL to use.")
     parser.add_argument("--upload-dir", default="uploads", help="Upload directory used by the ingest pipeline.")
     parser.add_argument("--output-dir", required=True, help="Directory to write the validation checklist into.")
     parser.add_argument("--asset-id-from", type=int, default=2, help="Inclusive lower asset id bound.")

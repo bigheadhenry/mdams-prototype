@@ -11,6 +11,8 @@ from typing import Iterable
 
 from PIL import Image
 
+DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://meam:meam_secret@localhost:5432/meam_db")
+
 
 def _bootstrap_app(database_url: str, upload_dir: str) -> None:
     os.environ.setdefault("DATABASE_URL", database_url)
@@ -100,7 +102,7 @@ def main() -> None:
     parser.add_argument("--source", required=True, help="Source folder containing JPG/JPEG images.")
     parser.add_argument("--limit", type=int, default=12, help="Maximum number of files to import.")
     parser.add_argument("--project-name", default="鐢熸椿鐢ㄥ叿", help="Project name to write into management metadata.")
-    parser.add_argument("--database-url", default="sqlite:///backend-dev.db", help="Database URL to use.")
+    parser.add_argument("--database-url", default=DEFAULT_DATABASE_URL, help="PostgreSQL database URL to use.")
     parser.add_argument("--upload-dir", default="uploads", help="Upload directory to copy files into.")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be imported without copying files.")
     args = parser.parse_args()

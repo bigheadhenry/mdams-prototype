@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path
 
+DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://meam:meam_secret@localhost:5432/meam_db")
+
 
 def _bootstrap_app(database_url: str) -> None:
     os.environ.setdefault("DATABASE_URL", database_url)
@@ -20,7 +22,7 @@ def _first_present(*values):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Backfill business activity profile fields from preserved reference raw metadata.")
-    parser.add_argument("--database-url", default="sqlite:///backend-dev.db", help="Database URL to use.")
+    parser.add_argument("--database-url", default=DEFAULT_DATABASE_URL, help="PostgreSQL database URL to use.")
     args = parser.parse_args()
 
     _bootstrap_app(args.database_url)

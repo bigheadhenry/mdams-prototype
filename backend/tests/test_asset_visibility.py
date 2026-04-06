@@ -35,11 +35,19 @@ def _make_request(headers=None):
     return Request(scope, receive)
 
 
-def _create_asset(db_session, *, asset_id: int, filename: str, visibility_scope: str, collection_object_id: int | None):
+def _create_asset(
+    db_session,
+    *,
+    asset_id: int,
+    filename: str,
+    visibility_scope: str,
+    collection_object_id: int | None,
+    file_path: str | None = None,
+):
     asset = Asset(
         id=asset_id,
         filename=filename,
-        file_path=f"/tmp/{filename}",
+        file_path=file_path or f"/tmp/{filename}",
         file_size=128,
         mime_type="image/jpeg",
         visibility_scope=visibility_scope,
@@ -80,8 +88,17 @@ def test_asset_list_filters_owner_only_scope(db_session):
     assert {asset.id for asset in admin_assets} == {open_asset.id, owner_asset.id}
 
 
-def test_iiif_manifest_blocks_hidden_assets(db_session, monkeypatch):
-    owner_asset = _create_asset(db_session, asset_id=2001, filename="hidden.jpg", visibility_scope="owner_only", collection_object_id=42)
+def test_iiif_manifest_blocks_hidden_assets(db_session, monkeypatch, tmp_path):
+    hidden_file = tmp_path / "hidden.jpg"
+    hidden_file.write_bytes(b"test-hidden-image")
+    owner_asset = _create_asset(
+        db_session,
+        asset_id=2001,
+        filename="hidden.jpg",
+        visibility_scope="owner_only",
+        collection_object_id=42,
+        file_path=str(hidden_file),
+    )
     monkeypatch.setattr(iiif_router.config, "CANTALOUPE_PUBLIC_URL", "http://localhost:8182/iiif/2")
 
     public_user = get_current_user(x_mdams_user="resource-user")

@@ -11,7 +11,7 @@ import pyvips
 
 PYRAMIDAL_TIFF_EXTENSIONS = {".tif", ".tiff", ".psb"}
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DATABASE_URL = f"sqlite:///{(REPO_ROOT / 'backend-dev.db').as_posix()}"
+DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://meam:meam_secret@localhost:5432/meam_db")
 DEFAULT_UPLOAD_DIR = str(REPO_ROOT / "uploads")
 
 
@@ -75,7 +75,7 @@ def _convert_to_pyramidal_tiff(source_path: Path, target_path: Path) -> tuple[in
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Backfill pyramidal tiled TIFF derivatives for existing 2D assets.")
-    parser.add_argument("--database-url", default=DEFAULT_DATABASE_URL, help="Database URL to use.")
+    parser.add_argument("--database-url", default=DEFAULT_DATABASE_URL, help="PostgreSQL database URL to use.")
     parser.add_argument("--upload-dir", default=DEFAULT_UPLOAD_DIR, help="Upload directory containing stored assets.")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be converted without writing files.")
     parser.add_argument("--force", action="store_true", help="Recreate derivatives even when an existing access copy is recorded.")

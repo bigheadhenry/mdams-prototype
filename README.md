@@ -160,6 +160,13 @@ cd backend
 python -m pytest
 ```
 
+如需先在本机启动独立 PostgreSQL 测试库：
+```powershell
+.\manage_local_postgres.ps1 up
+$env:TEST_DATABASE_URL="postgresql://meam:meam_secret@localhost:5432/meam_db_test"
+python -m pytest backend\tests
+```
+
 ## 当前主要后端模块
 
 后端当前包含以下主要路由分区：

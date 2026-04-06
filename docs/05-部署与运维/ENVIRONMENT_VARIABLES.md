@@ -15,6 +15,7 @@
 | `POSTGRES_PASSWORD` | PostgreSQL 密码 | `meam_secret` |
 | `POSTGRES_DB` | PostgreSQL 数据库名 | `meam_db` |
 | `DATABASE_URL` | 后端连接串 | `postgresql://meam:meam_secret@db:5432/meam_db` |
+| `TEST_DATABASE_URL` | 主机侧测试库连接串 | `postgresql://meam:meam_secret@localhost:5432/meam_db_test` |
 
 ## 3. Redis 与任务
 
@@ -76,6 +77,7 @@
 - 本地开发优先只改 `.env`
 - 浏览器访问地址优先以 `3000` 代理口径为准
 - 不要把容器内路径改成宿主机绝对路径
+- 容器内服务继续使用 `DATABASE_URL`，主机侧 `pytest` 建议单独设置 `TEST_DATABASE_URL`
 
 ## 10. 关联文档
 

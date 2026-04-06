@@ -6,29 +6,12 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Iterable
 
+DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://meam:meam_secret@localhost:5432/meam_db")
 
 def _bootstrap_app(database_url: str, upload_dir: str) -> None:
     os.environ.setdefault("DATABASE_URL", database_url)
     os.environ.setdefault("UPLOAD_DIR", upload_dir)
-
-
-def _ensure_sqlite_asset_columns(engine) -> None:
-    if engine.dialect.name != "sqlite":
-        return
-
-    required_columns: dict[str, str] = {
-        "visibility_scope": "ALTER TABLE assets ADD COLUMN visibility_scope VARCHAR DEFAULT 'open'",
-        "collection_object_id": "ALTER TABLE assets ADD COLUMN collection_object_id INTEGER",
-    }
-
-    with engine.begin() as connection:
-        rows: Iterable[tuple[object, ...]] = connection.exec_driver_sql("PRAGMA table_info(assets)").fetchall()
-        existing = {str(row[1]) for row in rows}
-        for column_name, statement in required_columns.items():
-            if column_name not in existing:
-                connection.exec_driver_sql(statement)
 
 
 async def _ingest_one(ingest_router, session, image_path: Path, import_filename: str, manifest: dict[str, object]) -> dict[str, object]:
@@ -51,7 +34,7 @@ async def _ingest_one(ingest_router, session, image_path: Path, import_filename:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Import reference resource package into the MDAMS 2D SIP ingest pipeline.")
     parser.add_argument("--source-root", required=True, help="Root folder of the reference resource package.")
-    parser.add_argument("--database-url", default="sqlite:///backend-dev.db", help="Database URL to use.")
+    parser.add_argument("--database-url", default=DEFAULT_DATABASE_URL, help="PostgreSQL database URL to use.")
     parser.add_argument("--upload-dir", default="uploads", help="Upload directory used by the ingest pipeline.")
     parser.add_argument("--visibility-scope", default="open", choices=["open", "owner_only"], help="Visibility scope to embed into imported assets.")
     parser.add_argument("--limit", type=int, default=0, help="Optional limit on imported candidate count.")
@@ -74,7 +57,6 @@ def main() -> None:
     from app.services.reference_import import build_import_filename, collect_reference_candidates
 
     Base.metadata.create_all(bind=engine)
-    _ensure_sqlite_asset_columns(engine)
 
     candidates = collect_reference_candidates(
         source_root,

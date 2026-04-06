@@ -140,6 +140,16 @@ HOST_MUSEUM_PATH=./uploads
 docker compose up -d --build
 ```
 
+如需仅在本机启动 PostgreSQL 测试环境，可使用仓库根目录脚本：
+```powershell
+.\manage_local_postgres.ps1 up
+```
+
+配套测试连接串建议为：
+```text
+TEST_DATABASE_URL=postgresql://meam:meam_secret@localhost:5432/meam_db_test
+```
+
 ### 5.4 启动后验证
 
 建议按以下顺序检查：

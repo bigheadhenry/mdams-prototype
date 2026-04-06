@@ -103,6 +103,11 @@ cd backend
 python -m pytest
 ```
 
+补充说明：
+- 后端 `pytest` 已统一使用 PostgreSQL，不再默认落到 SQLite。
+- 测试优先读取 `TEST_DATABASE_URL`。
+- 如果没有显式设置 `TEST_DATABASE_URL`，测试会基于 `DATABASE_URL` 推导出一个带 `_test` 后缀的数据库名，并优先尝试主机侧 `localhost` 连接。
+
 如需只跑单个测试文件：
 
 ```powershell

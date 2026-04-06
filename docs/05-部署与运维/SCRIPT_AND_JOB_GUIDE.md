@@ -68,6 +68,12 @@
 - `--limit`
 - `--dry-run`
 
+补充说明：
+- 当前脚本默认以 PostgreSQL 为主，不再将 `backend-dev.db` 作为默认数据库。
+- 在 `backend` 容器内运行时，可以直接继承容器环境中的 `DATABASE_URL`。
+- 在宿主机运行时，建议显式传入主机可访问的连接串，例如 `postgresql://meam:meam_secret@localhost:5432/meam_db`。
+- 本机测试库可通过仓库根目录的 `manage_local_postgres.ps1` 统一拉起与维护。
+
 ## 5. `validate_reference_imports.py`
 
 这是当前导入后的验证脚本之一。

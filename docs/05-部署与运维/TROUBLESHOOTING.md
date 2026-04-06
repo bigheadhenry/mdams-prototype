@@ -62,6 +62,12 @@ docker compose logs backend
 docker compose logs db
 ```
 
+如果你当前跑的是本机独立测试库而不是主 compose 里的 `db` 服务，请改用：
+```powershell
+.\manage_local_postgres.ps1 status
+.\manage_local_postgres.ps1 logs
+```
+
 ### 2.4 Redis 或 worker 异常
 
 优先检查：

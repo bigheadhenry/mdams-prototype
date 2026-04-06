@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: public.ecr.aws/bitnami/postgresql:16
+    container_name: mdams-local-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRESQL_USERNAME=meam
+      - POSTGRESQL_PASSWORD=meam_secret
+      - POSTGRESQL_DATABASE=meam_db
+      - POSTGRESQL_POSTGRES_PASSWORD=meam_secret
+    volumes:
+      - mdams-local-postgres-data:/bitnami/postgresql
+
+volumes:
+  mdams-local-postgres-data:
+    name: mdams-local-postgres-data
