@@ -8,18 +8,18 @@ const { Paragraph, Text } = Typography;
 const { Search } = Input;
 
 const PROFILE_OPTIONS = [
-  { value: 'other', label: 'Other' },
-  { value: 'movable_artifact', label: 'Movable Artifact' },
-  { value: 'immovable_artifact', label: 'Immovable Artifact' },
-  { value: 'art_photography', label: 'Art Photography' },
-  { value: 'business_activity', label: 'Business Activity' },
-  { value: 'panorama', label: 'Panorama' },
-  { value: 'ancient_tree', label: 'Ancient Tree' },
-  { value: 'archaeology', label: 'Archaeology' },
-  { value: 'model', label: '3D Model' },
-  { value: 'point_cloud', label: 'Point Cloud' },
-  { value: 'oblique_photo', label: 'Oblique Photo' },
-  { value: 'package', label: '3D Package' },
+  { value: 'other', label: '其他' },
+  { value: 'movable_artifact', label: '文物影像' },
+  { value: 'immovable_artifact', label: '文物建筑影像' },
+  { value: 'art_photography', label: '艺术摄影影像' },
+  { value: 'business_activity', label: '业务活动影像' },
+  { value: 'panorama', label: '全景影像' },
+  { value: 'ancient_tree', label: '古树影像' },
+  { value: 'archaeology', label: '考古影像' },
+  { value: 'model', label: '三维模型' },
+  { value: 'point_cloud', label: '点云' },
+  { value: 'oblique_photo', label: '倾斜摄影' },
+  { value: 'package', label: '三维包' },
 ];
 
 interface PlatformDirectoryProps {
@@ -78,43 +78,43 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
   const columns = useMemo(
     () => [
       {
-        title: 'Unified ID',
+        title: '统一资源 ID',
         dataIndex: 'id',
         key: 'id',
         render: (value: string) => <Paragraph copyable style={{ marginBottom: 0 }}>{value}</Paragraph>,
       },
-      { title: 'Source', dataIndex: 'source_label', key: 'source_label' },
-      { title: 'Title', dataIndex: 'title', key: 'title' },
-      { title: 'Resource Type', dataIndex: 'resource_type', key: 'resource_type' },
+      { title: '来源', dataIndex: 'source_label', key: 'source_label' },
+      { title: '标题', dataIndex: 'title', key: 'title' },
+      { title: '资源类型', dataIndex: 'resource_type', key: 'resource_type' },
       {
-        title: 'Profile',
+        title: '模板',
         dataIndex: 'profile_label',
         key: 'profile_label',
         render: (value: string | undefined, record: UnifiedResourceSummary) => (
-          <Tag>{value || record.profile_key || 'Other'}</Tag>
+          <Tag>{value || record.profile_key || '其他'}</Tag>
         ),
       },
       {
-        title: 'Status',
+        title: '状态',
         dataIndex: 'status',
         key: 'status',
         render: (value: string, record: UnifiedResourceSummary) => (
           <Space wrap>
             <Tag color={record.preview_enabled ? 'green' : 'blue'}>
-              {record.preview_enabled ? 'Previewable' : 'Download only'}
+              {record.preview_enabled ? '可预览' : '仅可下载'}
             </Tag>
             <Tag>{value}</Tag>
           </Space>
         ),
       },
       {
-        title: 'Updated At',
+        title: '更新时间',
         dataIndex: 'updated_at',
         key: 'updated_at',
         render: (value: string) => <Text type="secondary">{value}</Text>,
       },
       {
-        title: 'Actions',
+        title: '操作',
         key: 'action',
         render: (_value: unknown, record: UnifiedResourceSummary) => (
           <Space wrap>
@@ -124,14 +124,14 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
               disabled={!record.preview_enabled}
               onClick={() => onPreview(record.manifest_url)}
             >
-              Preview
+              预览
             </Button>
             <Button
               data-testid={`platform-unified-detail-${record.source_id}`}
               icon={<LinkOutlined />}
               onClick={() => onOpenUnifiedResourceDetail?.(record.id)}
             >
-              Unified Detail
+              统一详情
             </Button>
             <Button
               data-testid={`platform-source-detail-${record.source_id}`}
@@ -143,7 +143,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                 }
               }}
             >
-              Source Detail
+              来源详情
             </Button>
           </Space>
         ),
@@ -154,13 +154,13 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
 
   return (
     <Space data-testid="platform-directory" direction="vertical" size="large" style={{ width: '100%' }}>
-      <Card title="Unified Resource Directory">
+      <Card title="统一资源目录">
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Space wrap style={{ width: '100%' }}>
             <Search
               data-testid="platform-search"
               allowClear
-              placeholder="Search title, filename, MIME or resource ID"
+              placeholder="搜索标题、文件名、MIME 或资源标识"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onSearch={(value) => void fetchDirectory(value, status, previewState, resourceType, profileKey)}
@@ -168,7 +168,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
             />
             <Select
               allowClear
-              placeholder="Status"
+              placeholder="状态"
               value={status}
               onChange={(value) => {
                 setStatus(value);
@@ -176,14 +176,14 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
               }}
               style={{ width: 160 }}
               options={[
-                { value: 'ready', label: 'ready' },
-                { value: 'processing', label: 'processing' },
-                { value: 'error', label: 'error' },
+                { value: 'ready', label: '就绪' },
+                { value: 'processing', label: '处理中' },
+                { value: 'error', label: '异常' },
               ]}
             />
             <Select
               allowClear
-              placeholder="Preview"
+              placeholder="预览能力"
               value={previewState}
               onChange={(value) => {
                 setPreviewState(value);
@@ -191,13 +191,13 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
               }}
               style={{ width: 160 }}
               options={[
-                { value: 'true', label: 'Previewable' },
-                { value: 'false', label: 'Download only' },
+                { value: 'true', label: '可预览' },
+                { value: 'false', label: '仅可下载' },
               ]}
             />
             <Select
               allowClear
-              placeholder="Resource Type"
+              placeholder="资源类型"
               value={resourceType}
               onChange={(value) => {
                 setResourceType(value);
@@ -205,16 +205,16 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
               }}
               style={{ width: 240 }}
               options={[
-                { value: 'image_2d_cultural_object', label: '2D Image' },
-                { value: 'three_d_model', label: '3D Model' },
-                { value: 'three_d_point_cloud', label: 'Point Cloud' },
-                { value: 'three_d_oblique_photo', label: 'Oblique Photo' },
-                { value: 'three_d_package', label: '3D Package' },
+                { value: 'image_2d_cultural_object', label: '二维影像' },
+                { value: 'three_d_model', label: '三维模型' },
+                { value: 'three_d_point_cloud', label: '点云' },
+                { value: 'three_d_oblique_photo', label: '倾斜摄影' },
+                { value: 'three_d_package', label: '三维包' },
               ]}
             />
             <Select
               allowClear
-              placeholder="Profile"
+              placeholder="模板"
               value={profileKey}
               onChange={(value) => {
                 setProfileKey(value);
@@ -227,8 +227,8 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
           </Space>
 
           <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Source Count">{sources.length}</Descriptions.Item>
-            <Descriptions.Item label="Resource Count">{resources.length}</Descriptions.Item>
+            <Descriptions.Item label="来源数量">{sources.length}</Descriptions.Item>
+            <Descriptions.Item label="资源数量">{resources.length}</Descriptions.Item>
           </Descriptions>
         </Space>
 
@@ -236,27 +236,27 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
           style={{ marginTop: 16 }}
           type="info"
           showIcon
-          message="The unified directory aggregates multiple subsystem sources and provides a single search and detail entry."
+          message="统一资源目录聚合了多个子系统来源，并提供统一的检索与详情入口。"
         />
       </Card>
 
-      <Card title="Source Summary">
+      <Card title="来源汇总">
         <Descriptions bordered column={1} size="small">
           {sources.map((source) => (
             <Descriptions.Item key={source.source_system} label={source.source_label}>
               <Space direction="vertical" size={0}>
-                <Text>System ID: {source.source_system}</Text>
-                <Text>Resource Type: {source.resource_type}</Text>
-                <Text>Resource Count: {source.resource_count}</Text>
-                <Text>Entrypoint: {source.entrypoint}</Text>
-                <Text>Healthy: {source.healthy ? 'Yes' : 'No'}</Text>
+                <Text>系统标识：{source.source_system}</Text>
+                <Text>资源类型：{source.resource_type}</Text>
+                <Text>资源数量：{source.resource_count}</Text>
+                <Text>入口地址：{source.entrypoint}</Text>
+                <Text>健康状态：{source.healthy ? '正常' : '异常'}</Text>
               </Space>
             </Descriptions.Item>
           ))}
         </Descriptions>
       </Card>
 
-      <Card title="Unified Resource List">
+      <Card title="统一资源列表">
         <Table
           rowKey="id"
           loading={loading}

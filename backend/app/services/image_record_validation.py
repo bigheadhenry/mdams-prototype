@@ -5,6 +5,7 @@ from typing import Any
 from ..models import Asset, ImageRecord
 from ..permissions import CurrentUser
 from ..schemas import ImageRecordValidationResult, ImageRecordValidationRule, ImageRecordValidationState
+from .cultural_object_lookup import TEMPORARY_OBJECT_NUMBER_TOKENS
 from .metadata_layers import PROFILE_DEFINITIONS, get_fixity_sha256
 
 VALIDATION_STATUS_NOT_RUN = "not_run"
@@ -38,7 +39,7 @@ FIELD_LABELS: dict[str, str] = {
 
 PROFILE_REQUIRED_FIELDS: dict[str, list[str]] = {
     "business_activity": ["main_location"],
-    "movable_artifact": ["object_name"],
+    "movable_artifact": ["object_number"],
     "immovable_artifact": ["building_name"],
     "ancient_tree": ["archive_number"],
 }
@@ -157,6 +158,12 @@ def _is_hex_sha256(value: str | None) -> bool:
     return all(character in "0123456789abcdef" for character in value.lower())
 
 
+def _is_temporary_object_number(value: str | None) -> bool:
+    if value is None:
+        return False
+    return value.strip().lower() in {token.lower() for token in TEMPORARY_OBJECT_NUMBER_TOKENS}
+
+
 def _is_effective_duplicate(asset: Asset) -> bool:
     return (asset.status or "").lower() != "superseded"
 
@@ -267,6 +274,9 @@ def validate_image_record_for_submit(record: ImageRecord, *, record_no_is_unique
                 )
             )
 
+    object_number = _clean_optional_text(profile_fields.get("object_number"))
+    object_name = _clean_optional_text(profile_fields.get("object_name"))
+
     if not _clean_optional_text(profile_fields.get("object_number")):
         rules.append(
             _make_rule(
@@ -274,6 +284,15 @@ def validate_image_record_for_submit(record: ImageRecord, *, record_no_is_unique
                 level=VALIDATION_LEVEL_WARNING,
                 field="object_number",
                 message="Object Number is still missing",
+            )
+        )
+    if record.profile_key == "movable_artifact" and not _is_temporary_object_number(object_number) and not object_name:
+        rules.append(
+            _make_rule(
+                code="submit.object_name.missing",
+                level=VALIDATION_LEVEL_WARNING,
+                field="object_name",
+                message="Object Name has not been filled from the cultural object lookup yet",
             )
         )
     if not _clean_optional_text(management.get("capture_time")):

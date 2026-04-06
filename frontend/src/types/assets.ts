@@ -49,6 +49,8 @@ export interface ImageRecordPendingUpload {
 
 export interface ImageRecordSummary {
   id: number;
+  sheet_id?: number | null;
+  line_no?: number | null;
   record_no: string;
   title: string;
   status: string;
@@ -60,6 +62,7 @@ export interface ImageRecordSummary {
   project_name?: string | null;
   image_category?: string | null;
   object_number?: string | null;
+  representative_image?: boolean;
   created_by_user_id?: number | null;
   created_by_display_name?: string | null;
   submitted_by_user_id?: number | null;
@@ -89,6 +92,72 @@ export interface ImageRecordSavePayload {
   profile_fields?: Record<string, unknown>;
   raw_metadata?: Record<string, unknown>;
   assigned_photographer_user_id?: number | null;
+}
+
+export interface CulturalObjectLookupRecord {
+  object_number: string;
+  object_name?: string | null;
+  object_level?: string | null;
+  object_category?: string | null;
+  object_subcategory?: string | null;
+  management_group?: string | null;
+  source: string;
+  source_label: string;
+  is_temporary_number: boolean;
+}
+
+export interface CulturalObjectLookupResponse {
+  query: string;
+  normalized_object_number?: string | null;
+  found: boolean;
+  lookup_status: string;
+  message?: string | null;
+  record?: CulturalObjectLookupRecord | null;
+}
+
+export interface CulturalObjectSampleListResponse {
+  total: number;
+  items: CulturalObjectLookupRecord[];
+}
+
+export interface ImageIngestSheetSavePayload {
+  title?: string | null;
+  image_type?: string | null;
+  project_type?: string | null;
+  project_name?: string | null;
+  photographer?: string | null;
+  photographer_org?: string | null;
+  copyright_owner?: string | null;
+  capture_time?: string | null;
+  remark?: string | null;
+  assigned_photographer_user_id?: number | null;
+  metadata_info?: Record<string, unknown>;
+}
+
+export interface ImageIngestSheetSummary {
+  id: number;
+  sheet_no: string;
+  title?: string | null;
+  status: string;
+  image_type: string;
+  project_type?: string | null;
+  project_name?: string | null;
+  photographer?: string | null;
+  photographer_org?: string | null;
+  capture_time?: string | null;
+  assigned_photographer_user_id?: number | null;
+  assigned_photographer_display_name?: string | null;
+  item_count: number;
+  uploaded_item_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImageIngestSheetDetailResponse extends ImageIngestSheetSummary {
+  copyright_owner?: string | null;
+  remark?: string | null;
+  metadata_info?: Record<string, unknown>;
+  items: ImageRecordSummary[];
 }
 
 export interface ApplicationCartItem {

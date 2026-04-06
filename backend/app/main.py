@@ -32,6 +32,13 @@ def _ensure_sqlite_schema_compatibility() -> None:
     if "image_record_id" not in existing_columns:
         statements.append("ALTER TABLE assets ADD COLUMN image_record_id INTEGER")
 
+    if "image_records" in inspector.get_table_names():
+        image_record_columns = {column["name"] for column in inspector.get_columns("image_records")}
+        if "sheet_id" not in image_record_columns:
+            statements.append("ALTER TABLE image_records ADD COLUMN sheet_id INTEGER")
+        if "line_no" not in image_record_columns:
+            statements.append("ALTER TABLE image_records ADD COLUMN line_no INTEGER")
+
     with engine.begin() as connection:
         for statement in statements:
             connection.execute(text(statement))
@@ -39,6 +46,12 @@ def _ensure_sqlite_schema_compatibility() -> None:
             text(
                 "CREATE UNIQUE INDEX IF NOT EXISTS uq_assets_image_record_id "
                 "ON assets(image_record_id) WHERE image_record_id IS NOT NULL"
+            )
+        )
+        connection.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_image_records_sheet_id "
+                "ON image_records(sheet_id)"
             )
         )
 

@@ -226,7 +226,7 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
 
         const assetId = Number(metadataMap.get('asset id'));
         if (!Number.isFinite(assetId)) {
-          throw new Error('Missing asset id in manifest metadata');
+          throw new Error('Manifest 元数据中缺少资源 ID');
         }
 
         const resourceId = metadataMap.get('resource id') || `image_2d:${assetId}`;
@@ -375,9 +375,9 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
                 已等待 {previewElapsedSeconds} 秒
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.58)', lineHeight: 1.6 }}>
-                {previewStats.manifestLoadedMs ? `manifest ${previewStats.manifestLoadedMs} ms` : 'manifest pending'}
+                {previewStats.manifestLoadedMs ? `manifest ${previewStats.manifestLoadedMs} ms` : 'manifest 等待中'}
                 {' · '}
-                {previewStats.firstTileRenderedMs ? `first tile ${previewStats.firstTileRenderedMs} ms` : 'tile pending'}
+                {previewStats.firstTileRenderedMs ? `首个切片 ${previewStats.firstTileRenderedMs} ms` : '切片等待中'}
               </div>
             </Space>
           </div>

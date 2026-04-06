@@ -33,107 +33,107 @@ const timelineColorMap: Record<string, string> = {
 
 const formatBytes = (value?: number | null) => {
   if (value === undefined || value === null) return '-';
-  if (value < 1024) return `${value} bytes`;
+  if (value < 1024) return `${value} 字节`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
   return `${(value / 1024 / 1024).toFixed(2)} MB`;
 };
 
 const metadataLabelMap: Record<string, string> = {
-  resource_id: 'Resource ID',
-  source_system: 'Source System',
-  source_label: 'Source Label',
-  resource_type: 'Resource Type',
-  resource_type_label: 'Resource Type Label',
-  visibility_scope: 'Visibility Scope',
-  collection_object_id: 'Collection Object ID',
-  title: 'Title',
-  status: 'Status',
-  preview_enabled: 'Preview Enabled',
-  profile_key: 'Profile Key',
-  profile_label: 'Profile Label',
-  profile_sheet: 'Profile Sheet',
-  created_at: 'Created At',
-  project_type: 'Project Type',
-  project_name: 'Project Name',
-  photographer: 'Photographer',
-  photographer_org: 'Photographer Org',
-  copyright_owner: 'Copyright Owner',
-  capture_time: 'Capture Time',
-  image_category: 'Image Category',
-  image_name: 'Image Name',
-  capture_content: 'Capture Content',
-  representative_image: 'Representative Image',
-  remark: 'Remark',
-  tags: 'Tags',
-  record_account: 'Record Account',
-  record_time: 'Record Time',
-  image_record_time: 'Image Record Time',
-  original_file_name: 'Original File Name',
-  image_file_name: 'Image File Name',
-  identifier_type: 'Identifier Type',
-  identifier_value: 'Identifier Value',
-  file_size: 'File Size',
-  format_name: 'Format Name',
-  format_version: 'Format Version',
-  registry_name: 'Registry Name',
-  registry_item: 'Registry Item',
-  byte_order: 'Byte Order',
-  checksum_algorithm: 'Checksum Algorithm',
-  checksum: 'Checksum',
-  checksum_generator: 'Checksum Generator',
-  width: 'Width',
-  height: 'Height',
-  color_space: 'Color Space',
-  ingest_method: 'Ingest Method',
+  resource_id: '资源标识',
+  source_system: '来源系统',
+  source_label: '来源名称',
+  resource_type: '资源类型',
+  resource_type_label: '资源类型名称',
+  visibility_scope: '可见范围',
+  collection_object_id: '馆藏对象 ID',
+  title: '标题',
+  status: '状态',
+  preview_enabled: '是否可预览',
+  profile_key: '元数据模板键',
+  profile_label: '元数据模板',
+  profile_sheet: '元数据模板表',
+  created_at: '创建时间',
+  project_type: '项目类型',
+  project_name: '项目名称',
+  photographer: '摄影师',
+  photographer_org: '摄影师单位',
+  copyright_owner: '版权所有',
+  capture_time: '拍摄时间',
+  image_category: '影像类型',
+  image_name: '影像名称',
+  capture_content: '拍摄内容',
+  representative_image: '代表影像',
+  remark: '备注',
+  tags: '标签',
+  record_account: '录入账号',
+  record_time: '录入时间',
+  image_record_time: '影像录入时间',
+  original_file_name: '原始文件名',
+  image_file_name: '影像文件名',
+  identifier_type: '对象标识符类型',
+  identifier_value: '对象标识符值',
+  file_size: '文件大小',
+  format_name: '格式名称',
+  format_version: '格式版本',
+  registry_name: '标准来源',
+  registry_item: '标准条目',
+  byte_order: '字节序',
+  checksum_algorithm: '校验算法',
+  checksum: '校验值',
+  checksum_generator: '校验生成器',
+  width: '宽度',
+  height: '高度',
+  color_space: '色彩空间',
+  ingest_method: '入库方式',
   fixity_sha256: 'SHA256',
-  conversion_method: 'Conversion Method',
-  original_file_path: 'Original File Path',
-  original_file_size: 'Original File Size',
-  original_mime_type: 'Original MIME Type',
-  error_message: 'Error Message',
-  object_number: 'Object Number',
-  object_name: 'Object Name',
-  object_level: 'Object Level',
-  object_category: 'Object Category',
-  object_subcategory: 'Object Subcategory',
-  management_group: 'Management Group',
-  photographer_phone: 'Photographer Phone',
-  visible_to_custodians_only: 'Visible To Custodians Only',
-  region_level_1: 'Region Level 1',
-  region_level_2: 'Region Level 2',
-  building_name: 'Building Name',
-  orientation: 'Orientation',
-  part_level_1: 'Part Level 1',
-  part_level_2: 'Part Level 2',
-  part_level_3: 'Part Level 3',
-  building_component: 'Building Component',
-  art_photography_type: 'Art Photography Type',
-  collection_type: 'Collection Type',
-  palace_area: 'Palace Area',
-  season: 'Season',
-  plant: 'Plant',
-  animal: 'Animal',
-  solar_term: 'Solar Term',
-  other: 'Other',
-  theme: 'Theme',
-  cultural_topic: 'Cultural Topic',
-  exhibition_topic: 'Exhibition Topic',
-  main_location: 'Main Location',
-  main_person: 'Main Person',
-  panorama_type: 'Panorama Type',
-  location: 'Location',
-  archive_number: 'Archive Number',
-  plant_type: 'Plant Type',
-  plant_name: 'Plant Name',
-  region: 'Region',
-  specific_location: 'Specific Location',
-  grade: 'Grade',
-  archaeology_image_category: 'Archaeology Image Category',
+  conversion_method: '转换方式',
+  original_file_path: '原始文件路径',
+  original_file_size: '原始文件大小',
+  original_mime_type: '原始 MIME 类型',
+  error_message: '错误信息',
+  object_number: '文物号',
+  object_name: '文物名称',
+  object_level: '文物级别',
+  object_category: '文物类别',
+  object_subcategory: '文物细类',
+  management_group: '管理科组',
+  photographer_phone: '提照人员电话',
+  visible_to_custodians_only: '仅藏品管理者可见',
+  region_level_1: '一级区域',
+  region_level_2: '二级区域',
+  building_name: '文物建筑名称',
+  orientation: '方位',
+  part_level_1: '部位一',
+  part_level_2: '部位二',
+  part_level_3: '部位三',
+  building_component: '建筑构件',
+  art_photography_type: '艺术摄影类型',
+  collection_type: '藏品类型',
+  palace_area: '所在宫区',
+  season: '季节',
+  plant: '植物',
+  animal: '动物',
+  solar_term: '节气',
+  other: '其他',
+  theme: '主题',
+  cultural_topic: '文化专题',
+  exhibition_topic: '展览专题',
+  main_location: '主要地点',
+  main_person: '主要人物',
+  panorama_type: '全景类型',
+  location: '位置',
+  archive_number: '档案编号',
+  plant_type: '植物类型',
+  plant_name: '植物名称',
+  region: '所在区域',
+  specific_location: '具体位置',
+  grade: '等级',
+  archaeology_image_category: '考古影像分类',
 };
 
 const renderMetadataValue = (value: unknown) => {
   if (value === null || value === undefined || value === '') return '-';
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'boolean') return value ? '是' : '否';
   if (Array.isArray(value)) return value.map((item) => String(item)).join(', ');
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
@@ -157,22 +157,22 @@ const renderMetadataSection = (section?: Record<string, unknown> | null) => {
 
 const renderFileRecord = (record: AssetDetailFileRecord, fallbackTitle: string) => (
   <Descriptions bordered column={1} size="small">
-    <Descriptions.Item label="Role">{record.role_label || record.role || '-'}</Descriptions.Item>
-    <Descriptions.Item label="File Name">{record.filename || '-'}</Descriptions.Item>
-    <Descriptions.Item label="Actual File">{record.actual_filename || record.filename || '-'}</Descriptions.Item>
-    <Descriptions.Item label="MIME Type">{record.mime_type || '-'}</Descriptions.Item>
-    <Descriptions.Item label="File Size">{formatBytes(record.file_size)}</Descriptions.Item>
-    <Descriptions.Item label="File Path">
+    <Descriptions.Item label="文件角色">{record.role_label || record.role || '-'}</Descriptions.Item>
+    <Descriptions.Item label="文件名">{record.filename || '-'}</Descriptions.Item>
+    <Descriptions.Item label="实际文件">{record.actual_filename || record.filename || '-'}</Descriptions.Item>
+    <Descriptions.Item label="MIME 类型">{record.mime_type || '-'}</Descriptions.Item>
+    <Descriptions.Item label="文件大小">{formatBytes(record.file_size)}</Descriptions.Item>
+    <Descriptions.Item label="文件路径">
       {record.file_path ? <Paragraph copyable style={{ marginBottom: 0 }}>{record.file_path}</Paragraph> : '-'}
     </Descriptions.Item>
-    <Descriptions.Item label="Current">{record.is_current ? 'Yes' : 'No'}</Descriptions.Item>
-    <Descriptions.Item label="Original">{record.is_original ? 'Yes' : 'No'}</Descriptions.Item>
-    <Descriptions.Item label="Fallback Title">{fallbackTitle}</Descriptions.Item>
+    <Descriptions.Item label="当前版本">{record.is_current ? '是' : '否'}</Descriptions.Item>
+    <Descriptions.Item label="原始文件">{record.is_original ? '是' : '否'}</Descriptions.Item>
+    <Descriptions.Item label="回退标题">{fallbackTitle}</Descriptions.Item>
     {record.same_as_primary !== undefined && (
-      <Descriptions.Item label="Same As Primary">{record.same_as_primary ? 'Yes' : 'No'}</Descriptions.Item>
+      <Descriptions.Item label="与主文件一致">{record.same_as_primary ? '是' : '否'}</Descriptions.Item>
     )}
     {record.derivation_method && (
-      <Descriptions.Item label="Derivation Method">{record.derivation_method}</Descriptions.Item>
+      <Descriptions.Item label="衍生方式">{record.derivation_method}</Descriptions.Item>
     )}
   </Descriptions>
 );
@@ -185,8 +185,8 @@ const renderLifecycleItem = (item: LifecycleEntry) => (
         <Tag color={timelineColorMap[item.status] || 'default'}>{item.status_label}</Tag>
       </Space>
       <Text type="secondary">{item.description}</Text>
-      {item.timestamp && <Text type="secondary">Timestamp: {item.timestamp}</Text>}
-      {item.evidence && <Text type="secondary">Evidence: {item.evidence}</Text>}
+      {item.timestamp && <Text type="secondary">时间：{item.timestamp}</Text>}
+      {item.evidence && <Text type="secondary">依据：{item.evidence}</Text>}
     </Space>
   </List.Item>
 );
@@ -208,9 +208,9 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
         const detailMessage = err.response?.data && typeof err.response.data === 'object'
           ? (err.response.data as { detail?: string }).detail
           : undefined;
-        setError(detailMessage || 'Failed to load asset detail');
+        setError(detailMessage || '加载资源详情失败');
       } else {
-        setError('Failed to load asset detail');
+        setError('加载资源详情失败');
       }
     } finally {
       if (!silent) setLoading(false);
@@ -236,14 +236,14 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
     [detail],
   );
 
-  if (loading) return <Spin tip="Loading asset detail..." />;
+  if (loading) return <Spin tip="正在加载资源详情..." />;
 
   if (error) {
     return (
       <Card>
-        <Alert type="error" message="Load failed" description={error} />
+        <Alert type="error" message="加载失败" description={error} />
         <div style={{ marginTop: 16 }}>
-          <Button icon={<ArrowLeftOutlined />} onClick={onBack}>Back</Button>
+          <Button icon={<ArrowLeftOutlined />} onClick={onBack}>返回</Button>
         </div>
       </Card>
     );
@@ -252,9 +252,9 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
   if (!detail) {
     return (
       <Card>
-        <Alert type="warning" message="No detail available" />
+        <Alert type="warning" message="暂无资源详情" />
         <div style={{ marginTop: 16 }}>
-          <Button icon={<ArrowLeftOutlined />} onClick={onBack}>Back</Button>
+          <Button icon={<ArrowLeftOutlined />} onClick={onBack}>返回</Button>
         </div>
       </Card>
     );
@@ -271,30 +271,30 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Card
-        title="Asset Detail"
-        extra={<Button icon={<ArrowLeftOutlined />} onClick={onBack}>Back</Button>}
+        title="资源详情"
+        extra={<Button icon={<ArrowLeftOutlined />} onClick={onBack}>返回</Button>}
       >
         <Descriptions bordered column={1}>
-          <Descriptions.Item label="Title">{detail.title}</Descriptions.Item>
-          <Descriptions.Item label="Identifier">
+          <Descriptions.Item label="标题">{detail.title}</Descriptions.Item>
+          <Descriptions.Item label="统一标识">
             <Paragraph copyable style={{ marginBottom: 0 }}>{detail.identifier}</Paragraph>
           </Descriptions.Item>
-          <Descriptions.Item label="Resource Type">{detail.resource_type_label}</Descriptions.Item>
-          <Descriptions.Item label="Visibility Scope">{detail.visibility_scope}</Descriptions.Item>
-          <Descriptions.Item label="Collection Object ID">{detail.collection_object_id ?? '-'}</Descriptions.Item>
-          <Descriptions.Item label="Status">
+          <Descriptions.Item label="资源类型">{detail.resource_type_label}</Descriptions.Item>
+          <Descriptions.Item label="可见范围">{detail.visibility_scope}</Descriptions.Item>
+          <Descriptions.Item label="馆藏对象 ID">{detail.collection_object_id ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="状态">
             <Tag color={statusColorMap[statusInfo.code] || 'default'}>{statusInfo.label}</Tag>
             {statusInfo.message && <Text style={{ marginLeft: 8 }}>{statusInfo.message}</Text>}
           </Descriptions.Item>
-          <Descriptions.Item label="Created At">{detail.created_at}</Descriptions.Item>
+          <Descriptions.Item label="创建时间">{detail.created_at}</Descriptions.Item>
         </Descriptions>
       </Card>
 
-      <Card title="Lifecycle Events">
+      <Card title="生命周期事件">
         <List bordered dataSource={detail.lifecycle} renderItem={renderLifecycleItem} />
       </Card>
 
-      <Card title="Process Timeline">
+      <Card title="处理时间线">
         {detail.process_timeline.length > 0 ? (
           <List
             bordered
@@ -314,20 +314,20 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
             )}
           />
         ) : (
-          <Alert type="warning" showIcon message="No process timeline available" />
+          <Alert type="warning" showIcon message="暂无处理时间线" />
         )}
       </Card>
 
-      <Card title="Structure and Files">
-        <Alert type="info" showIcon message={structure.summary || 'No structure summary'} />
+      <Card title="文件结构">
+        <Alert type="info" showIcon message={structure.summary || '暂无结构信息'} />
 
-        <Divider orientation="left">Primary File</Divider>
+        <Divider orientation="left">主文件</Divider>
         {renderFileRecord(primaryFile, detail.title)}
 
-        <Divider orientation="left">Original File</Divider>
+        <Divider orientation="left">原始文件</Divider>
         {renderFileRecord(originalFile, detail.title)}
 
-        <Divider orientation="left">Derivative Files</Divider>
+        <Divider orientation="left">衍生文件</Divider>
         {derivatives.length > 0 ? (
           <List
             bordered
@@ -336,82 +336,82 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
               <List.Item>
                 <Space direction="vertical" size="small" style={{ width: '100%' }}>
                   <Text strong>{item.role_label || item.role || '-'}</Text>
-                  <Text>File Name: {item.filename || '-'}</Text>
-                  <Text>MIME Type: {item.mime_type || '-'}</Text>
-                  <Text>File Size: {formatBytes(item.file_size)}</Text>
-                  <Text>Derivation Method: {item.derivation_method || '-'}</Text>
+                  <Text>文件名：{item.filename || '-'}</Text>
+                  <Text>MIME 类型：{item.mime_type || '-'}</Text>
+                  <Text>文件大小：{formatBytes(item.file_size)}</Text>
+                  <Text>衍生方式：{item.derivation_method || '-'}</Text>
                 </Space>
               </List.Item>
             )}
           />
         ) : (
-          <Alert type="warning" showIcon message="No derivative files available" />
+          <Alert type="warning" showIcon message="暂无衍生文件" />
         )}
 
-        <Divider orientation="left">Packaging</Divider>
+        <Divider orientation="left">打包信息</Divider>
         <Alert
           type={structure.packaging?.bagit_supported ? 'success' : 'info'}
           showIcon
-          message={structure.packaging?.bagit_note || 'BagIt output not specified'}
+          message={structure.packaging?.bagit_note || '未配置 BagIt 打包输出'}
         />
       </Card>
 
-      <Card title="Technical Metadata">
+      <Card title="技术元数据">
         <Descriptions bordered column={1}>
-          <Descriptions.Item label="Width">{technicalMetadata.width ?? '-'}</Descriptions.Item>
-          <Descriptions.Item label="Height">{technicalMetadata.height ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="宽度">{technicalMetadata.width ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="高度">{technicalMetadata.height ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="SHA256">
             {technicalMetadata.fixity_sha256 ? (
               <Paragraph copyable code style={{ marginBottom: 0 }}>{technicalMetadata.fixity_sha256}</Paragraph>
             ) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="Ingest Method">{technicalMetadata.ingest_method ?? '-'}</Descriptions.Item>
-          <Descriptions.Item label="Conversion Method">{technicalMetadata.conversion_method ?? '-'}</Descriptions.Item>
-          <Descriptions.Item label="Original File Path">{technicalMetadata.original_file_path ?? '-'}</Descriptions.Item>
-          <Descriptions.Item label="Error Message">{technicalMetadata.error_message ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="入库方式">{technicalMetadata.ingest_method ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="转换方式">{technicalMetadata.conversion_method ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="原始文件路径">{technicalMetadata.original_file_path ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="错误信息">{technicalMetadata.error_message ?? '-'}</Descriptions.Item>
         </Descriptions>
       </Card>
 
       {metadataLayers && (
-        <Card title="Layered Metadata">
+        <Card title="分层元数据">
           <Alert
             type="info"
             showIcon
-            message={`schema ${metadataLayers.schema_version || 'unknown'} / ${metadataLayers.profile?.label || 'unknown profile'}`}
+            message={`结构版本 ${metadataLayers.schema_version || '未知'} / 模板 ${metadataLayers.profile?.label || '未知'}`}
             style={{ marginBottom: 16 }}
           />
 
           {metadataLayers.core && Object.keys(metadataLayers.core).length > 0 && (
             <>
-              <Divider orientation="left">Platform Core</Divider>
+              <Divider orientation="left">平台核心信息</Divider>
               {renderMetadataSection(metadataLayers.core)}
             </>
           )}
 
           {metadataLayers.management && Object.keys(metadataLayers.management).length > 0 && (
             <>
-              <Divider orientation="left">Shared Management Metadata</Divider>
+              <Divider orientation="left">共享管理元数据</Divider>
               {renderMetadataSection(metadataLayers.management)}
             </>
           )}
 
           {metadataLayers.technical && Object.keys(metadataLayers.technical).length > 0 && (
             <>
-              <Divider orientation="left">Technical Image Metadata</Divider>
+              <Divider orientation="left">技术影像元数据</Divider>
               {renderMetadataSection(metadataLayers.technical)}
             </>
           )}
 
           {metadataLayers.profile?.fields && Object.keys(metadataLayers.profile.fields).length > 0 && (
             <>
-              <Divider orientation="left">Profile Metadata</Divider>
+              <Divider orientation="left">类型专属元数据</Divider>
               {renderMetadataSection(metadataLayers.profile.fields)}
             </>
           )}
 
           {metadataLayers.raw_metadata && Object.keys(metadataLayers.raw_metadata).length > 0 && (
             <>
-              <Divider orientation="left">Raw Metadata</Divider>
+              <Divider orientation="left">原始元数据</Divider>
               <pre style={{ maxHeight: 320, overflow: 'auto', fontSize: 12, marginBottom: 0 }}>
                 {JSON.stringify(metadataLayers.raw_metadata, null, 2)}
               </pre>
@@ -420,18 +420,18 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
         </Card>
       )}
 
-      <Card title="Access and Outputs">
+      <Card title="访问与输出">
         <Descriptions bordered column={1}>
-          <Descriptions.Item label="Manifest">
+          <Descriptions.Item label="Manifest 地址">
             {manifestUrl ? <Paragraph copyable style={{ marginBottom: 0 }}>{manifestUrl}</Paragraph> : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="Preview Status">{previewEnabled ? 'Enabled' : 'Disabled'}</Descriptions.Item>
-          <Descriptions.Item label="Current File Download">
+          <Descriptions.Item label="预览状态">{previewEnabled ? '可预览' : '不可预览'}</Descriptions.Item>
+          <Descriptions.Item label="当前文件下载地址">
             {detail.output_actions.download_current_file?.url ? (
               <Paragraph copyable style={{ marginBottom: 0 }}>{detail.output_actions.download_current_file.url}</Paragraph>
             ) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="BagIt Download">
+          <Descriptions.Item label="BagIt 下载地址">
             {detail.output_actions.download_bag?.url ? (
               <Paragraph copyable style={{ marginBottom: 0 }}>{detail.output_actions.download_bag.url}</Paragraph>
             ) : '-'}
@@ -447,14 +447,14 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
             disabled={!previewEnabled || !manifestUrl}
             onClick={() => onPreview && manifestUrl && onPreview(manifestUrl)}
           >
-            Open Mirador
+            打开 Mirador
           </Button>
           <Button
             icon={<LinkOutlined />}
             disabled={!manifestUrl}
             onClick={() => manifestUrl && window.open(manifestUrl, '_blank', 'noopener,noreferrer')}
           >
-            View IIIF Manifest
+            查看 IIIF Manifest
           </Button>
           <Button
             icon={<DownloadOutlined />}
@@ -465,7 +465,7 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
               }
             }}
           >
-            Download Current File
+            下载当前文件
           </Button>
           <Button
             icon={<DownloadOutlined />}
@@ -476,7 +476,7 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
               }
             }}
           >
-            Download BagIt Package
+            下载 BagIt 包
           </Button>
         </Space>
       </Card>

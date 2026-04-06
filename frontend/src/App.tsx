@@ -73,6 +73,25 @@ const MENU_LABELS: Record<MenuKey, string> = {
   '9': '影像信息录入',
 };
 
+const ASSET_STATUS_LABELS: Record<string, string> = {
+  ready: '就绪',
+  processing: '处理中',
+  error: '异常',
+};
+
+const AUTH_MODE_LABELS: Record<string, string> = {
+  session: '会话认证',
+  fallback: '回退认证',
+  'legacy-header': '兼容请求头认证',
+};
+
+const getAssetStatusLabel = (status: string) => ASSET_STATUS_LABELS[status] || status || '-';
+
+const getAuthModeLabel = (mode?: string | null) => {
+  if (!mode) return '-';
+  return AUTH_MODE_LABELS[mode] || mode;
+};
+
 const buildPreviewUrl = (record: AssetSummary) => {
   const version = encodeURIComponent(`${record.created_at}-${record.file_size}`);
   return `/api/assets/${record.id}/preview?v=${version}`;
@@ -421,7 +440,7 @@ const App: React.FC = () => {
             alt={record.filename}
             preview={false}
             loading="lazy"
-            fallback="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'><rect width='72' height='72' fill='%23eef2f7'/><text x='36' y='40' text-anchor='middle' font-size='12' fill='%2394a3b8'>No Preview</text></svg>"
+            fallback="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'><rect width='72' height='72' fill='%23eef2f7'/><text x='36' y='40' text-anchor='middle' font-size='12' fill='%2394a3b8'>无预览</text></svg>"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </div>
@@ -442,7 +461,7 @@ const App: React.FC = () => {
       key: 'status',
       render: (status: string) => (
         <Tag icon={status === 'processing' ? <LoadingOutlined /> : undefined} color={status === 'ready' ? 'green' : 'blue'}>
-          {status.toUpperCase()}
+          {getAssetStatusLabel(status)}
         </Tag>
       ),
     },
@@ -569,7 +588,7 @@ const App: React.FC = () => {
           </Space>
           <Paragraph style={{ marginBottom: 0 }}>当前可见菜单: {visibleMenuKeys.map((key) => MENU_LABELS[key]).join(' / ')}</Paragraph>
           <Paragraph style={{ marginBottom: 0 }}>
-            认证模式: {authContext?.auth_mode}，责任范围:{' '}
+            认证模式: {getAuthModeLabel(authContext?.auth_mode)}，责任范围:{' '}
             {authContext?.collection_scope.length ? authContext.collection_scope.join(', ') : '无'}
           </Paragraph>
         </Space>
@@ -662,7 +681,7 @@ const App: React.FC = () => {
       <Sider breakpoint="lg" collapsedWidth="0">
         <div style={{ padding: 16, color: '#fff' }}>
           <Space direction="vertical" size={4} style={{ width: '100%' }}>
-            <Text style={{ color: '#fff', fontWeight: 700 }}>MDAMS Prototype</Text>
+            <Text style={{ color: '#fff', fontWeight: 700 }}>MDAMS 原型系统</Text>
             <Text style={{ color: 'rgba(255,255,255,0.75)' }}>真实用户与角色上下文</Text>
           </Space>
         </div>
@@ -825,7 +844,7 @@ const App: React.FC = () => {
         </Content>
 
         <Footer style={{ textAlign: 'center' }}>
-          MDAMS Prototype
+          MDAMS 原型系统
           <Divider type="vertical" />
           {authContext.display_name}
         </Footer>
@@ -854,7 +873,7 @@ const App: React.FC = () => {
             >
               <div>
                 <Text strong style={{ color: '#fff' }}>
-                  Mirador Viewer
+                  Mirador 预览器
                 </Text>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{currentManifest}</div>
               </div>

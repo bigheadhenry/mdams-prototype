@@ -36,10 +36,54 @@ const PROFILE_OPTIONS = [
 ];
 
 const WEB_PREVIEW_STATUS_OPTIONS = [
-  { value: 'ready', label: 'ready' },
-  { value: 'pending', label: 'pending' },
-  { value: 'disabled', label: 'disabled' },
+  { value: 'ready', label: '已就绪' },
+  { value: 'pending', label: '准备中' },
+  { value: 'disabled', label: '未启用' },
 ];
+
+const WEB_PREVIEW_STATUS_LABELS: Record<string, string> = {
+  ready: '已就绪',
+  pending: '准备中',
+  disabled: '未启用',
+};
+
+const STORAGE_TIER_LABELS: Record<string, string> = {
+  working: '工作区',
+  delivery: '交付区',
+  archive: '归档区',
+};
+
+const PRESERVATION_STATUS_LABELS: Record<string, string> = {
+  pending: '待处理',
+  preserved: '已保存',
+  archived: '已归档',
+};
+
+const RECORD_STATUS_LABELS: Record<string, string> = {
+  ready: '就绪',
+  error: '异常',
+  processing: '处理中',
+};
+
+const getWebPreviewStatusLabel = (value?: string | null) => {
+  if (!value) return '-';
+  return WEB_PREVIEW_STATUS_LABELS[value] || value;
+};
+
+const getStorageTierLabel = (value?: string | null) => {
+  if (!value) return '-';
+  return STORAGE_TIER_LABELS[value] || value;
+};
+
+const getPreservationStatusLabel = (value?: string | null) => {
+  if (!value) return '-';
+  return PRESERVATION_STATUS_LABELS[value] || value;
+};
+
+const getRecordStatusLabel = (value?: string | null) => {
+  if (!value) return '-';
+  return RECORD_STATUS_LABELS[value] || value;
+};
 
 const SAMPLE_MODELS = [
   { title: '示例对象原始版（glTF + BIN + PNG）', url: '/test-models/museum-vase-source.gltf' },
@@ -320,7 +364,7 @@ const ThreeDManagement: React.FC = () => {
         record.currentVersion ? (
           <Space direction="vertical" size={0}>
             <Tag color={record.currentVersion.is_current ? 'blue' : 'default'}>
-              {record.currentVersion.version_label || 'original'}
+              {record.currentVersion.version_label || '原始版'}
             </Tag>
             <Text type="secondary">#{record.currentVersion.version_order ?? 0}</Text>
           </Space>
@@ -334,8 +378,8 @@ const ThreeDManagement: React.FC = () => {
       render: (_, record) =>
         record.webPreviewVersion ? (
           <Space direction="vertical" size={0}>
-            <Tag color="green">{record.webPreviewVersion.version_label || 'original'}</Tag>
-            <Text type="secondary">{record.webPreviewVersion.web_preview_status || 'disabled'}</Text>
+            <Tag color="green">{record.webPreviewVersion.version_label || '原始版'}</Tag>
+            <Text type="secondary">{getWebPreviewStatusLabel(record.webPreviewVersion.web_preview_status)}</Text>
           </Space>
         ) : (
           <Tag color="default">未配置</Tag>
@@ -347,9 +391,9 @@ const ThreeDManagement: React.FC = () => {
       render: (_, record) => (
         <Space direction="vertical" size={0}>
           <Tag color={record.storageTier === 'archive' ? 'blue' : record.storageTier === 'delivery' ? 'green' : 'gold'}>
-            {record.storageTier || 'archive'}
+            {getStorageTierLabel(record.storageTier || 'archive')}
           </Tag>
-          <Text type="secondary">{record.preservationStatus || 'pending'}</Text>
+          <Text type="secondary">{getPreservationStatusLabel(record.preservationStatus || 'pending')}</Text>
         </Space>
       ),
     },
@@ -418,7 +462,7 @@ const ThreeDManagement: React.FC = () => {
       render: (_, record) => (
         <Space direction="vertical" size={0}>
           <Tag color={record.web_preview_status === 'ready' ? 'green' : record.web_preview_status === 'pending' ? 'gold' : 'default'}>
-            {record.web_preview_status || 'disabled'}
+            {getWebPreviewStatusLabel(record.web_preview_status || 'disabled')}
           </Tag>
           <Text type="secondary">{record.is_web_preview ? '允许展示' : '不展示'}</Text>
         </Space>
@@ -446,7 +490,9 @@ const ThreeDManagement: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (value: string) => <Tag color={value === 'ready' ? 'green' : value === 'error' ? 'red' : 'blue'}>{value}</Tag>,
+      render: (value: string) => (
+        <Tag color={value === 'ready' ? 'green' : value === 'error' ? 'red' : 'blue'}>{getRecordStatusLabel(value)}</Tag>
+      ),
     },
     {
       title: '操作',
@@ -521,7 +567,7 @@ const ThreeDManagement: React.FC = () => {
             </Col>
             <Col xs={24} md={8}>
               <Form.Item label="版本号" name="version_label" initialValue="original">
-                <Input placeholder="original / v1 / v2" />
+                <Input placeholder="例如：original / v1 / v2" />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
@@ -550,7 +596,7 @@ const ThreeDManagement: React.FC = () => {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label="Profile" name="profile_key" initialValue="package">
+              <Form.Item label="模板类型" name="profile_key" initialValue="package">
                 <Select options={PROFILE_OPTIONS} />
               </Form.Item>
             </Col>
@@ -661,9 +707,9 @@ const ThreeDManagement: React.FC = () => {
               <Form.Item label="存储层级" name="storage_tier" initialValue="archive">
                 <Select
                   options={[
-                    { value: 'working', label: 'working' },
-                    { value: 'delivery', label: 'delivery' },
-                    { value: 'archive', label: 'archive' },
+                    { value: 'working', label: '工作区' },
+                    { value: 'delivery', label: '交付区' },
+                    { value: 'archive', label: '归档区' },
                   ]}
                 />
               </Form.Item>
@@ -672,9 +718,9 @@ const ThreeDManagement: React.FC = () => {
               <Form.Item label="保存状态" name="preservation_status" initialValue="pending">
                 <Select
                   options={[
-                    { value: 'pending', label: 'pending' },
-                    { value: 'preserved', label: 'preserved' },
-                    { value: 'archived', label: 'archived' },
+                    { value: 'pending', label: '待处理' },
+                    { value: 'preserved', label: '已保存' },
+                    { value: 'archived', label: '已归档' },
                   ]}
                 />
               </Form.Item>
@@ -838,15 +884,15 @@ const ThreeDManagement: React.FC = () => {
             <Descriptions bordered column={1} size="small">
               <Descriptions.Item label="标题">{detail.title}</Descriptions.Item>
               <Descriptions.Item label="资源组">{detail.resource_group || '-'}</Descriptions.Item>
-              <Descriptions.Item label="版本">{detail.version_label || 'original'}</Descriptions.Item>
+              <Descriptions.Item label="版本">{detail.version_label || '原始版'}</Descriptions.Item>
               <Descriptions.Item label="版本顺序">{detail.version_order ?? 0}</Descriptions.Item>
               <Descriptions.Item label="当前版本">{detail.is_current ? '是' : '否'}</Descriptions.Item>
-              <Descriptions.Item label="Web 展示">{detail.web_preview_status || 'disabled'}</Descriptions.Item>
+              <Descriptions.Item label="Web 展示">{getWebPreviewStatusLabel(detail.web_preview_status || 'disabled')}</Descriptions.Item>
               <Descriptions.Item label="Web 展示说明">{detail.web_preview_reason || '-'}</Descriptions.Item>
               <Descriptions.Item label="主文件">{detail.file.filename}</Descriptions.Item>
-              <Descriptions.Item label="Profile">{detail.profile_label || detail.profile_key || '-'}</Descriptions.Item>
+              <Descriptions.Item label="模板类型">{detail.profile_label || detail.profile_key || '-'}</Descriptions.Item>
               <Descriptions.Item label="资源类型">{detail.resource_type_label}</Descriptions.Item>
-              <Descriptions.Item label="状态">{detail.status}</Descriptions.Item>
+              <Descriptions.Item label="状态">{getRecordStatusLabel(detail.status)}</Descriptions.Item>
               <Descriptions.Item label="关联藏品对象">
                 {detail.collection_object ? (
                   <Space direction="vertical" size={0}>
@@ -954,7 +1000,7 @@ const ThreeDManagement: React.FC = () => {
               </Col>
             </Row>
 
-            <Card size="small" title="生产链·">
+            <Card size="small" title="生产链">
               <Table
                 rowKey="id"
                 pagination={false}
@@ -962,7 +1008,7 @@ const ThreeDManagement: React.FC = () => {
                 columns={[
                   { title: '阶段', dataIndex: 'stage', key: 'stage' },
                   { title: '事件', dataIndex: 'event_type', key: 'event_type' },
-                  { title: '状态', dataIndex: 'status', key: 'status' },
+                  { title: '状态', dataIndex: 'status', key: 'status', render: (value: string) => getRecordStatusLabel(value) },
                   { title: '执行人', dataIndex: 'actor', key: 'actor', render: (value: string | null | undefined) => value || '-' },
                   { title: '时间', dataIndex: 'occurred_at', key: 'occurred_at' },
                 ]}

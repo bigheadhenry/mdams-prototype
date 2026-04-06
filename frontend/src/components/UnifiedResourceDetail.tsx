@@ -43,9 +43,33 @@ const statusColorMap: Record<string, string> = {
   error: 'red',
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  ready: '就绪',
+  processing: '处理中',
+  error: '异常',
+};
+
+const RESOURCE_TYPE_LABELS: Record<string, string> = {
+  image_2d_cultural_object: '二维影像',
+  three_d_model: '三维模型',
+  point_cloud: '点云',
+  oblique_photography: '倾斜摄影',
+  three_d_package: '三维包',
+};
+
+const getStatusLabel = (status?: string | null) => {
+  if (!status) return '-';
+  return STATUS_LABELS[status] || status;
+};
+
+const getResourceTypeLabel = (resourceType?: string | null) => {
+  if (!resourceType) return '-';
+  return RESOURCE_TYPE_LABELS[resourceType] || resourceType;
+};
+
 const formatBytes = (value?: number | null) => {
   if (value === undefined || value === null) return '-';
-  if (value < 1024) return `${value} bytes`;
+  if (value < 1024) return `${value} 字节`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
   return `${(value / 1024 / 1024).toFixed(2)} MB`;
 };
@@ -264,9 +288,9 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
                 </Paragraph>
               </Descriptions.Item>
               <Descriptions.Item label="来源">{detail.source_label}</Descriptions.Item>
-              <Descriptions.Item label="分类">{detail.resource_type}</Descriptions.Item>
+              <Descriptions.Item label="分类">{getResourceTypeLabel(detail.resource_type)}</Descriptions.Item>
               <Descriptions.Item label="状态">
-                <Tag color={statusColorMap[detail.status] || 'default'}>{detail.status}</Tag>
+                <Tag color={statusColorMap[detail.status] || 'default'}>{getStatusLabel(detail.status)}</Tag>
                 {sourceRecord?.status_info.message && (
                   <Text style={{ marginLeft: 8 }}>{sourceRecord.status_info.message}</Text>
                 )}
@@ -369,7 +393,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
                     <Space direction="vertical" size="small" style={{ width: '100%' }}>
                       <Text strong>{item.role_label || item.role || '-'}</Text>
                       <Text>文件名：{item.filename || '-'}</Text>
-                      <Text>MIME Type：{item.mime_type || '-'}</Text>
+                      <Text>MIME 类型：{item.mime_type || '-'}</Text>
                       <Text>文件大小：{formatBytes(item.file_size)}</Text>
                     </Space>
                   </List.Item>

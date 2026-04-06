@@ -1,6 +1,11 @@
 FROM eclipse-temurin:11-jre
 
-
+RUN set -eux; \
+    find /etc/apt -type f \( -name "*.list" -o -name "*.sources" \) -print0 | \
+    xargs -0 -r sed -i \
+      -e 's|http://archive.ubuntu.com/ubuntu|https://mirrors.tuna.tsinghua.edu.cn/ubuntu|g' \
+      -e 's|http://security.ubuntu.com/ubuntu|https://mirrors.tuna.tsinghua.edu.cn/ubuntu|g' \
+      -e 's|http://ports.ubuntu.com/ubuntu-ports|https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports|g'
 
 ENV CANTALOUPE_VERSION=5.0.6
 WORKDIR /opt

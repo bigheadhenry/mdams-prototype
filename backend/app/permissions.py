@@ -155,7 +155,7 @@ def build_system_user() -> CurrentUser:
     roles = {"system_admin"}
     return CurrentUser(
         user_id="system_admin",
-        display_name="System Admin",
+        display_name="系统管理员",
         roles=roles,
         permissions=_resolve_permissions(roles),
         collection_scope=set(),

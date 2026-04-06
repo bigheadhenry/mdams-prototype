@@ -191,6 +191,32 @@ class ImageRecordAssetBinding(BaseModel):
     created_at: datetime | None = None
 
 
+class CulturalObjectLookupRecord(BaseModel):
+    object_number: str
+    object_name: str | None = None
+    object_level: str | None = None
+    object_category: str | None = None
+    object_subcategory: str | None = None
+    management_group: str | None = None
+    source: str = "mock_predefined"
+    source_label: str = "模拟文物接口"
+    is_temporary_number: bool = False
+
+
+class CulturalObjectLookupResponse(BaseModel):
+    query: str
+    normalized_object_number: str | None = None
+    found: bool
+    lookup_status: str
+    message: str | None = None
+    record: CulturalObjectLookupRecord | None = None
+
+
+class CulturalObjectSampleListResponse(BaseModel):
+    total: int
+    items: list[CulturalObjectLookupRecord] = Field(default_factory=list)
+
+
 class ImageRecordValidationRule(BaseModel):
     code: str
     level: str
@@ -271,6 +297,8 @@ class ImageRecordConfirmRequest(BaseModel):
 
 class ImageRecordSummary(BaseModel):
     id: int
+    sheet_id: int | None = None
+    line_no: int | None = None
     record_no: str
     title: str
     status: str
@@ -282,6 +310,7 @@ class ImageRecordSummary(BaseModel):
     project_name: str | None = None
     image_category: str | None = None
     object_number: str | None = None
+    representative_image: bool = False
     created_by_user_id: int | None = None
     created_by_display_name: str | None = None
     submitted_by_user_id: int | None = None
@@ -301,6 +330,48 @@ class ImageRecordDetailResponse(ImageRecordSummary):
     validation: ImageRecordValidationState
     pending_upload: ImageRecordPendingUpload | None = None
     binding_validation: ImageRecordValidationResult | None = None
+
+
+class ImageIngestSheetSaveRequest(BaseModel):
+    title: str | None = None
+    image_type: str | None = "other"
+    project_type: str | None = None
+    project_name: str | None = None
+    photographer: str | None = None
+    photographer_org: str | None = None
+    copyright_owner: str | None = None
+    capture_time: str | None = None
+    remark: str | None = None
+    assigned_photographer_user_id: int | None = None
+    metadata_info: dict[str, Any] = Field(default_factory=dict)
+
+
+class ImageIngestSheetSummary(BaseModel):
+    id: int
+    sheet_no: str
+    title: str | None = None
+    status: str
+    image_type: str
+    project_type: str | None = None
+    project_name: str | None = None
+    photographer: str | None = None
+    photographer_org: str | None = None
+    capture_time: str | None = None
+    assigned_photographer_user_id: int | None = None
+    assigned_photographer_display_name: str | None = None
+    item_count: int = 0
+    uploaded_item_count: int = 0
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ImageIngestSheetDetailResponse(ImageIngestSheetSummary):
+    copyright_owner: str | None = None
+    remark: str | None = None
+    metadata_info: dict[str, Any] = Field(default_factory=dict)
+    items: list[ImageRecordSummary] = Field(default_factory=list)
 
 
 class ApplicationCreateItemRequest(BaseModel):

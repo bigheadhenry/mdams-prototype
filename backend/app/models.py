@@ -110,10 +110,43 @@ class UserSession(Base):
     user = relationship("User", back_populates="sessions")
 
 
+class ImageIngestSheet(Base):
+    __tablename__ = "image_ingest_sheets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sheet_no = Column(String, unique=True, index=True, nullable=False)
+    title = Column(String, nullable=True)
+    status = Column(String, default="draft", index=True)
+    image_type = Column(String, default="other", index=True)
+    project_type = Column(String, nullable=True)
+    project_name = Column(String, nullable=True)
+    photographer = Column(String, nullable=True)
+    photographer_org = Column(String, nullable=True)
+    copyright_owner = Column(String, nullable=True)
+    capture_time = Column(String, nullable=True)
+    remark = Column(String, nullable=True)
+    metadata_info = Column(JSON, nullable=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    assigned_photographer_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    created_by_user = relationship("User", foreign_keys=[created_by_user_id])
+    assigned_photographer_user = relationship("User", foreign_keys=[assigned_photographer_user_id])
+    items = relationship(
+        "ImageRecord",
+        back_populates="sheet",
+        cascade="all, delete-orphan",
+        order_by="ImageRecord.line_no",
+    )
+
+
 class ImageRecord(Base):
     __tablename__ = "image_records"
 
     id = Column(Integer, primary_key=True, index=True)
+    sheet_id = Column(Integer, ForeignKey("image_ingest_sheets.id", ondelete="CASCADE"), index=True, nullable=True)
+    line_no = Column(Integer, nullable=True)
     record_no = Column(String, unique=True, index=True, nullable=False)
     title = Column(String, nullable=True)
     status = Column(String, default="draft", index=True)
@@ -129,6 +162,7 @@ class ImageRecord(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     submitted_at = Column(DateTime(timezone=True), nullable=True)
 
+    sheet = relationship("ImageIngestSheet", back_populates="items")
     asset = relationship("Asset", back_populates="image_record", uselist=False)
     created_by_user = relationship("User", back_populates="created_image_records", foreign_keys=[created_by_user_id])
     submitted_by_user = relationship("User", back_populates="submitted_image_records", foreign_keys=[submitted_by_user_id])

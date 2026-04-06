@@ -6,6 +6,22 @@ import type { ThreeDDetailResponse } from '../types/assets';
 
 const { Text } = Typography;
 
+const WEB_PREVIEW_LABELS: Record<string, string> = {
+  ready: '已就绪',
+  pending: '准备中',
+  disabled: '未启用',
+};
+
+const getWebPreviewLabel = (value?: string | null) => {
+  if (!value) return '-';
+  return WEB_PREVIEW_LABELS[value] || value;
+};
+
+const getRendererLabel = (value?: string | null) => {
+  if (!value || value === 'model-viewer') return '三维预览器';
+  return value;
+};
+
 type ThreeDViewerProps = {
   viewer: ThreeDDetailResponse['viewer'] | null | undefined;
   title?: string;
@@ -27,8 +43,10 @@ const ThreeDViewer: React.FC<ThreeDViewerProps> = ({ viewer, title, onOpenPrevie
       title="Web 预览"
       extra={
         <Space wrap>
-          <Tag color={viewer.enabled ? 'green' : 'default'}>{viewer.enabled ? 'ready' : 'disabled'}</Tag>
-          <Tag color="blue">{viewer.renderer || 'model-viewer'}</Tag>
+          <Tag color={viewer.enabled ? 'green' : 'default'}>
+            {viewer.enabled ? getWebPreviewLabel('ready') : getWebPreviewLabel('disabled')}
+          </Tag>
+          <Tag color="blue">{getRendererLabel(viewer.renderer)}</Tag>
         </Space>
       }
     >
@@ -37,7 +55,7 @@ const ThreeDViewer: React.FC<ThreeDViewerProps> = ({ viewer, title, onOpenPrevie
           <div style={{ borderRadius: 12, overflow: 'hidden', background: '#0b0f14', minHeight: 480 }}>
             <model-viewer
               src={previewUrl}
-              alt={title || previewFile?.filename || '3D model'}
+              alt={title || previewFile?.filename || '三维模型'}
               camera-controls
               auto-rotate
               interaction-prompt="auto"

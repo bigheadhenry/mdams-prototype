@@ -68,17 +68,17 @@ export interface AuthLoginResponse {
 }
 
 export const ROLE_LABELS: Record<RoleName, string> = {
-  image_structured_editor: '2D Structured Editor',
-  image_ingest_operator: '2D Ingest Operator',
-  image_ingest_reviewer: '2D Ingest Reviewer',
-  image_resource_manager: '2D Resource Manager',
-  image_metadata_entry: 'Image Metadata Entry',
-  image_photographer_upload: 'Image Photographer Upload',
-  three_d_operator: '3D Operator',
-  application_reviewer: 'Application Reviewer',
-  collection_owner: 'Collection Owner',
-  resource_user: 'Resource User',
-  system_admin: 'System Admin',
+  image_structured_editor: '二维结构化编辑员',
+  image_ingest_operator: '二维入库操作员',
+  image_ingest_reviewer: '二维入库审核员',
+  image_resource_manager: '二维资源管理员',
+  image_metadata_entry: '影像元数据录入员',
+  image_photographer_upload: '摄影上传人员',
+  three_d_operator: '三维操作员',
+  application_reviewer: '申请审核员',
+  collection_owner: '馆藏责任人',
+  resource_user: '资源使用者',
+  system_admin: '系统管理员',
 };
 
 export const MENU_PERMISSION_RULES: Record<MenuKey, PermissionName[]> = {

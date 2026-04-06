@@ -194,6 +194,17 @@ const getActionLabel = (action: MiradorAIPlan['action']) => {
 };
 
 const getCompareModeLabel = (mode: WorkspaceMode) => (mode === 'mosaic' ? '比较模式' : '单图模式');
+const getRequestedCompareModeLabel = (mode: MiradorAIPlan['compare_mode']) =>
+  mode === 'side_by_side' ? '比较模式' : mode === 'single' ? '单图模式' : '未指定';
+
+const LOG_LEVEL_LABELS: Record<ActionLogEntry['level'], string> = {
+  info: '信息',
+  success: '成功',
+  warning: '警告',
+  error: '错误',
+};
+
+const getLogLevelLabel = (level: ActionLogEntry['level']) => LOG_LEVEL_LABELS[level];
 
 const nowLabel = () => new Date().toLocaleTimeString();
 
@@ -254,7 +265,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
   const dispatchMirador = (action: any) => {
     const api = viewerApiRef.current;
     if (!api?.store) {
-      throw new Error('Mirador viewer is not ready yet.');
+      throw new Error('Mirador 预览器尚未就绪。');
     }
     api.store.dispatch(action);
   };
@@ -271,10 +282,10 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
     setWorkspaceMode(mode);
     const updated = await waitFor(() => getWorkspaceMode(viewerApiRef.current?.store) === mode);
     if (!updated) {
-      throw new Error(`Failed to switch to ${getCompareModeLabel(mode)}.`);
+      throw new Error(`切换到${getCompareModeLabel(mode)}失败。`);
     }
 
-    appendLog('success', 'Compare mode updated', `${getCompareModeLabel(mode)} - ${reason}`);
+    appendLog('success', '比较模式已更新', `${getCompareModeLabel(mode)} - ${reason}`);
     setStatusMessage(`已切换到${getCompareModeLabel(mode)}`);
   };
 
@@ -283,7 +294,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
     const store = api?.store;
     const windowId = getCurrentWindowId(store);
     if (!store || !windowId) {
-      throw new Error('Mirador viewer is not ready yet.');
+      throw new Error('Mirador 预览器尚未就绪。');
     }
 
     const viewerRef = OSDReferences.get(windowId)?.current;
@@ -398,7 +409,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
   const openCompareTarget = async (target: MiradorSearchResult) => {
     const api = viewerApiRef.current;
     if (!api?.store || !api?.actions) {
-      throw new Error('Mirador viewer is not ready yet.');
+      throw new Error('Mirador 预览器尚未就绪。');
     }
 
     const response = await axios.get(target.manifest_url, {
@@ -421,8 +432,8 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
       throw new Error('比较窗口没有成功打开。');
     }
 
-    await ensureCompareMode('mosaic', `opened ${target.title} (#${target.asset_id})`);
-    appendLog('success', 'Opened compare target', `${target.title} (#${target.asset_id})`);
+    await ensureCompareMode('mosaic', `打开 ${target.title}（#${target.asset_id}）`);
+    appendLog('success', '已打开比较目标', `${target.title}（#${target.asset_id}）`);
   };
 
   const toggleCompareMode = async () => {
@@ -432,28 +443,28 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
 
     if (currentMode === 'elastic') {
       if (windowCount < 2 && !selectedTarget) {
-        appendLog('warning', 'Compare mode not available', 'Open a second image before entering compare mode.');
+        appendLog('warning', '无法进入比较模式', '请先打开第二张图像，再进入比较模式。');
         setStatusMessage('请先打开一张比较图，再进入比较模式。');
         return;
       }
-      await ensureCompareMode('mosaic', 'toggle on');
+      await ensureCompareMode('mosaic', '手动开启');
       return;
     }
 
-    await ensureCompareMode('elastic', 'toggle off');
+    await ensureCompareMode('elastic', '手动关闭');
   };
 
   const closeCompare = async () => {
     const api = viewerApiRef.current;
     const store = api?.store;
     if (!api?.actions || !store) {
-      throw new Error('Mirador viewer is not ready yet.');
+      throw new Error('Mirador 预览器尚未就绪。');
     }
 
     const windowIds = getWindowIds(store);
     if (windowIds.length <= 1) {
-      await ensureCompareMode('elastic', 'single window remains');
-      appendLog('info', 'Close compare skipped', 'Only one window is open.');
+      await ensureCompareMode('elastic', '仅剩单窗口');
+      appendLog('info', '跳过关闭比较', '当前只打开了一个窗口。');
       return;
     }
 
@@ -462,7 +473,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
     const beforeCount = windowIds.length;
     if (removeTarget) {
       dispatchMirador(getMiradorAction(api.actions?.removeWindow, removeMiradorWindow)(removeTarget));
-      appendLog('success', 'Closed compare target', removeTarget);
+      appendLog('success', '已关闭比较目标', removeTarget);
     }
 
     const closed = await waitFor(() => getWindowIds(store).length === beforeCount - 1);
@@ -471,7 +482,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
     }
 
     if (getWindowIds(store).length <= 1) {
-      await ensureCompareMode('elastic', 'after close');
+      await ensureCompareMode('elastic', '关闭后恢复单图');
     }
   };
 
@@ -487,7 +498,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
 
       if (nextPlan.action === 'search_assets') {
         setSelectedTarget(target);
-        appendLog('info', '等待选择候选图', target ? `${target.title} (#${target.asset_id})` : 'no target');
+        appendLog('info', '等待选择候选图', target ? `${target.title}（#${target.asset_id}）` : '暂无候选目标');
         return;
       }
 
@@ -501,7 +512,10 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
 
       if (nextPlan.action === 'switch_compare_mode') {
         const desiredMode = nextPlan.compare_mode === 'single' ? 'elastic' : 'mosaic';
-        await ensureCompareMode(desiredMode, nextPlan.compare_mode ? `explicit ${nextPlan.compare_mode}` : 'toggle');
+        await ensureCompareMode(
+          desiredMode,
+          nextPlan.compare_mode ? `显式切换为${getRequestedCompareModeLabel(nextPlan.compare_mode)}` : '切换',
+        );
         return;
       }
 
@@ -511,7 +525,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
       }
 
       if (nextPlan.action === 'noop') {
-        appendLog('warning', '忽略空动作', 'noop');
+        appendLog('warning', '忽略空动作', '本次计划没有需要执行的操作。');
         return;
       }
 
@@ -563,7 +577,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
       const firstTarget = nextPlan.target_asset || nextPlan.search_results?.[0] || null;
       setSelectedTarget(firstTarget);
       if (firstTarget) {
-        appendLog('info', '选中候选图', `${firstTarget.title} (#${firstTarget.asset_id})`);
+        appendLog('info', '选中候选图', `${firstTarget.title}（#${firstTarget.asset_id}）`);
       }
 
       if (nextPlan.requires_confirmation) {
@@ -624,7 +638,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
           <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
             <Typography.Text style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>AI 控制台</Typography.Text>
-            <Tag color="blue">{currentCandidate ? `Asset #${currentCandidate.assetId}` : '未加载'}</Tag>
+            <Tag color="blue">{currentCandidate ? `资源 #${currentCandidate.assetId}` : '未加载'}</Tag>
           </Space>
           <Space wrap>
             <Tag color={compareMode === 'mosaic' ? 'green' : 'default'}>{getCompareModeLabel(compareMode)}</Tag>
@@ -767,7 +781,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
                   }}
                   onClick={() => {
                     setSelectedTarget(item);
-                    appendLog('info', '切换候选图', `${item.title} (#${item.asset_id})`);
+                    appendLog('info', '切换候选图', `${item.title}（#${item.asset_id}）`);
                   }}
                 >
                   <Space direction="vertical" size={2} style={{ width: '100%' }}>
@@ -810,7 +824,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
                     setPlan(null);
                     setSelectedTarget(null);
                     setStatusMessage('已取消本次操作。');
-                    appendLog('warning', '取消确认', 'user cancelled');
+                    appendLog('warning', '取消确认', '用户已取消本次操作。');
                   }}
                 >
                   取消
@@ -866,7 +880,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
                                 : 'blue'
                         }
                       >
-                        {entry.level}
+                        {getLogLevelLabel(entry.level)}
                       </Tag>
                       <Typography.Text style={{ color: '#fff' }}>{entry.title}</Typography.Text>
                     </Space>

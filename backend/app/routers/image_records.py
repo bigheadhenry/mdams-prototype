@@ -12,9 +12,14 @@ from PIL import Image
 
 from .. import config
 from ..database import get_db
-from ..models import Asset, ImageRecord, User
+from ..models import Asset, ImageIngestSheet, ImageRecord, User
 from ..permissions import CurrentUser, require_any_permission, require_permission
 from ..schemas import (
+    CulturalObjectSampleListResponse,
+    CulturalObjectLookupResponse,
+    ImageIngestSheetDetailResponse,
+    ImageIngestSheetSaveRequest,
+    ImageIngestSheetSummary,
     ImageRecordActionRequest,
     ImageRecordAssetBinding,
     ImageRecordConfirmRequest,
@@ -26,6 +31,7 @@ from ..schemas import (
     ImageRecordValidationResult,
     ImageRecordValidationState,
 )
+from ..services.cultural_object_lookup import list_cultural_object_samples, lookup_cultural_object_by_number
 from ..services.image_record_validation import (
     ALLOWED_UPLOAD_EXTENSIONS,
     validate_bound_image_record,
@@ -50,6 +56,20 @@ RETURNED_STATUS = "returned"
 DRAFT_STATUS = "draft"
 UPLOADED_PENDING_VALIDATION_STATUS = "uploaded_pending_validation"
 PENDING_UPLOAD_KEY = "pending_upload"
+SHEET_DRAFT_STATUS = "draft"
+SHEET_IN_PROGRESS_STATUS = "in_progress"
+SHEET_COMPLETED_STATUS = "completed"
+
+SHEET_TO_PROFILE_KEY = {
+    "movable_artifact": "movable_artifact",
+    "immovable_artifact": "immovable_artifact",
+    "business_activity": "business_activity",
+    "ancient_tree": "ancient_tree",
+    "archaeology": "archaeology",
+    "art_photography": "art_photography",
+    "panorama": "panorama",
+    "other": "other",
+}
 
 
 def _clean_optional_text(value: object | None) -> str | None:
@@ -82,6 +102,11 @@ def _normalize_profile_key(value: object | None) -> str:
     return normalized if normalized in PROFILE_DEFINITIONS else DEFAULT_PROFILE_KEY
 
 
+def _normalize_image_type(value: object | None) -> str:
+    normalized = (_clean_optional_text(value) or DEFAULT_PROFILE_KEY).lower()
+    return normalized if normalized in SHEET_TO_PROFILE_KEY else DEFAULT_PROFILE_KEY
+
+
 def _normalize_resource_type(value: object | None) -> str:
     return _clean_optional_text(value) or DEFAULT_RESOURCE_TYPE
 
@@ -90,6 +115,13 @@ def _normalize_json_dict(value: object | None) -> dict[str, Any]:
     if not isinstance(value, dict):
         return {}
     return {str(key): item for key, item in value.items()}
+
+
+def _is_temporary_object_number(value: str | None) -> bool:
+    if value is None:
+        return False
+    normalized = value.strip().lower()
+    return normalized in {"暂无号", "暫無號", "无号", "無號", "none", "n/a", "na", "temp-none"}
 
 
 def _field_label(field_key: str) -> str:
@@ -146,6 +178,119 @@ def _find_user_entity(db: Session, actor: CurrentUser) -> User | None:
 def _current_user_db_id(db: Session, actor: CurrentUser) -> int | None:
     user = _find_user_entity(db, actor)
     return user.id if user is not None else None
+
+
+def _sheet_metadata_info(sheet: ImageIngestSheet) -> dict[str, Any]:
+    return sheet.metadata_info if isinstance(sheet.metadata_info, dict) else {}
+
+
+def _get_sheet_or_404(sheet_id: int, db: Session) -> ImageIngestSheet:
+    sheet = db.query(ImageIngestSheet).filter(ImageIngestSheet.id == sheet_id).first()
+    if sheet is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image ingest sheet not found")
+    return sheet
+
+
+def _sheet_management_defaults(sheet: ImageIngestSheet) -> dict[str, Any]:
+    return {
+        "project_type": sheet.project_type,
+        "project_name": sheet.project_name,
+        "photographer": sheet.photographer,
+        "photographer_org": sheet.photographer_org,
+        "copyright_owner": sheet.copyright_owner,
+        "capture_time": sheet.capture_time,
+        "image_category": sheet.image_type,
+        "remark": sheet.remark,
+    }
+
+
+def _sync_sheet_values_to_record_management(record: ImageRecord, sheet: ImageIngestSheet) -> None:
+    management = {
+        **_management_section(record),
+        **{key: value for key, value in _sheet_management_defaults(sheet).items() if value not in (None, "")},
+    }
+    raw_metadata = _record_layers(record).get("raw_metadata")
+    if not isinstance(raw_metadata, dict):
+        raw_metadata = {}
+    record.metadata_info = _build_layers(
+        record_no=record.record_no,
+        title=record.title,
+        status_code=record.status,
+        resource_type=record.resource_type,
+        visibility_scope=record.visibility_scope,
+        collection_object_id=record.collection_object_id,
+        profile_key=record.profile_key,
+        management=management,
+        profile_fields=_profile_fields(record),
+        raw_metadata=raw_metadata,
+    )
+
+
+def _next_sheet_line_no(sheet: ImageIngestSheet) -> int:
+    existing = [item.line_no or 0 for item in sheet.items]
+    return (max(existing) if existing else 0) + 1
+
+
+def _sheet_status(sheet: ImageIngestSheet) -> str:
+    if not sheet.items:
+        return SHEET_DRAFT_STATUS
+    statuses = {item.status for item in sheet.items if item.status}
+    if statuses and statuses <= {UPLOADED_PENDING_VALIDATION_STATUS}:
+        return SHEET_COMPLETED_STATUS
+    if READY_STATUS in statuses or UPLOADED_PENDING_VALIDATION_STATUS in statuses:
+        return SHEET_IN_PROGRESS_STATUS
+    return SHEET_IN_PROGRESS_STATUS
+
+
+def _is_sheet_visible_to_user(sheet: ImageIngestSheet, user: CurrentUser) -> bool:
+    if user.has_permission("image.record.list"):
+        return True
+    if not user.has_permission("image.record.view_ready_for_upload"):
+        return False
+
+    user_db_id = user.user_id
+    if sheet.assigned_photographer_user is not None and sheet.assigned_photographer_user.username == user_db_id:
+        return True
+
+    return any(
+        item.assigned_photographer_user is not None and item.assigned_photographer_user.username == user_db_id
+        for item in sheet.items
+    )
+    return SHEET_DRAFT_STATUS
+
+
+def _serialize_sheet_summary(sheet: ImageIngestSheet) -> ImageIngestSheetSummary:
+    items = list(sheet.items or [])
+    uploaded_count = sum(1 for item in items if item.status in {UPLOADED_PENDING_VALIDATION_STATUS})
+    return ImageIngestSheetSummary(
+        id=sheet.id,
+        sheet_no=sheet.sheet_no,
+        title=sheet.title,
+        status=_sheet_status(sheet),
+        image_type=sheet.image_type,
+        project_type=sheet.project_type,
+        project_name=sheet.project_name,
+        photographer=sheet.photographer,
+        photographer_org=sheet.photographer_org,
+        capture_time=sheet.capture_time,
+        assigned_photographer_user_id=sheet.assigned_photographer_user_id,
+        assigned_photographer_display_name=getattr(sheet.assigned_photographer_user, "display_name", None),
+        item_count=len(items),
+        uploaded_item_count=uploaded_count,
+        created_at=sheet.created_at,
+        updated_at=sheet.updated_at,
+    )
+
+
+def _serialize_sheet_detail(sheet: ImageIngestSheet) -> ImageIngestSheetDetailResponse:
+    summary = _serialize_sheet_summary(sheet)
+    return ImageIngestSheetDetailResponse(
+        **summary.model_dump(),
+        copyright_owner=sheet.copyright_owner,
+        remark=sheet.remark,
+        metadata_info=_sheet_metadata_info(sheet),
+        items=[_serialize_image_record(item) for item in sheet.items],
+    )
 
 
 def _pending_upload_data(record: ImageRecord) -> dict[str, Any] | None:
@@ -371,6 +516,8 @@ def _serialize_image_record(record: ImageRecord) -> ImageRecordSummary:
 
     return ImageRecordSummary(
         id=record.id,
+        sheet_id=record.sheet_id,
+        line_no=record.line_no,
         record_no=record.record_no,
         title=record.title or record.record_no,
         status=record.status,
@@ -382,6 +529,7 @@ def _serialize_image_record(record: ImageRecord) -> ImageRecordSummary:
         project_name=_clean_optional_text(management.get("project_name")),
         image_category=_clean_optional_text(management.get("image_category")),
         object_number=_clean_optional_text(profile_fields.get("object_number")),
+        representative_image=bool(management.get("representative_image")),
         created_by_user_id=record.created_by_user_id,
         created_by_display_name=getattr(record.created_by_user, "display_name", None),
         submitted_by_user_id=record.submitted_by_user_id,
@@ -424,6 +572,8 @@ def _get_image_record_or_404(record_id: int, db: Session) -> ImageRecord:
 def _is_visible_to_user(record: ImageRecord, user: CurrentUser) -> bool:
     if user.has_permission("image.record.list"):
         return True
+    if record.sheet is not None and _is_sheet_visible_to_user(record.sheet, user):
+        return True
     user_db_id = user.user_id
     return (
         user.has_permission("image.record.view_ready_for_upload")
@@ -450,6 +600,54 @@ def _get_photographer_if_valid(db: Session, photographer_user_id: int | None) ->
     if "image_photographer_upload" not in photographer_roles and "system_admin" not in photographer_roles:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assigned user is not a photographer upload role")
     return photographer
+
+
+def _apply_sheet_payload(
+    sheet: ImageIngestSheet,
+    payload: ImageIngestSheetSaveRequest,
+    db: Session,
+    actor: CurrentUser,
+) -> None:
+    if "image_type" in payload.model_fields_set and sheet.items:
+        next_image_type = _normalize_image_type(payload.image_type)
+        if next_image_type != sheet.image_type:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot change image type after sheet items have been created",
+            )
+
+    photographer_user_id = (
+        _normalize_optional_int(payload.assigned_photographer_user_id)
+        if "assigned_photographer_user_id" in payload.model_fields_set
+        else sheet.assigned_photographer_user_id
+    )
+    photographer = _get_photographer_if_valid(db, photographer_user_id)
+
+    if "title" in payload.model_fields_set:
+        sheet.title = _clean_optional_text(payload.title)
+    if "image_type" in payload.model_fields_set:
+        sheet.image_type = _normalize_image_type(payload.image_type)
+    if "project_type" in payload.model_fields_set:
+        sheet.project_type = _clean_optional_text(payload.project_type)
+    if "project_name" in payload.model_fields_set:
+        sheet.project_name = _clean_optional_text(payload.project_name)
+    if "photographer" in payload.model_fields_set:
+        sheet.photographer = _clean_optional_text(payload.photographer)
+    if "photographer_org" in payload.model_fields_set:
+        sheet.photographer_org = _clean_optional_text(payload.photographer_org)
+    if "copyright_owner" in payload.model_fields_set:
+        sheet.copyright_owner = _clean_optional_text(payload.copyright_owner)
+    if "capture_time" in payload.model_fields_set:
+        sheet.capture_time = _clean_optional_text(payload.capture_time)
+    if "remark" in payload.model_fields_set:
+        sheet.remark = _clean_optional_text(payload.remark)
+    if "metadata_info" in payload.model_fields_set:
+        sheet.metadata_info = _normalize_json_dict(payload.metadata_info)
+    sheet.assigned_photographer_user_id = photographer.id if photographer else None
+    sheet.status = _sheet_status(sheet)
+
+    for item in sheet.items:
+        _sync_sheet_values_to_record_management(item, sheet)
 
 
 def _build_layers(
@@ -565,6 +763,52 @@ def _set_record_status(record: ImageRecord, status_code: str) -> None:
     core["status"] = status_code
     layers["core"] = core
     record.metadata_info = layers
+
+
+def _set_representative_image_flag_in_layers(layers: dict[str, Any], value: bool) -> dict[str, Any]:
+    next_layers = dict(layers)
+    management = next_layers.get("management")
+    if not isinstance(management, dict):
+        management = {}
+    else:
+        management = dict(management)
+    management["representative_image"] = value
+    next_layers["management"] = management
+    return next_layers
+
+
+def _enforce_unique_representative_image(record: ImageRecord, db: Session) -> None:
+    if record.profile_key != "movable_artifact":
+        return
+
+    management = _management_section(record)
+    if not bool(management.get("representative_image")):
+        return
+
+    object_number = _clean_optional_text(_profile_fields(record).get("object_number"))
+    if not object_number or _is_temporary_object_number(object_number):
+        return
+
+    candidate_records = (
+        db.query(ImageRecord)
+        .filter(ImageRecord.id != record.id, ImageRecord.profile_key == "movable_artifact")
+        .all()
+    )
+
+    for other_record in candidate_records:
+        other_profile_fields = _profile_fields(other_record)
+        if _clean_optional_text(other_profile_fields.get("object_number")) != object_number:
+            continue
+
+        other_management = _management_section(other_record)
+        if not bool(other_management.get("representative_image")):
+            continue
+
+        other_layers = _set_representative_image_flag_in_layers(_record_layers(other_record), False)
+        other_record.metadata_info = other_layers
+
+        if other_record.asset is not None and isinstance(other_record.asset.metadata_info, dict):
+            other_record.asset.metadata_info = _set_representative_image_flag_in_layers(other_record.asset.metadata_info, False)
 
 
 def _temp_upload_dir() -> str:
@@ -821,6 +1065,184 @@ def list_ready_for_upload_records(
     return [_serialize_image_record(record) for record in visible_records[skip : skip + limit]]
 
 
+@router.get("/artifact-lookup", response_model=CulturalObjectLookupResponse)
+def lookup_cultural_object(
+    object_number: str = Query(..., min_length=1),
+    user: CurrentUser = Depends(require_permission("image.record.view")),
+):
+    try:
+        return lookup_cultural_object_by_number(object_number)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.get("/artifact-samples", response_model=CulturalObjectSampleListResponse)
+def list_artifact_samples(
+    q: str | None = None,
+    limit: int = Query(100, ge=1, le=100),
+    user: CurrentUser = Depends(require_permission("image.record.view")),
+):
+    return list_cultural_object_samples(q=q, limit=limit)
+
+
+@router.get("/sheets", response_model=list[ImageIngestSheetSummary])
+def list_image_ingest_sheets(
+    q: str | None = None,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_any_permission("image.record.list", "image.record.view_ready_for_upload")),
+):
+    normalized_q = _clean_optional_text(q)
+    sheets = db.query(ImageIngestSheet).order_by(ImageIngestSheet.updated_at.desc(), ImageIngestSheet.id.desc()).all()
+    visible: list[ImageIngestSheet] = []
+    for sheet in sheets:
+        if not _is_sheet_visible_to_user(sheet, user):
+            continue
+        if normalized_q:
+            haystack = " ".join(
+                filter(
+                    None,
+                    [
+                        sheet.sheet_no,
+                        sheet.title,
+                        sheet.project_name,
+                        sheet.project_type,
+                        sheet.photographer,
+                    ],
+                )
+            ).lower()
+            if normalized_q.lower() not in haystack:
+                continue
+        visible.append(sheet)
+    return [_serialize_sheet_summary(sheet) for sheet in visible]
+
+
+@router.post("/sheets", response_model=ImageIngestSheetDetailResponse, status_code=status.HTTP_201_CREATED)
+def create_image_ingest_sheet(
+    payload: ImageIngestSheetSaveRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.record.create")),
+):
+    creator = _find_user_entity(db, user)
+    sheet = ImageIngestSheet(
+        sheet_no="PENDING",
+        title=None,
+        status=SHEET_DRAFT_STATUS,
+        image_type=DEFAULT_PROFILE_KEY,
+        metadata_info={},
+        created_by_user_id=creator.id if creator is not None else None,
+    )
+    db.add(sheet)
+    db.flush()
+    sheet.sheet_no = f"IS-{datetime.now(timezone.utc):%Y%m%d}-{sheet.id:06d}"
+    _apply_sheet_payload(sheet, payload, db, user)
+    db.commit()
+    db.refresh(sheet)
+    return _serialize_sheet_detail(sheet)
+
+
+@router.get("/sheets/{sheet_id}", response_model=ImageIngestSheetDetailResponse)
+def get_image_ingest_sheet(
+    sheet_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.record.view")),
+):
+    sheet = _get_sheet_or_404(sheet_id, db)
+    if not _is_sheet_visible_to_user(sheet, user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Image ingest sheet is not visible to current user")
+    return _serialize_sheet_detail(sheet)
+
+
+@router.patch("/sheets/{sheet_id}", response_model=ImageIngestSheetDetailResponse)
+def update_image_ingest_sheet(
+    sheet_id: int,
+    payload: ImageIngestSheetSaveRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.record.edit")),
+):
+    sheet = _get_sheet_or_404(sheet_id, db)
+    _apply_sheet_payload(sheet, payload, db, user)
+    db.commit()
+    db.refresh(sheet)
+    return _serialize_sheet_detail(sheet)
+
+
+@router.post("/sheets/{sheet_id}/items", response_model=ImageRecordDetailResponse, status_code=status.HTTP_201_CREATED)
+def create_image_ingest_sheet_item(
+    sheet_id: int,
+    payload: ImageRecordSaveRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.record.create")),
+):
+    sheet = _get_sheet_or_404(sheet_id, db)
+    creator = _find_user_entity(db, user)
+    record = ImageRecord(
+        sheet_id=sheet.id,
+        line_no=_next_sheet_line_no(sheet),
+        record_no="PENDING",
+        title=None,
+        status=DRAFT_STATUS,
+        resource_type=DEFAULT_RESOURCE_TYPE,
+        visibility_scope=DEFAULT_VISIBILITY_SCOPE,
+        collection_object_id=None,
+        profile_key=sheet.image_type,
+        metadata_info={},
+        created_by_user_id=creator.id if creator is not None else None,
+        assigned_photographer_user_id=sheet.assigned_photographer_user_id,
+    )
+    db.add(record)
+    db.flush()
+    if not _clean_optional_text(payload.record_no):
+        record.record_no = f"IR-{datetime.now(timezone.utc):%Y%m%d}-{record.id:06d}"
+
+    merged_payload = ImageRecordSaveRequest(
+        record_no=payload.record_no,
+        title=payload.title,
+        resource_type=payload.resource_type or DEFAULT_RESOURCE_TYPE,
+        visibility_scope=payload.visibility_scope or DEFAULT_VISIBILITY_SCOPE,
+        collection_object_id=payload.collection_object_id,
+        profile_key=sheet.image_type,
+        management={**_sheet_management_defaults(sheet), **_normalize_json_dict(payload.management)},
+        profile_fields=_normalize_json_dict(payload.profile_fields),
+        raw_metadata={**_normalize_json_dict(payload.raw_metadata), "sheet_id": sheet.id, "line_no": record.line_no},
+        assigned_photographer_user_id=sheet.assigned_photographer_user_id,
+    )
+    _apply_record_payload(record, merged_payload, db, user)
+    sheet.status = _sheet_status(sheet)
+    db.commit()
+    db.refresh(record)
+    return _serialize_image_record_detail(record, db)
+
+
+@router.patch("/sheets/items/{record_id}", response_model=ImageRecordDetailResponse)
+def update_image_ingest_sheet_item(
+    record_id: int,
+    payload: ImageRecordSaveRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.record.edit")),
+):
+    record = _get_image_record_or_404(record_id, db)
+    if record.sheet_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Image record is not attached to an ingest sheet")
+    sheet = _get_sheet_or_404(record.sheet_id, db)
+    merged_payload = ImageRecordSaveRequest(
+        record_no=payload.record_no,
+        title=payload.title,
+        resource_type=payload.resource_type or record.resource_type,
+        visibility_scope=payload.visibility_scope or record.visibility_scope,
+        collection_object_id=payload.collection_object_id,
+        profile_key=sheet.image_type,
+        management={**_sheet_management_defaults(sheet), **_normalize_json_dict(payload.management)},
+        profile_fields=_normalize_json_dict(payload.profile_fields),
+        raw_metadata={**_normalize_json_dict(payload.raw_metadata), "sheet_id": sheet.id, "line_no": record.line_no},
+        assigned_photographer_user_id=sheet.assigned_photographer_user_id,
+    )
+    _apply_record_payload(record, merged_payload, db, user)
+    sheet.status = _sheet_status(sheet)
+    db.commit()
+    db.refresh(record)
+    return _serialize_image_record_detail(record, db)
+
+
 @router.post("", response_model=ImageRecordDetailResponse, status_code=status.HTTP_201_CREATED)
 def create_image_record(
     payload: ImageRecordSaveRequest,
@@ -1031,6 +1453,8 @@ def confirm_bind_image_record(
             },
         )
 
+    _enforce_unique_representative_image(record, db)
+
     db_asset = Asset(
         filename=str(pending_upload.get("filename") or ""),
         file_path=str(pending_upload.get("temp_path") or ""),
@@ -1080,6 +1504,8 @@ def confirm_replace_image_record_asset(
                 "validation": validation.model_dump(),
             },
         )
+
+    _enforce_unique_representative_image(record, db)
 
     replaced_asset = _replace_current_asset_binding(record, user, payload.note)
     db.flush()
