@@ -409,7 +409,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
 
   const openCompareTarget = async (target: MiradorSearchResult) => {
     const api = viewerApiRef.current;
-    if (!api?.store || !api?.actions) {
+    if (!api?.store) {
       throw new Error('Mirador 预览器尚未就绪。');
     }
 
@@ -458,7 +458,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
   const closeCompare = async () => {
     const api = viewerApiRef.current;
     const store = api?.store;
-    if (!api?.actions || !store) {
+    if (!store) {
       throw new Error('Mirador 预览器尚未就绪。');
     }
 

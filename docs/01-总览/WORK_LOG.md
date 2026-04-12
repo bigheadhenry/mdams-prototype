@@ -324,3 +324,9 @@ YYYY-MM-DD
 - 变更内容：新增 `docs/04-实施方案/AI_MIRADOR_CONTROL_ROADMAP.md`，将当前“REST AI 计划器 + 前端 Mirador 执行器 + IIIF 服务”的链路拆解为 REST 兼容层标准化、工具注册表与权限审计、浏览器执行桥接、MCP Server 化和高级任务编排五个阶段；同时在 `/api/ai/mirador/interpret` 响应中并行增加 `tool_call` 结构，支持从标准工具调用反推既有 `action`，并让前端当前计划卡片显示工具调用名称。
 - 验证结果：`python -m py_compile backend/app/routers/ai_mirador.py` 通过；`python -m pytest backend/tests/test_ai_mirador.py -q` 结果为 `2 passed, 3 skipped`，跳过原因是本机 PostgreSQL `localhost:5432` 未启动；`npm run build` 通过；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`。
 - 备注：当前已经完成 Phase 1 的兼容式标准化，仍保留原有前端 `action` 执行链路；Docker Desktop 当前未连接，暂未能重启 compose 服务，待 Docker 可用后可直接重启后端/前端进行线上测试。
+
+### 2026-04-12 - Mirador AI 正式通路联调与 Cantaloupe Docker 路径修复
+- 修改范围：Cantaloupe Docker 配置、Mirador AI 前端执行器、Mirador AI live E2E 测试、工作日志。
+- 变更内容：使用正式 Docker 服务和正式 PostgreSQL 库完成 Mirador AI 端到端联调；补充 `frontend/tests/mirador-ai-live.spec.ts`，在 `LIVE_MIRADOR_AI=1` 时覆盖真实登录、资产列表、IIIF Manifest、Cantaloupe 图像、AI 生成 `mirador.window.open_compare`、确认执行并打开第二比较窗口的完整通路；修正 `MiradorAiPanel` 中打开/关闭比较时对 `api.actions` 的过严判断，改为只要求 Mirador store 就绪并继续使用已有 fallback actions；同时将 `cantaloupe.properties` 的文件源和缓存路径从 Windows 主机路径改为容器内路径，解决 Docker Cantaloupe 瓦片 404。
+- 验证结果：正式服务 `docker compose ps` 正常；`GET /health` 返回 healthy；`GET /iiif/2/ai-smoke-blue-vase-a.jpg/full/64,/0/default.jpg` 返回 `200 image/jpeg`；正式后端 AI 接口可返回 `mirador.window.open_compare` 并找到候选图；`LIVE_MIRADOR_AI=1 npx playwright test tests/mirador-ai-live.spec.ts --project=chromium` 通过，`1 passed`；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；`TEST_DATABASE_URL=postgresql://meam:meam_secret@localhost:55432/meam_db_test python -m pytest backend/tests/test_ai_mirador.py -q` 通过，`5 passed`。
+- 备注：为完成真实通路测试，正式库中临时保留了两条 `AI_SMOKE_TEST` 资产记录（900001、900002）和两个测试 JPEG 文件，方便继续在线复测；如需清理，可删除这两条记录和 `uploads/ai-smoke-blue-vase-a.jpg`、`uploads/ai-smoke-blue-vase-b.jpg`。
