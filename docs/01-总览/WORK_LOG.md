@@ -330,3 +330,10 @@ YYYY-MM-DD
 - 变更内容：使用正式 Docker 服务和正式 PostgreSQL 库完成 Mirador AI 端到端联调；补充 `frontend/tests/mirador-ai-live.spec.ts`，在 `LIVE_MIRADOR_AI=1` 时覆盖真实登录、资产列表、IIIF Manifest、Cantaloupe 图像、AI 生成 `mirador.window.open_compare`、确认执行并打开第二比较窗口的完整通路；修正 `MiradorAiPanel` 中打开/关闭比较时对 `api.actions` 的过严判断，改为只要求 Mirador store 就绪并继续使用已有 fallback actions；同时将 `cantaloupe.properties` 的文件源和缓存路径从 Windows 主机路径改为容器内路径，解决 Docker Cantaloupe 瓦片 404。
 - 验证结果：正式服务 `docker compose ps` 正常；`GET /health` 返回 healthy；`GET /iiif/2/ai-smoke-blue-vase-a.jpg/full/64,/0/default.jpg` 返回 `200 image/jpeg`；正式后端 AI 接口可返回 `mirador.window.open_compare` 并找到候选图；`LIVE_MIRADOR_AI=1 npx playwright test tests/mirador-ai-live.spec.ts --project=chromium` 通过，`1 passed`；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；`TEST_DATABASE_URL=postgresql://meam:meam_secret@localhost:55432/meam_db_test python -m pytest backend/tests/test_ai_mirador.py -q` 通过，`5 passed`。
 - 备注：为完成真实通路测试，正式库中临时保留了两条 `AI_SMOKE_TEST` 资产记录（900001、900002）和两个测试 JPEG 文件，方便继续在线复测；如需清理，可删除这两条记录和 `uploads/ai-smoke-blue-vase-a.jpg`、`uploads/ai-smoke-blue-vase-b.jpg`。
+
+## 2026-04-12 Mirador AI 缩小/适配按钮修复
+
+- 排查 live route 中 AI 控制面板“缩小”“适配”误报失败：OSD 引用不可用时 fallback 写 redux viewport 不能保证驱动画布，且最小缩放/已适配边界会导致无可观测变化。
+- 为 zoom_in/zoom_out/reset/fit 增加 Mirador 原生控件兜底；边界型动作无可观测变化时降级为提示，不再报“执行失败”。
+- live E2E 增加“缩小”“适配”按钮校验；新增 frontend/.dockerignore 排除 Playwright 报告和构建产物，避免测试产物污染 Docker build context。
+- 验证：npm run build；LIVE_MIRADOR_AI=1 npx playwright test tests/mirador-ai-live.spec.ts --project=chromium；npm run test -- mirador-ai.spec.ts。

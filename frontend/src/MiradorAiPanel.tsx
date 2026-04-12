@@ -157,6 +157,31 @@ const getStoreViewportSnapshot = (store: any) => {
 const getViewportSnapshot = (store: any, windowId: string | null) =>
   getViewerViewportSnapshot(windowId) || getStoreViewportSnapshot(store);
 
+const isViewportBoundaryAction = (action: MiradorAIPlan['action']) =>
+  ['zoom_out', 'reset_view', 'fit_to_window', 'pan_left', 'pan_right', 'pan_up', 'pan_down'].includes(action);
+
+const nativeViewportControlLabels: Partial<Record<MiradorAIPlan['action'], string[]>> = {
+  zoom_in: ['Zoom in', '放大'],
+  zoom_out: ['Zoom out', '缩小'],
+  reset_view: ['Reset zoom', '重置缩放', '重置'],
+  fit_to_window: ['Reset zoom', '重置缩放', '适配'],
+};
+
+const clickNativeViewportControl = (action: MiradorAIPlan['action']) => {
+  const labels = nativeViewportControlLabels[action];
+  const root = document.getElementById('mirador-viewer');
+  if (!labels || !root) return false;
+
+  const button = Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((item) => {
+    const label = item.getAttribute('aria-label') || item.textContent || '';
+    return labels.some((expected) => label.includes(expected));
+  });
+  if (!button || button.disabled) return false;
+
+  button.click();
+  return true;
+};
+
 const withAuthHeaders = () => {
   const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
   return token ? { Authorization: `Bearer ${token}` } : undefined;
@@ -312,6 +337,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
 
     const panRatio = Math.max(panPixels / 600, 0.05);
     let handledByViewer = false;
+    let handledByNativeControl = false;
 
     if (viewerViewport) {
       switch (action) {
@@ -369,6 +395,10 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
     }
 
     if (!handledByViewer) {
+      handledByNativeControl = clickNativeViewportControl(action);
+    }
+
+    if (!handledByViewer && !handledByNativeControl) {
       switch (action) {
         case 'zoom_in':
           next.zoom = Math.max(0.01, next.zoom * zoomFactor);
@@ -403,6 +433,11 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
 
     const updated = await waitFor(() => didViewportChange(before, getViewportSnapshot(store, windowId)));
     if (!updated) {
+      if (isViewportBoundaryAction(action)) {
+        appendLog('warning', '视图未发生明显变化', `${getActionLabel(action)}可能已到边界或当前已处于目标状态。`);
+        setStatusMessage(`${getActionLabel(action)}已执行，当前视图可能已到边界或已适配。`);
+        return;
+      }
       throw new Error(`${getActionLabel(action)}没有真正生效。`);
     }
   };

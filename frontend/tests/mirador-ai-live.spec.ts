@@ -27,6 +27,14 @@ test.describe('Mirador AI live route', () => {
     await expect(page.getByTestId('mirador-ai-panel')).toBeVisible({ timeout: 30000 });
     await expect(page.getByTestId('mirador-ai-send')).toBeEnabled({ timeout: 30000 });
 
+    await page.getByTestId('mirador-ai-zoom-out').click();
+    await expect(page.getByTestId('mirador-ai-status')).toContainText(/\u7f29\u5c0f/, { timeout: 15000 });
+    await expect(page.getByTestId('mirador-ai-error')).toHaveCount(0, { timeout: 15000 });
+
+    await page.getByTestId('mirador-ai-fit').click();
+    await expect(page.getByTestId('mirador-ai-status')).toContainText(/\u9002\u914d/, { timeout: 15000 });
+    await expect(page.getByTestId('mirador-ai-error')).toHaveCount(0, { timeout: 15000 });
+
     await page.getByTestId('mirador-ai-prompt').fill('\u627e\u4e00\u5f20 blue vase \u7c7b\u4f3c\u56fe\u5e76\u6253\u5f00\u6bd4\u8f83');
     await page.getByTestId('mirador-ai-send').click();
 
