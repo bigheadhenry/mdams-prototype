@@ -328,6 +328,12 @@ export interface MiradorSearchResult {
   reasons?: string[];
 }
 
+export interface MiradorToolCall {
+  name: string;
+  arguments?: Record<string, unknown>;
+  version?: string;
+}
+
 export interface MiradorAIPlan {
   action:
     | 'zoom_in'
@@ -351,6 +357,7 @@ export interface MiradorAIPlan {
   compare_mode?: 'single' | 'side_by_side' | null;
   pan_pixels?: number | null;
   zoom_factor?: number | null;
+  tool_call?: MiradorToolCall | null;
 }
 
 export interface MiradorAIRequest {

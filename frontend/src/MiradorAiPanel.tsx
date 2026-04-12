@@ -196,6 +196,7 @@ const getActionLabel = (action: MiradorAIPlan['action']) => {
 const getCompareModeLabel = (mode: WorkspaceMode) => (mode === 'mosaic' ? '比较模式' : '单图模式');
 const getRequestedCompareModeLabel = (mode: MiradorAIPlan['compare_mode']) =>
   mode === 'side_by_side' ? '比较模式' : mode === 'single' ? '单图模式' : '未指定';
+const getToolCallLabel = (nextPlan: MiradorAIPlan) => nextPlan.tool_call?.name || '兼容动作模式';
 
 const LOG_LEVEL_LABELS: Record<ActionLogEntry['level'], string> = {
   info: '信息',
@@ -571,7 +572,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
       appendLog(
         'info',
         'AI 生成计划',
-        `${getActionLabel(nextPlan.action)}${nextPlan.requires_confirmation ? ' / 需要确认' : ''}`,
+        `${getActionLabel(nextPlan.action)} / ${getToolCallLabel(nextPlan)}${nextPlan.requires_confirmation ? ' / 需要确认' : ''}`,
       );
 
       const firstTarget = nextPlan.target_asset || nextPlan.search_results?.[0] || null;
@@ -749,6 +750,11 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
               <Typography.Paragraph style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 0 }}>
                 {plan.assistant_message}
               </Typography.Paragraph>
+              {plan.tool_call ? (
+                <Typography.Text style={{ color: 'rgba(255,255,255,0.56)' }}>
+                  工具调用：{plan.tool_call.name}
+                </Typography.Text>
+              ) : null}
               {plan.search_query ? (
                 <Typography.Text style={{ color: 'rgba(255,255,255,0.56)' }}>搜索关键词：{plan.search_query}</Typography.Text>
               ) : null}

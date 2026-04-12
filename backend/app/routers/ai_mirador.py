@@ -36,6 +36,18 @@ ALLOWED_ACTIONS = {
     "noop",
 }
 
+ALLOWED_TOOL_NAMES = {
+    "mirador.viewport.zoom",
+    "mirador.viewport.pan",
+    "mirador.viewport.reset",
+    "mirador.viewport.fit",
+    "mirador.workspace.switch_mode",
+    "mirador.window.open_compare",
+    "mirador.window.close_compare",
+    "asset.search",
+    "mirador.noop",
+}
+
 
 class MiradorSearchResult(BaseModel):
     asset_id: int
@@ -46,6 +58,12 @@ class MiradorSearchResult(BaseModel):
     filename: str | None = None
     score: float = 0.0
     reasons: list[str] = Field(default_factory=list)
+
+
+class MiradorToolCall(BaseModel):
+    name: str
+    arguments: dict[str, object] = Field(default_factory=dict)
+    version: str = "mirador-control.v1"
 
 
 class MiradorAIRequest(BaseModel):
@@ -82,6 +100,128 @@ class MiradorAIPlan(BaseModel):
     compare_mode: Literal["single", "side_by_side"] | None = None
     pan_pixels: int | None = None
     zoom_factor: float | None = None
+    tool_call: MiradorToolCall | None = None
+
+
+def _target_asset_arguments(target: MiradorSearchResult | None) -> dict[str, object]:
+    if target is None:
+        return {}
+    data: dict[str, object] = {
+        "asset_id": target.asset_id,
+        "title": target.title,
+        "manifest_url": target.manifest_url,
+        "resource_id": target.resource_id,
+        "score": target.score,
+        "reasons": target.reasons,
+    }
+    if target.object_number:
+        data["object_number"] = target.object_number
+    if target.filename:
+        data["filename"] = target.filename
+    return data
+
+
+def _tool_call_for_plan(plan: MiradorAIPlan) -> MiradorToolCall:
+    action = plan.action
+    arguments: dict[str, object] = {}
+
+    if action in {"zoom_in", "zoom_out"}:
+        return MiradorToolCall(
+            name="mirador.viewport.zoom",
+            arguments={
+                "direction": "in" if action == "zoom_in" else "out",
+                "factor": plan.zoom_factor or 1.2,
+            },
+        )
+
+    if action in {"pan_left", "pan_right", "pan_up", "pan_down"}:
+        return MiradorToolCall(
+            name="mirador.viewport.pan",
+            arguments={
+                "direction": action.removeprefix("pan_"),
+                "pixels": plan.pan_pixels or 120,
+            },
+        )
+
+    if action == "reset_view":
+        return MiradorToolCall(name="mirador.viewport.reset")
+
+    if action == "fit_to_window":
+        return MiradorToolCall(name="mirador.viewport.fit")
+
+    if action == "search_assets":
+        if plan.search_query:
+            arguments["query"] = plan.search_query
+        if plan.search_results:
+            arguments["result_count"] = len(plan.search_results)
+        return MiradorToolCall(name="asset.search", arguments=arguments)
+
+    if action == "open_compare":
+        arguments["mode"] = plan.compare_mode or "side_by_side"
+        if plan.search_query:
+            arguments["query"] = plan.search_query
+        target = _target_asset_arguments(plan.target_asset)
+        if target:
+            arguments["target_asset"] = target
+        return MiradorToolCall(name="mirador.window.open_compare", arguments=arguments)
+
+    if action == "switch_compare_mode":
+        return MiradorToolCall(
+            name="mirador.workspace.switch_mode",
+            arguments={"mode": plan.compare_mode or "side_by_side"},
+        )
+
+    if action == "close_compare":
+        return MiradorToolCall(name="mirador.window.close_compare")
+
+    return MiradorToolCall(name="mirador.noop")
+
+
+def _attach_tool_call(plan: MiradorAIPlan) -> MiradorAIPlan:
+    plan.tool_call = _tool_call_for_plan(plan)
+    return plan
+
+
+def _parse_tool_call(raw_tool_call: object) -> MiradorToolCall | None:
+    if not isinstance(raw_tool_call, dict):
+        return None
+    name = str(raw_tool_call.get("name") or "").strip()
+    if name not in ALLOWED_TOOL_NAMES:
+        return None
+    raw_arguments = raw_tool_call.get("arguments")
+    arguments = raw_arguments if isinstance(raw_arguments, dict) else {}
+    return MiradorToolCall(name=name, arguments=dict(arguments))
+
+
+def _action_from_tool_call(tool_call: MiradorToolCall | None) -> str | None:
+    if tool_call is None:
+        return None
+    arguments = tool_call.arguments
+    name = tool_call.name
+
+    if name == "mirador.viewport.zoom":
+        direction = str(arguments.get("direction") or "").strip().lower()
+        return "zoom_out" if direction in {"out", "decrease", "smaller"} else "zoom_in"
+
+    if name == "mirador.viewport.pan":
+        direction = str(arguments.get("direction") or "").strip().lower()
+        if direction in {"left", "right", "up", "down"}:
+            return f"pan_{direction}"
+        return "noop"
+
+    if name == "mirador.viewport.reset":
+        return "reset_view"
+    if name == "mirador.viewport.fit":
+        return "fit_to_window"
+    if name == "asset.search":
+        return "search_assets"
+    if name == "mirador.window.open_compare":
+        return "open_compare"
+    if name == "mirador.workspace.switch_mode":
+        return "switch_compare_mode"
+    if name == "mirador.window.close_compare":
+        return "close_compare"
+    return "noop"
 
 
 def _short_prompt(prompt: str, limit: int = 80) -> str:
@@ -346,7 +486,11 @@ async def _call_openai_plan(payload: MiradorAIRequest) -> dict[str, object] | No
         "pan_up, pan_down, reset_view, fit_to_window, search_assets, open_compare, switch_compare_mode, "
         "close_compare, noop. If the user wants to compare another image, use open_compare. If the user wants "
         "to switch the viewer between compare and single modes, use switch_compare_mode and set compare_mode to "
-        "side_by_side or single. Keep assistant_message short and helpful."
+        "side_by_side or single. Also return a tool_call object using one of these tool names: "
+        "mirador.viewport.zoom, mirador.viewport.pan, mirador.viewport.reset, mirador.viewport.fit, "
+        "asset.search, mirador.window.open_compare, mirador.workspace.switch_mode, "
+        "mirador.window.close_compare, mirador.noop. Use tool_call.arguments for direction, factor, pixels, "
+        "mode, query, or target hints. Keep assistant_message short and helpful."
     )
     user_prompt = {
         "prompt": payload.prompt,
@@ -413,13 +557,16 @@ def _coerce_action(raw_action: object) -> str:
 
 
 def _plan_from_payload(payload: dict[str, object]) -> MiradorAIPlan:
-    action = _coerce_action(payload.get("action"))
+    tool_call = _parse_tool_call(payload.get("tool_call"))
+    tool_action = _action_from_tool_call(tool_call)
+    action = _coerce_action(payload.get("action") or tool_action)
+    tool_arguments = tool_call.arguments if tool_call else {}
     assistant_message = str(payload.get("assistant_message") or "已处理你的指令。")
     requires_confirmation = bool(payload.get("requires_confirmation", False))
-    search_query = payload.get("search_query")
-    compare_mode = payload.get("compare_mode")
-    pan_pixels = payload.get("pan_pixels")
-    zoom_factor = payload.get("zoom_factor")
+    search_query = payload.get("search_query") or tool_arguments.get("query") or tool_arguments.get("search_query")
+    compare_mode = payload.get("compare_mode") or tool_arguments.get("mode") or tool_arguments.get("compare_mode")
+    pan_pixels = payload.get("pan_pixels") or tool_arguments.get("pixels")
+    zoom_factor = payload.get("zoom_factor") or tool_arguments.get("factor")
 
     return MiradorAIPlan(
         action=action,  # type: ignore[arg-type]
@@ -429,6 +576,7 @@ def _plan_from_payload(payload: dict[str, object]) -> MiradorAIPlan:
         compare_mode=compare_mode if compare_mode in {"single", "side_by_side"} else None,  # type: ignore[arg-type]
         pan_pixels=int(pan_pixels) if isinstance(pan_pixels, (int, float)) else None,
         zoom_factor=float(zoom_factor) if isinstance(zoom_factor, (int, float)) else None,
+        tool_call=tool_call,
     )
 
 
@@ -527,9 +675,11 @@ async def interpret_mirador_command(
             _short_prompt(payload.prompt),
         )
 
+    _attach_tool_call(plan)
     logger.info(
-        "ai.mirador.interpret_finished action=%s requires_confirmation=%s search_count=%s target_asset_id=%s compare_mode=%s",
+        "ai.mirador.interpret_finished action=%s tool_call=%s requires_confirmation=%s search_count=%s target_asset_id=%s compare_mode=%s",
         plan.action,
+        plan.tool_call.name if plan.tool_call else None,
         plan.requires_confirmation,
         len(plan.search_results),
         plan.target_asset.asset_id if plan.target_asset else None,

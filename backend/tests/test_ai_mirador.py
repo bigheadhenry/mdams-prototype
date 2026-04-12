@@ -11,6 +11,51 @@ from app.routers import ai_mirador
 pytestmark = [pytest.mark.unit, pytest.mark.integration]
 
 
+def test_plan_from_payload_accepts_standard_tool_call_pan():
+    plan = ai_mirador._plan_from_payload(
+        {
+            "assistant_message": "Pan left.",
+            "tool_call": {
+                "name": "mirador.viewport.pan",
+                "arguments": {"direction": "left", "pixels": 80},
+            },
+        }
+    )
+
+    assert plan.action == "pan_left"
+    assert plan.pan_pixels == 80
+    assert plan.tool_call is not None
+    assert plan.tool_call.name == "mirador.viewport.pan"
+
+
+def test_attach_tool_call_serializes_compare_target():
+    target = ai_mirador.MiradorSearchResult(
+        asset_id=42,
+        title="Blue Vase Study",
+        manifest_url="http://testserver/api/iiif/42/manifest",
+        resource_id="image_2d:42",
+        object_number="OBJ-42",
+        score=3.0,
+        reasons=["blue", "vase"],
+    )
+    plan = ai_mirador._attach_tool_call(
+        ai_mirador.MiradorAIPlan(
+            action="open_compare",
+            assistant_message="Open comparison.",
+            requires_confirmation=True,
+            search_query="blue vase",
+            target_asset=target,
+            compare_mode="side_by_side",
+        )
+    )
+
+    assert plan.tool_call is not None
+    assert plan.tool_call.name == "mirador.window.open_compare"
+    assert plan.tool_call.arguments["mode"] == "side_by_side"
+    assert plan.tool_call.arguments["query"] == "blue vase"
+    assert plan.tool_call.arguments["target_asset"]["asset_id"] == 42
+
+
 def _make_request(headers=None):
     header_items = []
     for key, value in (headers or {}).items():
@@ -121,6 +166,9 @@ def test_interpret_mirador_command_uses_openai_compare_search_and_excludes_curre
     assert plan.search_results
     assert plan.target_asset is not None
     assert plan.target_asset.asset_id == target_asset.id
+    assert plan.tool_call is not None
+    assert plan.tool_call.name == "mirador.window.open_compare"
+    assert plan.tool_call.arguments["target_asset"]["asset_id"] == target_asset.id
     assert all(result.asset_id != current_asset.id for result in plan.search_results)
 
 
@@ -159,6 +207,8 @@ def test_interpret_mirador_command_falls_back_to_search_when_compare_has_no_cand
     assert plan.requires_confirmation is False
     assert plan.search_results == []
     assert plan.assistant_message
+    assert plan.tool_call is not None
+    assert plan.tool_call.name == "asset.search"
 
 
 def test_search_assets_endpoint_honors_visibility_scope(db_session):

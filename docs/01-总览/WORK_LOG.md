@@ -318,3 +318,9 @@ YYYY-MM-DD
 - 变更内容：将 `backend/tests` 统一切换为 PostgreSQL 测试库工作流，新增 `TEST_DATABASE_URL` 约定，并让测试在缺失数据库时给出明确跳过原因；修正测试夹具中 SQLAlchemy URL 密码被掩码导致的认证失败问题；把多个 `backend/scripts/*` 的默认 `--database-url` 从 `backend-dev.db` 改为 PostgreSQL；新增仓库根目录 `manage_local_postgres.ps1` 与 `docker-compose.local-postgres.yml`，用于在本机一键启动、查看、停止、重置独立 PostgreSQL 测试环境；同时删除 `docs/01-总览/DEMO_FLOW.md` 和 `docs/01-总览/DOCUMENTATION_UPDATE_PLAN.md` 两份旧文档，使其与本轮结构调整一并收敛。
 - 验证结果：使用 `.\manage_local_postgres.ps1 up` 在本机拉起 `mdams-local-postgres`，主机侧 `localhost:5432` 可用，`meam_db` 与 `meam_db_test` 均可正常连接；执行 `python -m pytest backend\tests`，结果为 `55 passed`。
 - 备注：当前仓库已经具备稳定的本机 PostgreSQL 测试基线；后续如继续推进数据库侧演进，建议下一步补齐 Alembic 迁移链，逐步替代 `Base.metadata.create_all()` 的启动式建表方式。
+
+### 2026-04-12 - AI 操控 Mirador 工具调用标准化与 MCP 化路线
+- 修改范围：AI Mirador 后端路由、Mirador AI 前端面板、前端类型定义、Mirador AI 测试、实施方案文档、工作日志。
+- 变更内容：新增 `docs/04-实施方案/AI_MIRADOR_CONTROL_ROADMAP.md`，将当前“REST AI 计划器 + 前端 Mirador 执行器 + IIIF 服务”的链路拆解为 REST 兼容层标准化、工具注册表与权限审计、浏览器执行桥接、MCP Server 化和高级任务编排五个阶段；同时在 `/api/ai/mirador/interpret` 响应中并行增加 `tool_call` 结构，支持从标准工具调用反推既有 `action`，并让前端当前计划卡片显示工具调用名称。
+- 验证结果：`python -m py_compile backend/app/routers/ai_mirador.py` 通过；`python -m pytest backend/tests/test_ai_mirador.py -q` 结果为 `2 passed, 3 skipped`，跳过原因是本机 PostgreSQL `localhost:5432` 未启动；`npm run build` 通过；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`。
+- 备注：当前已经完成 Phase 1 的兼容式标准化，仍保留原有前端 `action` 执行链路；Docker Desktop 当前未连接，暂未能重启 compose 服务，待 Docker 可用后可直接重启后端/前端进行线上测试。
