@@ -32,7 +32,7 @@
 
 - `GET /api/platform/sources`
 - `GET /api/platform/resources`
-- `GET /api/platform/resources/{resource_id}`
+- `GET /api/platform/resources/{source_system}/{source_id}`
 
 它们分别对应：
 
@@ -63,6 +63,7 @@
 
 - `source_system`
 - `source_label`
+- `source_id`
 - `resource_type`
 - `profile_key`
 - `profile_label`
@@ -117,5 +118,6 @@
 ## 11. 关联文档
 
 - `API_ROUTE_MAP.md`
+- `UNIFIED_PLATFORM_SOURCE_LOCATOR_CONTRACT.md`
 - `THREE_D_SUBSYSTEM_ARCHITECTURE.md`
 - `../03-产品与流程/WORKFLOW_GUIDE.md`

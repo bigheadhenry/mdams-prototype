@@ -118,7 +118,7 @@
 
 - `GET /api/platform/sources`
 - `GET /api/platform/resources`
-- `GET /api/platform/resources/{resource_id}`
+- `GET /api/platform/resources/{source_system}/{source_id}`
 
 ### 3.10 `ai_mirador`
 
@@ -138,5 +138,6 @@
 
 - `ARCHITECTURE.md`
 - `PLATFORM_SOURCE_ADAPTERS.md`
+- `UNIFIED_PLATFORM_SOURCE_LOCATOR_CONTRACT.md`
 - `THREE_D_SUBSYSTEM_ARCHITECTURE.md`
 - `../03-产品与流程/WORKFLOW_GUIDE.md`
