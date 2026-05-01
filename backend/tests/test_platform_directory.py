@@ -67,7 +67,16 @@ def test_platform_resource_directory_maps_image_subsystem(db_session, test_uploa
     assert resource.preview_enabled is True
     assert resource.profile_key == "other"
     assert resource.profile_label == "其他"
-    assert resource.detail_url.endswith(resource.id)
+    assert resource.detail_url == f"/api/platform/resources/{resource.source_system}/{resource.source_id}"
+    assert {action.key for action in resource.actions} == {
+        "preview",
+        "platform_detail",
+        "source_detail",
+        "download",
+        "export_bagit",
+    }
+    assert next(action for action in resource.actions if action.key == "preview").enabled is True
+    assert next(action for action in resource.actions if action.key == "platform_detail").target == "platform"
 
     profile_resource = next(
         item for item in resources if item.id == f"{image_source.SOURCE_SYSTEM}:{profile_uploaded.id}"
@@ -76,15 +85,19 @@ def test_platform_resource_directory_maps_image_subsystem(db_session, test_uploa
     assert profile_resource.profile_key == "movable_artifact"
     assert profile_resource.profile_label == "可移动文物"
 
-    detail = platform_router.get_resource(resource_id=resource.id, db=db_session)
+    detail = platform_router.get_resource(source_system=resource.source_system, source_id=resource.source_id, db=db_session)
     assert detail.id == resource.id
     assert detail.source_label == "二维影像子系统"
     assert detail.source_record is not None
-    assert detail.source_record.id == uploaded.id
+    assert detail.source_record_type == "asset_detail"
+    assert detail.source_record_schema == "asset_detail.v1"
+    assert detail.detail_url == f"/api/platform/resources/{resource.source_system}/{resource.source_id}"
     assert detail.source_detail_url == f"/api/assets/{uploaded.id}"
-    assert detail.source_record.structure.primary_file.filename == "platform-sample.png"
+    assert detail.source_record["id"] == uploaded.id
+    assert detail.source_record["structure"]["primary_file"]["filename"] == "platform-sample.png"
     assert detail.profile_key == "other"
     assert detail.profile_label == "其他"
+    assert next(action for action in detail.actions if action.key == "export_bagit").target == "export_package"
 
     filtered = platform_router.get_resources(q="platform-sample", db=db_session)
     assert len(filtered) == 1

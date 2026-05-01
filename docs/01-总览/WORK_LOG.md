@@ -319,21 +319,68 @@ YYYY-MM-DD
 - 验证结果：使用 `.\manage_local_postgres.ps1 up` 在本机拉起 `mdams-local-postgres`，主机侧 `localhost:5432` 可用，`meam_db` 与 `meam_db_test` 均可正常连接；执行 `python -m pytest backend\tests`，结果为 `55 passed`。
 - 备注：当前仓库已经具备稳定的本机 PostgreSQL 测试基线；后续如继续推进数据库侧演进，建议下一步补齐 Alembic 迁移链，逐步替代 `Base.metadata.create_all()` 的启动式建表方式。
 
+### 2026-04-08 - 研究记忆层建立与研究文档对齐
+- 修改范围：`memory/`、`tasks/`、研究子项目文档、工作日志。
+- 变更内容：新增稳定的 `memory/` 与 `tasks/` 层，用于沉淀项目简述、原型设计、论文论点、实验记录、设计决策和术语翻译；同时重写研究子项目中的当前项目事实、标准映射、标准到实现映射、概念模型、评估框架、论文大纲与研究 README，使其与截至 2026-04-08 的当前仓库实现保持一致；新增 `论文写作摘要（PAPER_READY_SUMMARY）.md` 和 `研究文档对齐差异清单（RESEARCH_ALIGNMENT_DIFF_CHECKLIST）.md`，分别服务论文写作和后续持续对齐。
+- 验证结果：已人工核对新增与重写文档内容，使其与 `README.md`、`docs/01-总览/PROJECT_STATUS.md`、`docs/01-总览/WORK_LOG.md`、`backend/app/`、`frontend/src/` 当前结构保持一致；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步的重点不是新增更多研究材料，而是先消除“研究线落后于实现线”的漂移，为后续统一对象模型、PREMIS 事件模型和 metadata profile 工作建立稳定基线。
+
+### 2026-04-08 - 统一对象模型、PREMIS 最小事件模型与 metadata/profile 基线
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `统一对象模型（UNIFIED_OBJECT_MODEL）.md`，把 `Asset`、`ImageRecord`、三维对象/版本、访问表示、导出表示、统一平台与权限范围收敛为一页对象框架；重写 `PREMIS事件映射（PREMIS_EVENT_MAPPING）.md` 为最小可实施事件模型，明确事件记录结构、统一词表、P0/P1 事件集合和按工作流映射；重写 `图像技术元数据映射（IMAGE_METADATA_CROSSWALK）.md`，使其直接对应当前二维元数据分层字段；新增 `三维元数据最小配置说明（THREE_D_METADATA_MINIMUM_PROFILE）.md`，把当前三维 metadata 分层、文件角色词表与最小 profile 收口；同步更新研究 README、项目记忆和任务层，把当前任务切换为 IIIF / BagIt / OAIS 三项支撑材料。
+- 验证结果：已对照 `backend/app/models.py`、`backend/app/services/metadata_layers.py`、`backend/app/services/three_d_metadata.py`、`backend/app/services/three_d_storage.py`、`backend/app/services/three_d_detail.py` 人工核对文档字段与术语；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步把研究线从“已有概念材料”推进到“已有可复用的对象、事件和 metadata/profile 基线”，后续标准论证与实现 formalization 可以直接建立在这组文件上。
+
+### 2026-04-08 - IIIF、BagIt 与 OAIS 支撑材料收口
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：重写 `IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md`，使其直接对应 `backend/app/routers/iiif.py`、`iiif_access.py`、Mirador 消费路径和权限测试；重写 `长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md`，把 `download-bag` 路由当前真实生成的 bag 结构、tag files、payload 和边界收敛为可引用说明；新增 `OAIS范围对照（OAIS_SCOPE_MAP）.md`，以轻量范围图和职能域对照说明当前系统与 OAIS 的概念关系；同步更新研究 README、项目记忆、任务层和对齐差异清单，把当前任务切换为“标准化演示主链路”。
+- 验证结果：已对照 `backend/app/routers/iiif.py`、`backend/app/routers/downloads.py`、`backend/tests/test_asset_visibility.py`、`frontend/src/MiradorViewer.tsx`、`docs/08-研究/输出层边界说明（EXPORT_BOUNDARIES）.md` 人工核对文档内容；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步的重点是把标准论证从“高层映射”推进到“带实现锚点的支撑材料”，为后续论文案例链和真实样本说明建立直接引用基础。
+
+### 2026-04-08 - 标准化演示主链路与论文案例摘要
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `标准化演示主链路（STANDARDIZED_DEMO_CHAINS）.md`，将二维数字资产主链路、图像记录协作链路和三维对象与统一平台链路固化为 3 条标准化案例链，分别补入适用角色、前提条件、演示步骤、预期输出、验证点和研究材料链接；新增 `演示链路论文案例摘要（DEMO_CASE_SUMMARY）.md`，把这 3 条链路压缩为可直接进入论文“当前实现与演示链路”章节的案例摘要；同步更新研究 README、项目记忆、任务层和 backlog，把当前任务切换为 IIIF / BagIt 真实样本级材料。
+- 验证结果：已对照 `docs/03-产品与流程/WORKFLOW_GUIDE.md`、`docs/03-产品与流程/IMAGE_RECORD_WORKBENCH_GUIDE.md`、`frontend/src/App.tsx`、`backend/tests/test_applications.py`、`backend/tests/test_image_records.py`、`backend/tests/test_three_d_subsystem.py` 人工核对链路步骤与验证点；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步把当前研究底座进一步压缩成可演示、可验收、可写入论文案例链的材料，后续重点应转向真实样本和结构注释，增强证据密度。
+
+### 2026-04-08 - IIIF 与 BagIt 样本级证据补充
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `IIIF清单样本（IIIF_MANIFEST_SAMPLE）.md`，基于当前 `iiif.py`、`iiif_access.py` 和权限测试整理代表性 Manifest 样本与字段注释；新增 `BagIt样本结构（BAGIT_SAMPLE_STRUCTURE）.md`，基于当前 `download-bag` 打包逻辑整理代表性 bag 目录样本、tag files 和关键字段说明；同步更新研究 README、项目记忆、任务层和 backlog，把当前任务切换为“将研究文档推进到更稳定的实施边界”。
+- 验证结果：已对照 `backend/app/routers/iiif.py`、`backend/app/services/iiif_access.py`、`backend/tests/test_asset_visibility.py`、`backend/app/routers/downloads.py`、`frontend/src/components/AssetDetail.tsx`、`frontend/src/components/UnifiedResourceDetail.tsx` 人工核对样本结构和字段说明；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步的重点是把标准支撑材料从“有实现锚点”进一步推进到“有样本级证据”，为论文和对外演示提供更直接的结构材料。
+
+### 2026-04-08 - 实施边界推进清单与下一轮优先项切换
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `实施边界推进清单（IMPLEMENTATION_BOUNDARY_CHECKLIST）.md`，把统一对象模型、PREMIS 风格事件模型、二维与三维 profile、IIIF 与 BagIt 输出层分别压缩为“当前锚点 / 当前断层 / 推荐动作 / 优先级”的实施边界清单，并明确下一轮最推荐先做“二维 profile 必填规则统一”和“IIIF / BagIt 输出层 contract tests”；同步更新研究 README、项目记忆、对齐差异清单、当前任务和 backlog，把当前任务切换为“挑选 1 到 2 个优先项进入实现或测试补强”。
+- 验证结果：已对照 `backend/app/models.py`、`backend/app/services/image_record_validation.py`、`backend/app/services/metadata_layers.py`、`backend/app/services/reference_import.py`、`backend/app/services/three_d_metadata.py`、`backend/tests/test_metadata_layers.py`、`backend/tests/test_reference_import.py`、`backend/tests/test_three_d_dictionary.py`、`backend/tests/test_iiif_access_phase1.py` 人工核对实施边界判断；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步把研究线从“文档已经齐”继续推进到“哪些项值得进入代码约束或测试契约”的层级，避免后续再次停留在只增写说明而不增加实施证据的状态。
+
+### 2026-04-08 - 二维 profile 规则统一与 IIIF / BagIt 输出层 contract tests
+- 修改范围：`backend/app/services/metadata_layers.py`、`backend/app/services/image_record_validation.py`、`backend/app/services/reference_import.py`、后端测试、`memory/`、`tasks/`、工作日志。
+- 变更内容：将二维 profile 的最小必填字段收口到 `metadata_layers.py` 中的共享规则来源，并让 `image_record_validation.py` 与 `reference_import.py` 共同引用；同时为 `movable_artifact` 参考导入补充 `object_number / 文物号` 提取逻辑，消除提交校验与导入完整性判断的语义分叉；新增 `backend/tests/test_output_contracts.py`，用不依赖 PostgreSQL 的方式补齐 IIIF Manifest 输出编码与 metadata 条目、BagIt tag files / fixity / 失败模式的 unit + contract 测试；同步更新项目记忆和任务层，把下一当前任务切换为“跨子系统最小事件边界”。
+- 验证结果：执行 `pytest backend/tests/test_metadata_layers.py backend/tests/test_reference_import.py -q`，结果 `13 passed`；执行 `pytest backend/tests/test_output_contracts.py -q`，结果 `3 passed`；执行 `pytest backend/tests/test_image_records.py -q`，结果 `1 passed, 19 skipped`，跳过原因是本地 PostgreSQL `localhost:5432` 未启动。
+- 备注：本轮为了运行仓库测试，执行了 `python3 -m pip install -r backend/requirements-dev.txt`；安装成功，但当前全局 Python 环境中已有其他项目依赖被降级，后续若要避免环境串扰，应优先改用项目虚拟环境。
+
+### 2026-04-08 - 后续 5 个关键讨论问题正式化
+- 修改范围：研究子项目文档、工作日志。
+- 变更内容：新增 `关键讨论问题（KEY_DISCUSSION_QUESTIONS）.md`，把后续最该正式讨论的 5 个问题固定为：跨子系统最小事件边界、统一对象模型的落点、最小 profile 约束层级、IIIF / BagIt 输出层长期定位、以及下一阶段完成标准；对每个问题补入当前事实、可选方案、推荐立场、对实现和论文的影响，以及建议讨论顺序；同步更新研究 README，把该文档纳入建议阅读顺序和当前状态说明。
+- 验证结果：已对照 `tasks/current_task.md`、`docs/08-研究/实施边界推进清单（IMPLEMENTATION_BOUNDARY_CHECKLIST）.md`、`memory/prototype_design.md`、`memory/decisions.md` 和当前代码边界人工核对讨论问题与当前推进状态的一致性；本轮未运行代码测试，因为修改范围仅限 Markdown 文档。
+- 备注：这一步的作用不是新增实现，而是为后续决策会、论文方法讨论和下一轮实施优先级排序提供固定框架，避免项目再次回到分散讨论状态。
+
+### 2026-04-10 - 跨子系统最小事件边界正式化
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `跨子系统最小事件边界（CROSS_SYSTEM_EVENT_BOUNDARY）.md`，把当前系统中与事件相关的表达正式分为状态字段、detail 层 lifecycle / timeline、局部正式事件对象、输出层结果四类，并按二维资产、图像记录、三维对象、访问/导出表示、申请交付五个子域划定最小事件边界；同时明确当前不建议直接引入统一事件表，而应先把事件边界落实到 detail / test 层；同步更新研究 README、项目记忆、设计决策与任务层，把当前任务切换为“事件边界在 detail / test 层的优先落地方案”。
+- 验证结果：已对照 `docs/08-研究/PREMIS事件映射（PREMIS_EVENT_MAPPING）.md`、`backend/app/services/asset_detail.py`、`backend/app/services/three_d_detail.py`、`backend/app/services/three_d_production.py`、`backend/tests/test_three_d_production.py` 和 `memory/paper_argument.md` 人工核对事件边界说明与当前实现锚点的一致性；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步的目标不是增加新功能，而是把“事件到底是什么、先落到哪里”从讨论问题推进为一份可直接指导下一轮实现和论文表达的正式边界说明。
+
 ### 2026-04-12 - AI 操控 Mirador 工具调用标准化与 MCP 化路线
 - 修改范围：AI Mirador 后端路由、Mirador AI 前端面板、前端类型定义、Mirador AI 测试、实施方案文档、工作日志。
 - 变更内容：新增 `docs/04-实施方案/AI_MIRADOR_CONTROL_ROADMAP.md`，将当前“REST AI 计划器 + 前端 Mirador 执行器 + IIIF 服务”的链路拆解为 REST 兼容层标准化、工具注册表与权限审计、浏览器执行桥接、MCP Server 化和高级任务编排五个阶段；同时在 `/api/ai/mirador/interpret` 响应中并行增加 `tool_call` 结构，支持从标准工具调用反推既有 `action`，并让前端当前计划卡片显示工具调用名称。
 - 验证结果：`python -m py_compile backend/app/routers/ai_mirador.py` 通过；`python -m pytest backend/tests/test_ai_mirador.py -q` 结果为 `2 passed, 3 skipped`，跳过原因是本机 PostgreSQL `localhost:5432` 未启动；`npm run build` 通过；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`。
 - 备注：当前已经完成 Phase 1 的兼容式标准化，仍保留原有前端 `action` 执行链路；Docker Desktop 当前未连接，暂未能重启 compose 服务，待 Docker 可用后可直接重启后端/前端进行线上测试。
 
-### 2026-04-12 - Mirador AI 正式通路联调与 Cantaloupe Docker 路径修复
-- 修改范围：Cantaloupe Docker 配置、Mirador AI 前端执行器、Mirador AI live E2E 测试、工作日志。
-- 变更内容：使用正式 Docker 服务和正式 PostgreSQL 库完成 Mirador AI 端到端联调；补充 `frontend/tests/mirador-ai-live.spec.ts`，在 `LIVE_MIRADOR_AI=1` 时覆盖真实登录、资产列表、IIIF Manifest、Cantaloupe 图像、AI 生成 `mirador.window.open_compare`、确认执行并打开第二比较窗口的完整通路；修正 `MiradorAiPanel` 中打开/关闭比较时对 `api.actions` 的过严判断，改为只要求 Mirador store 就绪并继续使用已有 fallback actions；同时将 `cantaloupe.properties` 的文件源和缓存路径从 Windows 主机路径改为容器内路径，解决 Docker Cantaloupe 瓦片 404。
-- 验证结果：正式服务 `docker compose ps` 正常；`GET /health` 返回 healthy；`GET /iiif/2/ai-smoke-blue-vase-a.jpg/full/64,/0/default.jpg` 返回 `200 image/jpeg`；正式后端 AI 接口可返回 `mirador.window.open_compare` 并找到候选图；`LIVE_MIRADOR_AI=1 npx playwright test tests/mirador-ai-live.spec.ts --project=chromium` 通过，`1 passed`；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；`TEST_DATABASE_URL=postgresql://meam:meam_secret@localhost:55432/meam_db_test python -m pytest backend/tests/test_ai_mirador.py -q` 通过，`5 passed`。
-- 备注：为完成真实通路测试，正式库中临时保留了两条 `AI_SMOKE_TEST` 资产记录（900001、900002）和两个测试 JPEG 文件，方便继续在线复测；如需清理，可删除这两条记录和 `uploads/ai-smoke-blue-vase-a.jpg`、`uploads/ai-smoke-blue-vase-b.jpg`。
-
-## 2026-04-12 Mirador AI 缩小/适配按钮修复
-
-- 排查 live route 中 AI 控制面板“缩小”“适配”误报失败：OSD 引用不可用时 fallback 写 redux viewport 不能保证驱动画布，且最小缩放/已适配边界会导致无可观测变化。
-- 为 zoom_in/zoom_out/reset/fit 增加 Mirador 原生控件兜底；边界型动作无可观测变化时降级为提示，不再报“执行失败”。
-- live E2E 增加“缩小”“适配”按钮校验；新增 frontend/.dockerignore 排除 Playwright 报告和构建产物，避免测试产物污染 Docker build context。
-- 验证：npm run build；LIVE_MIRADOR_AI=1 npx playwright test tests/mirador-ai-live.spec.ts --project=chromium；npm run test -- mirador-ai.spec.ts。
+### 2026-05-01 - 同步前日志补齐与未提交改动收口
+- 修改范围：人脸识别服务与 Celery 任务、影像记录上传/可见性、统一平台目录与详情契约、IIIF/Cantaloupe 配置、二维 profile 规则、输出契约测试、研究文档、RepoWiki 项目知识库、工作日志。
+- 变更内容：为业务活动类影像记录接入可开关的人脸识别链路，新增本地/远程/自动 provider、运行时目录说明、pending/success/failed 元数据状态、识别结果回写 `main_person` 与前端展示；统一平台详情从复合 `resource_id` 过渡到 `source_system/source_id` 路径，补充二维与三维资源 actions、source record schema 和三维详情展示；将 Cantaloupe 调整为后端内部访问与前端代理访问分离，并补齐 `CANTALOUPE_INTERNAL_URL`；把二维 profile 必填字段集中到 `metadata_layers.py`，让影像记录校验和参考导入共用同一规则；同步补充 IIIF/BagIt 输出契约测试、研究线材料、实施边界清单、关键讨论问题、RepoWiki 生成文档和任务记忆层。
+- 验证结果：已检查 `WORK_LOG.md` 未提交 diff 与主要代码 diff，确认新增/修改主题均有日志覆盖；执行敏感信息扫描，未发现真实 token 或私钥形态，仅命中示例密码、空 API key 字段和已有测试默认密码。本轮同步前未重新运行全量测试，沿用各条日志中记录的专项验证结果。
+- 备注：本条用于把较长时间累积的本地未提交内容统一对齐到日志；`backend/runtime/face_recognition/README.md` 只提交运行时结构说明，模型、索引和识别库数据仍由 `.gitignore` 排除。

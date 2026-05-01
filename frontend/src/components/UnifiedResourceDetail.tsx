@@ -21,7 +21,10 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import type {
+  AssetDetailFileRecord,
+  AssetDetailResponse,
   AssetTechnicalMetadata,
+  ThreeDDetailResponse,
   UnifiedResourceDetail as UnifiedResourceDetailType,
   UnifiedResourceSummary,
 } from '../types/assets';
@@ -30,11 +33,12 @@ import type { LifecycleEntry } from '../types/assets';
 const { Paragraph, Text, Title } = Typography;
 
 interface UnifiedResourceDetailProps {
-  resourceId: string;
+  sourceSystem: string;
+  sourceId: string;
   onBack: () => void;
   onPreview?: (manifestUrl: string) => void;
   onOpenSourceDetail?: (assetId: number) => void;
-  onOpenUnifiedResourceDetail?: (resourceId: string) => void;
+  onOpenUnifiedResourceDetail?: (sourceSystem: string, sourceId: string) => void;
 }
 
 const statusColorMap: Record<string, string> = {
@@ -74,6 +78,14 @@ const formatBytes = (value?: number | null) => {
   return `${(value / 1024 / 1024).toFixed(2)} MB`;
 };
 
+const isAssetDetailRecord = (
+  value: UnifiedResourceDetailType['source_record'],
+): value is AssetDetailResponse => Boolean(value && 'lifecycle' in value && 'output_actions' in value);
+
+const isThreeDDetailRecord = (
+  value: UnifiedResourceDetailType['source_record'],
+): value is ThreeDDetailResponse => Boolean(value && 'production_records' in value && 'viewer' in value);
+
 const SectionTitle: React.FC<{ title: string; subtitle?: string }> = ({ title, subtitle }) => (
   <Space direction="vertical" size={0} style={{ marginBottom: 12 }}>
     <Title level={5} style={{ margin: 0 }}>
@@ -84,7 +96,8 @@ const SectionTitle: React.FC<{ title: string; subtitle?: string }> = ({ title, s
 );
 
 const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
-  resourceId,
+  sourceSystem,
+  sourceId,
   onBack,
   onPreview,
   onOpenSourceDetail,
@@ -99,7 +112,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
   const fetchDetail = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get<UnifiedResourceDetailType>(`/api/platform/resources/${resourceId}`);
+      const res = await axios.get<UnifiedResourceDetailType>(`/api/platform/resources/${sourceSystem}/${sourceId}`);
       setDetail(res.data);
       setError(null);
     } catch (err: unknown) {
@@ -115,7 +128,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [resourceId]);
+  }, [sourceId, sourceSystem]);
 
   useEffect(() => {
     fetchDetail();
@@ -153,16 +166,24 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
   }, [detail]);
 
   const sourceRecord = detail?.source_record ?? null;
-  const technicalMetadata: AssetTechnicalMetadata | undefined = sourceRecord?.technical_metadata;
+  const assetRecord = isAssetDetailRecord(sourceRecord) ? sourceRecord : null;
+  const threeDRecord = isThreeDDetailRecord(sourceRecord) ? sourceRecord : null;
+  const technicalMetadata: AssetTechnicalMetadata | undefined = assetRecord?.technical_metadata;
   const manifestUrl = detail?.manifest_url;
   const previewEnabled = detail?.preview_enabled ?? false;
-  const previewImageUrl = sourceRecord?.outputs.download_url || manifestUrl || '';
+  const previewImageUrl = assetRecord?.outputs.download_url || manifestUrl || '';
   const canShowImagePreview = Boolean(
-    sourceRecord?.file.mime_type?.startsWith('image/') && previewImageUrl,
+    assetRecord?.file.mime_type?.startsWith('image/') && previewImageUrl,
   );
 
-  const lifecycleItems = useMemo(() => sourceRecord?.lifecycle || [], [sourceRecord]);
-  const derivativeRecords = sourceRecord?.structure.derivatives || [];
+  const lifecycleItems = useMemo(() => assetRecord?.lifecycle || [], [assetRecord]);
+  const derivativeRecords = assetRecord?.structure.derivatives || [];
+  const threeDTechnicalItems = useMemo(
+    () => Object.entries(threeDRecord?.technical_metadata || {})
+      .filter(([, value]) => value !== null && value !== undefined && value !== '')
+      .slice(0, 8),
+    [threeDRecord],
+  );
 
   if (loading) return <Spin tip="正在加载统一资源详情..." />;
 
@@ -291,8 +312,8 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
               <Descriptions.Item label="分类">{getResourceTypeLabel(detail.resource_type)}</Descriptions.Item>
               <Descriptions.Item label="状态">
                 <Tag color={statusColorMap[detail.status] || 'default'}>{getStatusLabel(detail.status)}</Tag>
-                {sourceRecord?.status_info.message && (
-                  <Text style={{ marginLeft: 8 }}>{sourceRecord.status_info.message}</Text>
+                {assetRecord?.status_info.message && (
+                  <Text style={{ marginLeft: 8 }}>{assetRecord.status_info.message}</Text>
                 )}
               </Descriptions.Item>
               <Descriptions.Item label="预览">
@@ -321,21 +342,22 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
               </Button>
               <Button
                 icon={<DownloadOutlined />}
-                disabled={!sourceRecord?.outputs.download_url}
+                disabled={!(assetRecord?.outputs.download_url || threeDRecord?.outputs.download_url)}
                 onClick={() => {
-                  if (sourceRecord?.outputs.download_url) {
-                    window.location.href = sourceRecord.outputs.download_url;
+                  const downloadUrl = assetRecord?.outputs.download_url || threeDRecord?.outputs.download_url;
+                  if (downloadUrl) {
+                    window.location.href = downloadUrl;
                   }
                 }}
               >
-                下载原文件
+                {threeDRecord ? '下载资源包' : '下载原文件'}
               </Button>
               <Button
                 icon={<DownloadOutlined />}
-                disabled={!sourceRecord?.outputs.download_bag_url}
+                disabled={!assetRecord?.outputs.download_bag_url}
                 onClick={() => {
-                  if (sourceRecord?.outputs.download_bag_url) {
-                    window.location.href = sourceRecord.outputs.download_bag_url;
+                  if (assetRecord?.outputs.download_bag_url) {
+                    window.location.href = assetRecord.outputs.download_bag_url;
                   }
                 }}
               >
@@ -344,7 +366,14 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
               <Button
                 icon={<LinkOutlined />}
                 disabled={!sourceRecord}
-                onClick={() => sourceRecord && onOpenSourceDetail?.(sourceRecord.id)}
+                onClick={() => {
+                  if (!sourceRecord) return;
+                  if (assetRecord && onOpenSourceDetail) {
+                    onOpenSourceDetail(assetRecord.id);
+                    return;
+                  }
+                  window.open(detail.source_detail_url, '_blank', 'noopener,noreferrer');
+                }}
               >
                 查看源详情
               </Button>
@@ -357,41 +386,84 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
         <Space data-testid="unified-resource-detail" direction="vertical" size="large" style={{ width: '100%' }}>
           <Card bordered={false}>
             <SectionTitle title="生命周期" subtitle="统一平台按源对象的处理轨迹展示。" />
-            <List
-              bordered
-              dataSource={lifecycleItems}
-              renderItem={(item: LifecycleEntry) => (
-                <List.Item>
-                  <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                    <Space wrap>
-                      <Text strong>{item.label}</Text>
-                      <Tag color={statusColorMap[item.status] || 'default'}>{item.status_label}</Tag>
+            {assetRecord ? (
+              <List
+                bordered
+                dataSource={lifecycleItems}
+                renderItem={(item: LifecycleEntry) => (
+                  <List.Item>
+                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                      <Space wrap>
+                        <Text strong>{item.label}</Text>
+                        <Tag color={statusColorMap[item.status] || 'default'}>{item.status_label}</Tag>
+                      </Space>
+                      <Text type="secondary">{item.description}</Text>
                     </Space>
-                    <Text type="secondary">{item.description}</Text>
-                  </Space>
-                </List.Item>
-              )}
-            />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <List
+                bordered
+                dataSource={threeDRecord?.production_records || []}
+                locale={{ emptyText: '当前三维对象暂无生产事件记录。' }}
+                renderItem={(item) => (
+                  <List.Item>
+                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                      <Space wrap>
+                        <Text strong>{item.event_type}</Text>
+                        <Tag color={statusColorMap[item.status] || 'default'}>{item.stage}</Tag>
+                      </Space>
+                      <Text type="secondary">{item.description || item.evidence || '-'}</Text>
+                    </Space>
+                  </List.Item>
+                )}
+              />
+            )}
           </Card>
 
           <Card bordered={false}>
             <SectionTitle title="结构与文件" subtitle="统一详情只展示平台层摘要，源详情保留完整结构信息。" />
             <Alert type="info" showIcon message={sourceRecord.structure.summary || '暂无结构说明'} style={{ marginBottom: 16 }} />
 
-            <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="主文件">{sourceRecord.structure.primary_file.filename}</Descriptions.Item>
-              <Descriptions.Item label="原始文件">{sourceRecord.structure.original_file.filename}</Descriptions.Item>
-              <Descriptions.Item label="衍生文件数">{derivativeRecords.length}</Descriptions.Item>
-            </Descriptions>
+            {assetRecord ? (
+              <>
+                <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
+                  <Descriptions.Item label="主文件">{assetRecord.structure.primary_file.filename}</Descriptions.Item>
+                  <Descriptions.Item label="原始文件">{assetRecord.structure.original_file.filename}</Descriptions.Item>
+                  <Descriptions.Item label="衍生文件数">{derivativeRecords.length}</Descriptions.Item>
+                </Descriptions>
 
-            {derivativeRecords.length > 0 ? (
+                {derivativeRecords.length > 0 ? (
+                  <List
+                    bordered
+                    dataSource={derivativeRecords}
+                    renderItem={(item: AssetDetailFileRecord) => (
+                      <List.Item>
+                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                          <Text strong>{item.role_label || item.role || '-'}</Text>
+                          <Text>文件名：{item.filename || '-'}</Text>
+                          <Text>MIME 类型：{item.mime_type || '-'}</Text>
+                          <Text>文件大小：{formatBytes(item.file_size)}</Text>
+                        </Space>
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Alert type="warning" showIcon message="当前对象暂无独立衍生文件记录。" />
+                )}
+              </>
+            ) : (
               <List
                 bordered
-                dataSource={derivativeRecords}
-                renderItem={(item: AssetDetailFileRecord) => (
+                dataSource={threeDRecord?.structure.files || []}
+                renderItem={(item) => (
                   <List.Item>
                     <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                      <Text strong>{item.role_label || item.role || '-'}</Text>
+                      <Space wrap>
+                        <Text strong>{item.role_label || item.role}</Text>
+                        {item.is_primary && <Tag color="green">主文件</Tag>}
+                      </Space>
                       <Text>文件名：{item.filename || '-'}</Text>
                       <Text>MIME 类型：{item.mime_type || '-'}</Text>
                       <Text>文件大小：{formatBytes(item.file_size)}</Text>
@@ -399,27 +471,35 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
                   </List.Item>
                 )}
               />
-            ) : (
-              <Alert type="warning" showIcon message="当前对象暂无独立衍生文件记录。" />
             )}
           </Card>
 
           <Card bordered={false}>
-            <SectionTitle title="技术元数据" subtitle="保留与影像处理相关的核心字段。" />
-            <Descriptions bordered column={1} size="small">
-              <Descriptions.Item label="宽度">{technicalMetadata?.width ?? '-'}</Descriptions.Item>
-              <Descriptions.Item label="高度">{technicalMetadata?.height ?? '-'}</Descriptions.Item>
-              <Descriptions.Item label="SHA256">
-                {technicalMetadata?.fixity_sha256 ? (
-                  <Paragraph copyable code style={{ marginBottom: 0 }}>
-                    {technicalMetadata.fixity_sha256}
-                  </Paragraph>
-                ) : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="入库方式">{technicalMetadata?.ingest_method ?? '-'}</Descriptions.Item>
-              <Descriptions.Item label="转换方式">{technicalMetadata?.conversion_method ?? '-'}</Descriptions.Item>
-              <Descriptions.Item label="原始文件路径">{technicalMetadata?.original_file_path ?? '-'}</Descriptions.Item>
-            </Descriptions>
+            <SectionTitle title="技术元数据" subtitle="保留源系统提供的核心技术字段。" />
+            {assetRecord ? (
+              <Descriptions bordered column={1} size="small">
+                <Descriptions.Item label="宽度">{technicalMetadata?.width ?? '-'}</Descriptions.Item>
+                <Descriptions.Item label="高度">{technicalMetadata?.height ?? '-'}</Descriptions.Item>
+                <Descriptions.Item label="SHA256">
+                  {technicalMetadata?.fixity_sha256 ? (
+                    <Paragraph copyable code style={{ marginBottom: 0 }}>
+                      {technicalMetadata.fixity_sha256}
+                    </Paragraph>
+                  ) : '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label="入库方式">{technicalMetadata?.ingest_method ?? '-'}</Descriptions.Item>
+                <Descriptions.Item label="转换方式">{technicalMetadata?.conversion_method ?? '-'}</Descriptions.Item>
+                <Descriptions.Item label="原始文件路径">{technicalMetadata?.original_file_path ?? '-'}</Descriptions.Item>
+              </Descriptions>
+            ) : (
+              <Descriptions bordered column={1} size="small">
+                {threeDTechnicalItems.map(([key, value]) => (
+                  <Descriptions.Item key={key} label={key}>
+                    {String(value)}
+                  </Descriptions.Item>
+                ))}
+              </Descriptions>
+            )}
           </Card>
 
           <Card bordered={false}>
@@ -439,7 +519,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
                     key={item.id}
                     size="small"
                     hoverable
-                    onClick={() => onOpenUnifiedResourceDetail?.(item.id)}
+                    onClick={() => onOpenUnifiedResourceDetail?.(item.source_system, item.source_id)}
                     style={{ cursor: 'pointer' }}
                   >
                     <Space direction="vertical" size={8} style={{ width: '100%' }}>

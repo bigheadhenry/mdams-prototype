@@ -1,6 +1,11 @@
 import pytest
 
-from app.services.metadata_layers import build_metadata_layers, get_fixity_sha256, get_original_file_path
+from app.services.metadata_layers import (
+    build_metadata_layers,
+    get_fixity_sha256,
+    get_original_file_path,
+    get_profile_required_fields,
+)
 
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
@@ -23,7 +28,8 @@ def test_build_metadata_layers_defaults_to_other_when_no_object_metadata():
     )
 
     assert layers["schema_version"] == "2.0"
-    assert layers["core"]["resource_id"] == "asset-12"
+    assert layers["core"]["source_id"] == "12"
+    assert layers["core"]["source_system"] == "mdams_2d_image_subsystem"
     assert layers["core"]["title"] == "sample.jpg"
     assert layers["profile"]["key"] == "other"
     assert layers["profile"]["label"] == "其他"
@@ -96,3 +102,12 @@ def test_metadata_helpers_read_layered_values():
 
     assert get_fixity_sha256(layers) == "abc123"
     assert get_original_file_path(layers) == "/tmp/original.psb"
+
+
+def test_profile_required_fields_expose_shared_minimum_rules():
+    assert get_profile_required_fields("business_activity") == ("main_location",)
+    assert get_profile_required_fields("movable_artifact") == ("object_number",)
+    assert get_profile_required_fields("immovable_artifact") == ("building_name",)
+    assert get_profile_required_fields("ancient_tree") == ("archive_number",)
+    assert get_profile_required_fields("archaeology") == ("archaeology_image_category",)
+    assert get_profile_required_fields("other") == ()

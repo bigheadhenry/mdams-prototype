@@ -132,6 +132,33 @@ def test_submit_rejects_incomplete_image_record(db_session):
     assert "image_category" in exc.value.detail["missing_fields"]
 
 
+def test_submit_rejects_movable_artifact_without_object_number(db_session):
+    seed_auth_data(db_session)
+    metadata_user = _metadata_entry_user()
+
+    created = image_records_router.create_image_record(
+        payload=ImageRecordSaveRequest(
+            title="Bronze Mirror Without Number",
+            profile_key="movable_artifact",
+            management={"project_name": "Catalogue", "image_category": "movable_artifact"},
+            profile_fields={"object_name": "Bronze Mirror"},
+            assigned_photographer_user_id=_photographer_user_id(db_session),
+        ),
+        db=db_session,
+        user=metadata_user,
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        image_records_router.submit_image_record(
+            record_id=created.id,
+            db=db_session,
+            user=metadata_user,
+        )
+
+    assert exc.value.status_code == 400
+    assert "object_number" in exc.value.detail["missing_fields"]
+
+
 def test_artifact_lookup_returns_predefined_mock_record(db_session):
     seed_auth_data(db_session)
     metadata_user = _metadata_entry_user()
@@ -255,7 +282,7 @@ def test_sheet_create_and_item_create_inherit_sheet_metadata(db_session):
     assert created_item.metadata_info["management"]["image_category"] == "movable_artifact"
 
 
-def test_photographer_can_open_assigned_sheet_item_before_ready_for_upload(db_session):
+def test_photographer_cannot_open_assigned_sheet_item_before_ready_for_upload(db_session):
     seed_auth_data(db_session)
     metadata_user = _metadata_entry_user()
     photographer_user = _photographer_user()
@@ -288,16 +315,16 @@ def test_photographer_can_open_assigned_sheet_item_before_ready_for_upload(db_se
         db=db_session,
         user=photographer_user,
     )
-    visible_item = image_records_router.get_image_record(
-        record_id=created_item.id,
-        db=db_session,
-        user=photographer_user,
-    )
 
     assert visible_sheet.id == created_sheet.id
-    assert [item.id for item in visible_sheet.items] == [created_item.id]
-    assert visible_item.id == created_item.id
-    assert visible_item.status == "draft"
+    assert visible_sheet.items == []
+    with pytest.raises(HTTPException) as exc:
+        image_records_router.get_image_record(
+            record_id=created_item.id,
+            db=db_session,
+            user=photographer_user,
+        )
+    assert exc.value.status_code == 403
 
 
 def test_photographer_general_list_includes_assigned_upload_queue_records(db_session):

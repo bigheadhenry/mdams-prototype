@@ -216,8 +216,8 @@ const sourceDetail = {
   metadata_layers: {
     schema_version: '2.0',
     core: {
-      resource_id: 'asset-1',
       source_system: 'mdams_2d_image_subsystem',
+      source_id: '1',
       source_label: '2D Image Subsystem',
       resource_type: 'image_2d_cultural_object',
       resource_type_label: '2D Image',
@@ -282,7 +282,7 @@ const unifiedDetail = {
   status: 'ready',
   preview_enabled: true,
   manifest_url: '/api/iiif/1/manifest',
-  detail_url: '/api/platform/resources/image_2d:1',
+  detail_url: '/api/platform/resources/image_2d/1',
   updated_at: '2024-01-01T10:00:00Z',
   source_detail_url: '/api/assets/1',
   source_record: sourceDetail,
@@ -390,6 +390,33 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
       },
     },
   ];
+  const visibleImageRecords = authContext.roles.includes('image_photographer_upload')
+    ? imageRecords.filter(
+        (item) =>
+          item.assigned_photographer_user_id === 3
+          && (item.status === 'ready_for_upload' || item.status === 'uploaded_pending_validation'),
+      )
+    : imageRecords;
+  const imageSheets = [
+    {
+      id: 101,
+      sheet_no: 'IS-20260406-000001',
+      title: 'Spring Survey Sheet',
+      status: 'in_progress',
+      image_type: 'business_activity',
+      project_type: 'survey',
+      project_name: 'Spring Survey',
+      photographer: 'Image Photographer Upload',
+      photographer_org: 'Museum Photo Team',
+      capture_time: '2024-01-01',
+      assigned_photographer_user_id: 3,
+      assigned_photographer_display_name: 'Image Photographer Upload',
+      item_count: visibleImageRecords.length,
+      uploaded_item_count: visibleImageRecords.filter((item) => item.asset).length,
+      created_at: '2024-01-01T10:00:00Z',
+      updated_at: '2024-01-03T10:20:00Z',
+    },
+  ];
 
   const visibleAssets = [
     {
@@ -434,7 +461,7 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
       status: 'ready',
       preview_enabled: true,
       manifest_url: '/api/iiif/2/manifest',
-      detail_url: '/api/platform/resources/image_2d:2',
+      detail_url: '/api/platform/resources/image_2d/2',
       updated_at: '2024-01-01T10:30:00Z',
       source_detail_url: '/api/assets/2',
       source_record: {
@@ -453,7 +480,6 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
           ...sourceDetail.metadata_layers,
           core: {
             ...sourceDetail.metadata_layers.core,
-            resource_id: 'asset-2',
             title: 'owner_scope_image.jpg',
             visibility_scope: 'owner_only',
           },
@@ -471,7 +497,7 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
       status: 'processing',
       preview_enabled: false,
       manifest_url: '/api/iiif/3/manifest',
-      detail_url: '/api/platform/resources/image_2d:3',
+      detail_url: '/api/platform/resources/image_2d/3',
       updated_at: '2024-01-01T11:00:00Z',
       source_detail_url: '/api/assets/3',
       source_record: {
@@ -490,7 +516,6 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
           ...sourceDetail.metadata_layers,
           core: {
             ...sourceDetail.metadata_layers.core,
-            resource_id: 'asset-3',
             title: 'other_owner_image.jpg',
             visibility_scope: 'owner_only',
             collection_object_id: 102,
@@ -506,45 +531,60 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
 
   await page.route('**/api/image-records**', async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/api/image-records/artifact-samples')) {
+      await route.fulfill({ json: { total: 0, items: [] } });
+      return;
+    }
+    if (url.pathname.endsWith('/api/image-records/sheets')) {
+      await route.fulfill({ json: imageSheets });
+      return;
+    }
+    if (url.pathname.endsWith('/api/image-records/sheets/101')) {
+      await route.fulfill({
+        json: {
+          ...imageSheets[0],
+          copyright_owner: 'Museum',
+          remark: 'Regression fixture',
+          metadata_info: {},
+          items: visibleImageRecords,
+        },
+      });
+      return;
+    }
     if (url.pathname.endsWith('/api/image-records')) {
-      const isPhotographer = authContext.roles.includes('image_photographer_upload');
-      const visibleRecords = isPhotographer
-        ? imageRecords.filter(
-            (item) =>
-              item.assigned_photographer_user_id === 3
-              && (item.status === 'ready_for_upload' || item.status === 'uploaded_pending_validation'),
-          )
-        : imageRecords;
-      await route.fulfill({ json: visibleRecords });
+      await route.fulfill({ json: visibleImageRecords });
       return;
     }
     if (url.pathname.endsWith('/api/image-records/ready-for-upload')) {
       await route.fulfill({ json: imageRecords.filter((item) => item.status === 'draft' ? false : true) });
       return;
     }
-    if (url.pathname.endsWith('/api/image-records/11')) {
+    const itemMatch = url.pathname.match(/\/api\/image-records\/(\d+)$/);
+    if (itemMatch) {
+      const itemId = Number(itemMatch[1]);
+      const item = imageRecords.find((record) => record.id === itemId) || imageRecords[0];
       await route.fulfill({
         json: {
-          ...imageRecords[0],
+          ...item,
           metadata_info: {
             schema_version: '2.0',
             core: {
-              resource_type: 'image_2d_cultural_object',
-              title: 'North Gate Inspection',
-              status: 'draft',
-              visibility_scope: 'open',
-              collection_object_id: 101,
-              profile_key: 'business_activity',
-              record_no: 'IR-20260406-000011',
+              resource_type: item.resource_type,
+              title: item.title,
+              status: item.status,
+              visibility_scope: item.visibility_scope,
+              collection_object_id: item.collection_object_id,
+              profile_key: item.profile_key,
+              record_no: item.record_no,
             },
             management: {
-              project_name: 'Spring Survey',
-              image_category: 'documentation',
+              project_name: item.project_name,
+              image_category: item.image_category,
             },
             profile: {
-              key: 'business_activity',
-              label: '业务活动',
-              sheet: '业务活动',
+              key: item.profile_key,
+              label: item.profile_label,
+              sheet: item.profile_label,
               fields: {
                 main_location: 'Hall A',
               },
@@ -622,15 +662,15 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
 
   await page.route('**/api/platform/resources**', async (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname.includes('/api/platform/resources/image_2d:1') || url.pathname.includes('/api/platform/resources/image_2d%3A1')) {
+    if (url.pathname.includes('/api/platform/resources/image_2d/1')) {
       await route.fulfill({ json: unifiedDetail });
       return;
     }
-    if (url.pathname.includes('/api/platform/resources/image_2d:2') || url.pathname.includes('/api/platform/resources/image_2d%3A2')) {
+    if (url.pathname.includes('/api/platform/resources/image_2d/2')) {
       await route.fulfill({ json: visibleUnifiedResources[1] });
       return;
     }
-    if (url.pathname.includes('/api/platform/resources/image_2d:3') || url.pathname.includes('/api/platform/resources/image_2d%3A3')) {
+    if (url.pathname.includes('/api/platform/resources/image_2d/3')) {
       await route.fulfill({ json: visibleUnifiedResources[2] || visibleUnifiedResources[1] });
       return;
     }
@@ -718,7 +758,8 @@ test.describe('Image record workspace', () => {
   test('image metadata entry user can open image record workbench', async ({ page }) => {
     await expect(page.getByTestId('menu-9')).toBeVisible();
     await page.getByTestId('menu-9').click();
-    await expect(page.getByTestId('image-record-list')).toBeVisible();
+    await expect(page.getByText('录入单列表')).toBeVisible();
+    await page.getByText('IS-20260406-000001').click();
     await expect(page.getByRole('cell', { name: 'IR-20260406-000011' })).toBeVisible();
   });
 });
@@ -733,7 +774,8 @@ test.describe('Photographer ready pool', () => {
   test('photographer can open the ready-for-upload pool', async ({ page }) => {
     await expect(page.getByTestId('menu-9')).toBeVisible();
     await page.getByTestId('menu-9').click();
-    await expect(page.getByText('Assigned upload workbench')).toBeVisible();
+    await expect(page.getByText('录入单列表')).toBeVisible();
+    await page.getByText('IS-20260406-000001').click();
     await expect(page.getByRole('cell', { name: 'Roof Detail Retake' })).toBeVisible();
   });
 });

@@ -53,7 +53,8 @@ class MiradorSearchResult(BaseModel):
     asset_id: int
     title: str
     manifest_url: str
-    resource_id: str
+    source_system: str
+    source_id: str
     object_number: str | None = None
     filename: str | None = None
     score: float = 0.0
@@ -72,7 +73,8 @@ class MiradorAIRequest(BaseModel):
     current_manifest_url: str | None = None
     current_title: str | None = None
     current_object_number: str | None = None
-    current_resource_id: str | None = None
+    current_source_system: str | None = None
+    current_source_id: str | None = None
     max_candidates: int = 5
 
 
@@ -110,7 +112,8 @@ def _target_asset_arguments(target: MiradorSearchResult | None) -> dict[str, obj
         "asset_id": target.asset_id,
         "title": target.title,
         "manifest_url": target.manifest_url,
-        "resource_id": target.resource_id,
+        "source_system": target.source_system,
+        "source_id": target.source_id,
         "score": target.score,
         "reasons": target.reasons,
     }
@@ -351,7 +354,9 @@ def _score_asset(asset: Asset, query: str) -> tuple[float, list[str]]:
         asset.file_path or "",
         asset.process_message or "",
         _extract_title(asset),
-        str(core.get("resource_id") or "") if isinstance(core, dict) else "",
+        f"{core.get('source_system') or ''}:{core.get('source_id') or ''}" if isinstance(core, dict) else "",
+        str(core.get("source_system") or "") if isinstance(core, dict) else "",
+        str(core.get("source_id") or "") if isinstance(core, dict) else "",
         str(core.get("object_number") or "") if isinstance(core, dict) else "",
         " ".join(_flatten_metadata_text(asset.metadata_info or {})),
     ]
@@ -375,12 +380,12 @@ def _build_manifest_url(request: Request, asset_id: int) -> str:
 def _build_search_result(request: Request, asset: Asset, score: float, reasons: list[str]) -> MiradorSearchResult:
     metadata_layers = _asset_metadata_layers(asset)
     core = metadata_layers.get("core", {}) if isinstance(metadata_layers, dict) else {}
-    resource_id = str(core.get("resource_id") or f"image_2d:{asset.id}") if isinstance(core, dict) else f"image_2d:{asset.id}"
     return MiradorSearchResult(
         asset_id=asset.id,
         title=_extract_title(asset),
         manifest_url=_build_manifest_url(request, asset.id),
-        resource_id=resource_id,
+        source_system="image_2d",
+        source_id=str(asset.id),
         object_number=_extract_object_number(asset),
         filename=asset.filename,
         score=round(score, 3),
@@ -497,8 +502,9 @@ async def _call_openai_plan(payload: MiradorAIRequest) -> dict[str, object] | No
         "current_asset_id": payload.current_asset_id,
         "current_title": payload.current_title,
         "current_object_number": payload.current_object_number,
+        "current_source_system": payload.current_source_system,
+        "current_source_id": payload.current_source_id,
         "current_manifest_url": payload.current_manifest_url,
-        "current_resource_id": payload.current_resource_id,
     }
 
     request_body = {

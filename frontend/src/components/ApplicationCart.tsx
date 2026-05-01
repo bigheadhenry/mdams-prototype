@@ -93,7 +93,9 @@ const ApplicationCart: React.FC<ApplicationCartProps> = ({ items, onRemove, onUp
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                   <Space wrap>
                     <Tag color="geekblue">Asset #{item.assetId}</Tag>
-                    <Tag color="purple">{item.resourceId}</Tag>
+                    <Tag color="purple">
+                      {item.sourceSystem && item.sourceId ? `${item.sourceSystem}/${item.sourceId}` : `Asset #${item.assetId}`}
+                    </Tag>
                     {item.objectNumber ? <Tag color="gold">{item.objectNumber}</Tag> : null}
                     {item.sourceLabel ? <Tag>{item.sourceLabel}</Tag> : null}
                   </Space>

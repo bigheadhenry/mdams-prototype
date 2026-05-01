@@ -2,232 +2,194 @@
 
 ## 目的
 
-本文档用于说明 MDAMS Prototype 当前 IIIF Manifest 输出层的实际定位、当前已知能力、建议采用的最小 profile，以及后续值得 formalize 的边界。
+本文档用于说明 MDAMS Prototype 当前 IIIF Manifest 输出层的实际定位、实现锚点、稳定能力、边界和后续 formalization 方向。
 
-它的目标不是宣称系统已经完整覆盖 IIIF Presentation API 的所有能力，而是回答以下问题：
-- 当前系统中的 IIIF 支持主要体现在哪里；
+截至 **2026-04-08**，它优先回答：
+- 当前 IIIF 支持在哪些代码和工作流里真实存在；
 - 当前 Manifest 输出最适合被理解为哪一种最小 profile；
-- 当前有哪些字段/结构是可以稳定宣称的；
-- 哪些复杂能力目前还不应贸然声称已经支持。
+- 哪些字段/结构可以稳定宣称；
+- 哪些复杂能力目前仍不应贸然声称。
 
----
+## 一、实现锚点
 
-## 一、当前判断
+当前 IIIF 能力最直接的实现锚点包括：
+- `backend/app/routers/iiif.py`
+- `backend/app/services/iiif_access.py`
+- `backend/app/services/metadata_layers.py`
+- `backend/tests/test_asset_visibility.py`
+- 前端 `frontend/src/MiradorViewer.tsx`
 
-在 MDAMS 当前架构中，IIIF 是最强、最直接、最可展示的标准实现层之一。
+这意味着当前 IIIF 不是停留在路线图，而是已经进入：
+- 后端路由；
+- 访问副本解析；
+- Manifest 组装；
+- 查看器消费；
+- 权限回归测试。
 
-根据当前已确认事实，系统已经具备：
+## 二、当前判断
+
+在 MDAMS 当前架构中，IIIF 仍然是最强、最直接、最可展示的标准实现层之一。
+
+根据当前实现，可以稳定确认系统已经具备：
 - 动态 IIIF Manifest 生成；
-- 面向 IIIF 的公共 URL 结构；
-- 基于 Cantaloupe 的图像服务；
-- Mirador 查看器集成；
-- 资产对象与访问表示之间的明确区分。
+- 基于 `API_PUBLIC_URL` 和 `CANTALOUPE_PUBLIC_URL` 的公共 URL 结构；
+- 基于 Cantaloupe 的图像服务链；
+- 与 Mirador 的稳定消费路径；
+- 对隐藏资源的可见性控制；
+- 原始文件与 IIIF access 副本之间的区分。
 
-因此，当前最稳妥的研究与实现表达应是：
+因此，当前最稳妥的研究与实现表达是：
 
-> MDAMS 已经具备一个**面向图像访问的最小 IIIF Manifest 输出能力**，它足以支撑原型展示与访问互操作，但尚不应被表述为“全面 IIIF 平台”。
+> MDAMS 已经具备一个**面向单资产图像访问的最小 IIIF Manifest 输出层**，足以支撑原型展示与查看器互操作，但尚不应被表述为“全面 IIIF 平台”。
 
----
+## 三、IIIF 在当前系统中的角色
 
-## 二、当前 IIIF 在系统中的角色
-
-### 1. 访问层标准
-IIIF 在当前项目中的核心价值，不是保存，不是内部主数据建模，而是：
+### 1. 访问表示层
+IIIF 在当前项目中的主要职责不是保存建模，而是：
 - 提供图像访问表示；
-- 为查看器提供标准化消费入口；
-- 把资产处理结果转化为可浏览对象；
-- 增强系统的互操作展示能力。
+- 作为查看器消费入口；
+- 把内部资产对象投影成可访问结构。
 
-### 2. 演示链核心节点
-当前最强可演示链条中，IIIF 处于关键位置：
+### 2. 主链路关键节点
+当前最强二维主链路中，IIIF 位于：
 
-1. 上传图像对象；
-2. 记录资产；
-3. 提取技术信息 / 生成衍生；
-4. 生成面向访问的 Manifest；
-5. 在 Mirador 中查看。
+1. 文件进入系统；
+2. 资产登记；
+3. 技术元数据处理与访问副本准备；
+4. Manifest 生成；
+5. Mirador 消费与展示。
 
-### 3. 与保存层分工不同
-需要强调：
-- IIIF 当前主要服务访问与展示；
-- 它不等同于保存元数据模型；
-- 它也不替代 BagIt、PREMIS、OAIS 的角色。
+### 3. 与其他标准分工不同
+需要明确：
+- IIIF 主要服务访问与展示；
+- 不替代 PREMIS 事件模型；
+- 不替代 BagIt 导出包；
+- 不承担 OAIS 意义上的完整保存信息包建模。
 
----
+## 四、当前最小 Manifest Profile
 
-## 三、建议采用的当前最小 Manifest Profile
-
-结合当前原型阶段的稳妥表达，建议把 MDAMS 当前 Manifest 输出理解为：
+结合当前实现和查看器路径，MDAMS 当前 Manifest 最适合被理解为：
 
 > **面向单一数字资产图像访问的最小 IIIF Presentation profile**
 
-也就是说，当前更适合稳定支持的是：
+也就是说，当前稳定支持的重点是：
 - 单资产导向；
-- 单对象或少量对象导向；
-- 图像访问优先；
-- 查看器兼容优先；
+- 单 Canvas 图像访问导向；
+- Mirador 兼容优先；
+- 图像服务集成优先；
 - 不预设复杂叙事结构。
 
-### 这个最小 profile 的特点
-- Manifest 以单一资产为中心；
-- 至少包含基础标识、标签与 items；
-- items 指向可供查看器消费的图像资源链；
-- 与 Cantaloupe 图像服务 URL 协同；
-- 能被 Mirador 稳定消费。
+### 这个最小 profile 的当前特征
+- Manifest `id` 稳定可构造；
+- `type` 为 `Manifest`；
+- `label` 由资产标题或文件名生成；
+- `summary`、`homepage` 已输出；
+- `metadata` 已包含基础系统字段与 layered metadata 映射；
+- `items` 中包含 Canvas、AnnotationPage、Annotation；
+- `body.service` 指向 Cantaloupe 图像服务；
+- 图像尺寸可从 layered metadata 推导，缺失时有兜底值。
 
----
-
-## 四、当前可稳定宣称的能力
-
-基于当前已确认事实，以下能力可以较稳地写入研究或系统说明中。
+## 五、当前可稳定宣称的能力
 
 ### 1. 动态 Manifest 生成
-系统并非静态手写 Manifest，而是具备动态生成能力。
+Manifest 由 `backend/app/routers/iiif.py` 动态组装，而不是静态手写 JSON。
 
-### 2. 与图像服务协同
-Manifest 输出不是孤立 JSON，而是和图像访问服务链协同存在：
-- 后端负责生成 Manifest；
-- Cantaloupe 提供图像服务；
-- Mirador 负责消费与展示。
+### 2. 与访问副本策略协同
+Manifest 并不直接假定一定使用原始文件，而是通过 `iiif_access.py` 优先解析：
+- IIIF access 副本；
+- 无副本时的原始文件回退；
+- 尚未准备完成时的 `409` 状态。
 
-### 3. 面向图像对象的 IIIF 访问
-当前 IIIF 最明确对应的是图像类资产及其访问表示，而不是任意复杂数字对象。
+### 3. 与图像服务协同
+Manifest 中的 `body.service` 当前直接指向 Cantaloupe 图像服务 URL，而不是抽象占位符。
 
-### 4. 公共 URL 结构已经进入系统配置语境
-项目已明确存在：
-- `API_PUBLIC_URL`
-- `CANTALOUPE_PUBLIC_URL`
+### 4. 与 Mirador 的真实消费路径
+前端 `MiradorViewer.tsx` 当前直接加载 Manifest URL 并读取 metadata/title 等信息，说明当前输出已经进入真实 viewer 路径。
 
-这意味着 Manifest 中的外部可访问地址并非完全临时拼装，而已经进入部署配置层。
+### 5. 权限边界已进入 Manifest 输出
+`test_asset_visibility.py` 已验证隐藏资源对无权限用户返回 `403`，这说明 IIIF 输出不是绕过权限的旁路。
 
----
+## 六、建议纳入“稳定支持”的字段/结构
 
-## 五、建议纳入最小 Manifest 的字段/结构
-
-在不夸大当前实现的前提下，建议把以下字段视为“最小 profile 的核心组成”。
-
-| 字段/结构 | 当前建议地位 | 说明 |
+| 字段/结构 | 当前状态 | 说明 |
 |---|---|---|
-| `id` | 核心 | Manifest 的稳定标识 |
-| `type` | 核心 | 应明确为 Manifest |
-| `label` | 核心 | 供查看器与用户理解对象 |
-| `items` | 核心 | 承载访问内容的核心结构 |
-| Canvas | 核心 | 组织图像访问对象 |
-| AnnotationPage | 建议 | 与标准查看器兼容的重要层 |
-| Annotation | 建议 | 指向具体图像资源 |
-| 图像资源 `body` | 核心 | 应能指向图像访问资源 |
-| thumbnail | 可选但建议 | 改善浏览体验 |
-| metadata | 可选但建议 | 放入基础描述性/技术性摘要 |
-| summary | 可选 | 补充资产说明 |
-| viewingDirection / behavior | 可选 | 仅在确有需要时声明 |
+| `id` | 稳定支持 | Manifest 标识 |
+| `type` | 稳定支持 | 固定为 `Manifest` |
+| `label` | 稳定支持 | 来自资产标题/文件名 |
+| `summary` | 稳定支持 | 基础摘要 |
+| `homepage` | 稳定支持 | 资产详情入口 |
+| `metadata` | 稳定支持 | 基础系统字段 + layered metadata |
+| `items` | 稳定支持 | Canvas 链 |
+| `Canvas` | 稳定支持 | 单页图像访问 |
+| `AnnotationPage` | 稳定支持 | viewer 兼容结构 |
+| `Annotation` | 稳定支持 | painting annotation |
+| `body` | 稳定支持 | 图像资源与访问 URL |
+| `service` | 稳定支持 | Cantaloupe 图像服务 |
 
----
+## 七、当前不宜贸然宣称已支持的能力
 
-## 六、当前不宜贸然宣称已支持的能力
-
-为了保持研究表达准确，以下能力当前不应轻易宣称已经完整支持，除非后续做过专门验证：
+为了保持研究表达准确，以下能力当前仍不应轻易宣称已经完整支持：
 
 ### 1. 复杂多对象叙事结构
-例如：
-- 多层 ranges；
-- 复杂章节结构；
-- 多序列阅读逻辑。
+- 多层 ranges
+- 复杂章节逻辑
+- 多序列阅读路径
 
 ### 2. 丰富注释生态
-例如：
-- 用户注释；
-- 外部 annotation targeting；
-- 复杂语义批注。
+- 用户注释
+- 外部 annotation targeting
+- 复杂语义批注
 
-### 3. 多媒体综合对象
-例如：
-- 音频、视频、3D 与图像混合编排；
-- 时间轴驱动的对象展示。
+### 3. 多媒体混合对象
+- 音频/视频/3D 与图像混排
+- 时间轴驱动的对象展示
 
-### 4. 完整 Presentation API 全覆盖
-当前更合适的表达是“选择性支持核心结构”，而不是“完整实现 Presentation API”。
+### 4. 全覆盖 Presentation API
+当前更准确的表达仍是：
+- 选择性支持核心访问结构；
+- 针对当前图像访问路径稳定输出；
+- 不宣称完整 API 覆盖。
 
----
+## 八、当前实现链理解
 
-## 七、当前最小 Manifest 的实现性理解
+从落地角度看，当前 IIIF 输出链可被理解为：
 
-从落地角度看，MDAMS 当前 Manifest 更适合被理解为下面这条链路中的一个**访问层产物**：
+```mermaid
+flowchart LR
+    Asset["Asset\n二维数字资产"] --> Layers["Layered Metadata\ncore/management/technical/profile"]
+    Asset --> Access["IIIF Access Resolution\n原始文件 / 访问副本"]
+    Access --> Manifest["Manifest Assembly\nbackend/app/routers/iiif.py"]
+    Manifest --> Service["Cantaloupe Image Service"]
+    Manifest --> Viewer["MiradorViewer"]
+```
 
-- 资产记录层：系统中的 Asset 与相关文件对象；
-- 图像访问层：Cantaloupe 提供图像服务地址；
-- Manifest 组装层：后端根据资产与图像资源生成 Manifest；
-- 查看器消费层：Mirador 根据 Manifest 进行访问展示。
-
-因此，Manifest 在当前系统中扮演的是：
-- 访问对象的结构化入口；
-- 前端查看体验的标准化桥梁；
-- 研究上最易展示的互操作证据之一。
-
----
-
-## 八、建议的最小字段映射思路
-
-虽然当前还未逐字段核实 Manifest 输出，但从系统概念上，建议至少形成如下映射：
-
-| MDAMS 概念 | IIIF Manifest 侧表达 |
-|---|---|
-| `asset_id` | Manifest `id` 的组成部分或资源定位依据 |
-| 资产名称 / 文件名 | `label` |
-| 访问图像对象 | Canvas / Annotation / body |
-| 预览图 | `thumbnail` |
-| 基础元数据摘要 | `metadata` |
-| IIIF 图像服务地址 | image body / service URL |
-
-这个映射说明：
-- IIIF 并不是系统内部唯一对象模型；
-- 它是把内部资产对象投影为访问表示的一层。
-
----
+这里的关键判断是：
+- IIIF 是访问投影层；
+- 不是内部对象总模型；
+- 也不是保存层对象。
 
 ## 九、当前缺口
 
-### 1. Manifest 输出字段尚未逐项文档化
-目前已确认有动态生成能力，但还没有逐字段列出实际输出结构。
+### 1. Manifest 输出字段仍未逐项样本化
+虽然代码路径清晰，但还没有配一份真实 Manifest 样本逐字段说明。
 
-### 2. 缺少显式 profile 声明
-当前还没有一份文档明确说明：
-- 哪些字段属于稳定支持；
-- 哪些字段只是条件性存在；
-- 哪些能力暂不支持。
+### 2. 当前 profile 仍是“事实归纳”，还不是正式 capability matrix
+后续仍应把“稳定支持字段”“条件存在字段”“暂不支持能力”做成更明确表格。
 
-### 3. 缺少基础验证流程说明
-如果后续要增强研究可信度，建议至少补：
-- 一个真实 Manifest 样本；
-- 基础字段检查；
-- Mirador 兼容性确认。
-
----
+### 3. 兼容性说明仍主要依赖 Mirador 路径
+当前最强验证来自 Mirador 消费路径，但尚未形成更广的 viewer/validator 说明。
 
 ## 十、对项目推进的建议
 
-### 建议 1：下一步补一个真实 Manifest 样本分析
-从当前系统拿一个真实输出样本，逐字段核对实际结构。
-
-### 建议 2：将“稳定支持字段”与“潜在支持字段”分开
-避免文档中混淆“已经实现”和“理论上可以扩展”。
-
-### 建议 3：把 IIIF 视为访问投影层，而不是总模型
-这有利于和 PREMIS、Z39.87、BagIt 保持清晰分工。
-
-### 建议 4：后续可补一个查看器兼容性说明
-例如简单说明当前输出主要面向 Mirador 的实际消费路径。
-
----
+1. 补一个真实 Manifest 样本并逐字段注释
+2. 增加一张 capability matrix，区分 stable / conditional / unsupported
+3. 在研究写作中持续把 IIIF 写成访问表示层，而不是总对象模型
+4. 把 IIIF 与图像 access 副本策略、权限控制和 Mirador 路径一起叙述，而不是只写“支持 IIIF”
 
 ## 十一、当前结论
 
 当前 MDAMS 的 IIIF 能力最适合被描述为：
 
-> 一个围绕单资产图像访问场景构建的、可被查看器消费的最小 IIIF Manifest 输出层。
+> 一个围绕单资产图像访问场景构建的、具有真实后端路由、访问副本解析、图像服务集成、权限控制和查看器消费路径的最小 IIIF Manifest 输出层。
 
-它已经足以作为原型系统最重要的可展示标准能力之一，但当前仍应避免把它表述为全覆盖、复杂对象导向、完整生态级的 IIIF 平台实现。
-
-对研究与实现来说，更务实的路径是：
-- 先确认当前最小 profile；
-- 先固定稳定支持字段；
-- 再逐步补真实样本、验证与扩展结构。
+它已经足以作为原型系统最重要的可展示标准能力之一，但当前仍应避免把它表述为复杂对象导向、完整生态级的 IIIF 平台实现。

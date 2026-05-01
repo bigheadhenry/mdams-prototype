@@ -104,7 +104,7 @@ const App: React.FC = () => {
   const [currentManifest, setCurrentManifest] = useState('');
   const [selectedKey, setSelectedKey] = useState<MenuKey>('1');
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
-  const [selectedUnifiedResourceId, setSelectedUnifiedResourceId] = useState<string | null>(null);
+  const [selectedUnifiedResource, setSelectedUnifiedResource] = useState<{ sourceSystem: string; sourceId: string } | null>(null);
   const [applicationCart, setApplicationCart] = useState<ApplicationCartItem[]>([]);
   const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [applicationsSubmitting, setApplicationsSubmitting] = useState(false);
@@ -175,7 +175,7 @@ const App: React.FC = () => {
       setAssets([]);
       setApplicationCart([]);
       setSelectedAssetId(null);
-      setSelectedUnifiedResourceId(null);
+      setSelectedUnifiedResource(null);
       setSelectedKey('1');
     }
   }, [applyToken]);
@@ -475,7 +475,7 @@ const App: React.FC = () => {
             icon={<FileTextOutlined />}
             onClick={() => {
               setSelectedAssetId(record.id);
-              setSelectedUnifiedResourceId(null);
+              setSelectedUnifiedResource(null);
               setSelectedKey('2');
             }}
           >
@@ -695,7 +695,7 @@ const App: React.FC = () => {
               setSelectedAssetId(null);
             }
             if (event.key !== '6') {
-              setSelectedUnifiedResourceId(null);
+              setSelectedUnifiedResource(null);
             }
           }}
           items={menuItems}
@@ -737,13 +737,14 @@ const App: React.FC = () => {
                   setCurrentManifest(manifestUrl);
                   setPreviewVisible(true);
                 }}
-              />
-            ) : selectedKey === '6' ? (
-              selectedUnifiedResourceId ? (
+                />
+              ) : selectedKey === '6' ? (
+              selectedUnifiedResource ? (
                 <UnifiedResourceDetail
-                  resourceId={selectedUnifiedResourceId}
+                  sourceSystem={selectedUnifiedResource.sourceSystem}
+                  sourceId={selectedUnifiedResource.sourceId}
                   onBack={() => {
-                    setSelectedUnifiedResourceId(null);
+                    setSelectedUnifiedResource(null);
                     setSelectedKey('5');
                   }}
                   onPreview={(manifestUrl) => {
@@ -752,11 +753,11 @@ const App: React.FC = () => {
                   }}
                   onOpenSourceDetail={(assetId) => {
                     setSelectedAssetId(assetId);
-                    setSelectedUnifiedResourceId(null);
+                    setSelectedUnifiedResource(null);
                     setSelectedKey('2');
                   }}
-                  onOpenUnifiedResourceDetail={(resourceId) => {
-                    setSelectedUnifiedResourceId(resourceId);
+                  onOpenUnifiedResourceDetail={(sourceSystem, sourceId) => {
+                    setSelectedUnifiedResource({ sourceSystem, sourceId });
                     setSelectedAssetId(null);
                     setSelectedKey('6');
                   }}
@@ -798,7 +799,7 @@ const App: React.FC = () => {
                     }}
                     onOpenAssetDetail={(assetId) => {
                       setSelectedAssetId(assetId);
-                      setSelectedUnifiedResourceId(null);
+                      setSelectedUnifiedResource(null);
                       setSelectedKey('2');
                     }}
                   />
@@ -812,11 +813,11 @@ const App: React.FC = () => {
                     }}
                     onOpenAssetDetail={(assetId) => {
                       setSelectedAssetId(assetId);
-                      setSelectedUnifiedResourceId(null);
+                      setSelectedUnifiedResource(null);
                       setSelectedKey('2');
                     }}
-                    onOpenUnifiedResourceDetail={(resourceId) => {
-                      setSelectedUnifiedResourceId(resourceId);
+                    onOpenUnifiedResourceDetail={(sourceSystem, sourceId) => {
+                      setSelectedUnifiedResource({ sourceSystem, sourceId });
                       setSelectedAssetId(null);
                       setSelectedKey('6');
                     }}
@@ -885,7 +886,8 @@ const App: React.FC = () => {
                 onAddToApplication={(item) =>
                   addToApplicationCart({
                     assetId: item.assetId,
-                    resourceId: item.resourceId,
+                    sourceSystem: item.sourceSystem,
+                    sourceId: item.sourceId,
                     title: item.title,
                     manifestUrl: item.manifestUrl,
                     objectNumber: item.objectNumber,

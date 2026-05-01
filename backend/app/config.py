@@ -36,11 +36,15 @@ def _load_dotenv(current_path: Path | None = None) -> None:
 
 _load_dotenv()
 
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+FACE_RUNTIME_ROOT = (BACKEND_ROOT / "runtime" / "face_recognition").resolve()
+
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://meam:meam_secret@db:5432/meam_db")
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/uploads")
 API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:3000/api")
 CANTALOUPE_PUBLIC_URL = os.getenv("CANTALOUPE_PUBLIC_URL", "http://localhost:8182/iiif/2")
+CANTALOUPE_INTERNAL_URL = os.getenv("CANTALOUPE_INTERNAL_URL") or CANTALOUPE_PUBLIC_URL
 
 # Moonshot (Kimi) is OpenAI-compatible. Keep the OPENAI_* names for backwards
 # compatibility, but default them to Moonshot when dedicated Moonshot values are
@@ -53,3 +57,16 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", MOONSHOT_API_KEY)
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", MOONSHOT_BASE_URL)
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", MOONSHOT_MODEL)
 OPENAI_TIMEOUT_SECONDS = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "30"))
+
+FACE_RECOGNITION_ENABLED = os.getenv("FACE_RECOGNITION_ENABLED", "0") == "1"
+FACE_RECOGNITION_PROVIDER = os.getenv("FACE_RECOGNITION_PROVIDER", "local").strip().lower()
+FACE_RECOGNITION_BASE_URL = os.getenv("FACE_RECOGNITION_BASE_URL", "http://host.docker.internal:8010")
+FACE_RECOGNITION_TIMEOUT_SECONDS = float(os.getenv("FACE_RECOGNITION_TIMEOUT_SECONDS", "30"))
+FACE_RECOGNITION_THRESHOLD = float(os.getenv("FACE_RECOGNITION_THRESHOLD", "0.5"))
+FACE_RECOGNITION_MODEL_ROOT = os.getenv("FACE_RECOGNITION_MODEL_ROOT", str(FACE_RUNTIME_ROOT))
+FACE_RECOGNITION_MODEL_NAME = os.getenv("FACE_RECOGNITION_MODEL_NAME", "buffalo_l")
+FACE_RECOGNITION_INDEX_DIR = os.getenv(
+    "FACE_RECOGNITION_INDEX_DIR",
+    str((FACE_RUNTIME_ROOT / "index").resolve()),
+)
+FACE_RECOGNITION_STRICT_LOCAL_MODELS = os.getenv("FACE_RECOGNITION_STRICT_LOCAL_MODELS", "1") == "1"

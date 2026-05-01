@@ -8,7 +8,8 @@ import MiradorAiPanel from './MiradorAiPanel';
 
 interface ApplicationCandidate {
   assetId: number;
-  resourceId: string;
+  sourceSystem?: string | null;
+  sourceId?: string | null;
   title: string;
   manifestUrl: string;
   objectNumber?: string | null;
@@ -60,6 +61,16 @@ const shouldAttachAuthHeader = (url: string) => {
     return false;
   }
 };
+
+const parseResourceLocator = (value: string | null | undefined) => {
+  if (!value) return null;
+  const [sourceSystem, ...parts] = value.split(':');
+  const sourceId = parts.join(':');
+  if (!sourceSystem || !sourceId) return null;
+  return { sourceSystem, sourceId };
+};
+
+const getMetadataValue = (metadataMap: Map<string, string>, key: string) => metadataMap.get(key.trim().toLowerCase()) || null;
 
 const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplication }) => {
   const [applicationCandidate, setApplicationCandidate] = useState<ApplicationCandidate | null>(null);
@@ -229,7 +240,14 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
           throw new Error('Manifest 元数据中缺少资源 ID');
         }
 
-        const resourceId = metadataMap.get('resource id') || `image_2d:${assetId}`;
+        const sourceSystem = getMetadataValue(metadataMap, 'source system') || 'image_2d';
+        const sourceId = getMetadataValue(metadataMap, 'source id') || String(assetId);
+        const legacyResourceId = getMetadataValue(metadataMap, 'resource id (legacy)') || getMetadataValue(metadataMap, 'resource id');
+        const parsedLocator = parseResourceLocator(legacyResourceId);
+        const locator = {
+          sourceSystem: parsedLocator?.sourceSystem || sourceSystem,
+          sourceId: parsedLocator?.sourceId || sourceId,
+        };
         const title = metadataMap.get('title') || normalizeLabel(manifestData.label) || `Asset ${assetId}`;
         const objectNumber = metadataMap.get('object number') || undefined;
 
@@ -243,7 +261,8 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
           setManifest(response.data as Record<string, unknown>);
           setApplicationCandidate({
             assetId,
-            resourceId,
+            sourceSystem: locator.sourceSystem,
+            sourceId: locator.sourceId,
             title,
             manifestUrl: manifestId,
             objectNumber,
@@ -305,7 +324,16 @@ const MiradorViewer: React.FC<MiradorViewerProps> = ({ manifestId, onAddToApplic
           alignItems: 'flex-end',
         }}
       >
-        {applicationCandidate ? <Tag color="blue">资源 #{applicationCandidate.assetId}</Tag> : null}
+        {applicationCandidate ? (
+          <Space direction="horizontal" size={6} wrap>
+            <Tag color="purple">
+              {applicationCandidate.sourceSystem && applicationCandidate.sourceId
+                ? `${applicationCandidate.sourceSystem}/${applicationCandidate.sourceId}`
+                : `资源 #${applicationCandidate.assetId}`}
+            </Tag>
+            <Tag color="blue">资源 #{applicationCandidate.assetId}</Tag>
+          </Space>
+        ) : null}
         <Button
           type="primary"
           icon={<PlusOutlined />}

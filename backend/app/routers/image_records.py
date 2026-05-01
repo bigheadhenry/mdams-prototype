@@ -32,6 +32,7 @@ from ..schemas import (
     ImageRecordValidationState,
 )
 from ..services.cultural_object_lookup import list_cultural_object_samples, lookup_cultural_object_by_number
+from ..services.face_recognition import build_face_recognition_pending_state
 from ..services.image_record_validation import (
     ALLOWED_UPLOAD_EXTENSIONS,
     validate_bound_image_record,
@@ -43,7 +44,7 @@ from ..services.iiif_access import (
     mark_asset_ready_with_original_access,
 )
 from ..services.metadata_layers import CORE_FIELD_LABELS, FIELD_LABELS, PROFILE_DEFINITIONS, build_metadata_layers, get_fixity_sha256
-from ..tasks import generate_iiif_access_derivative
+from ..tasks import generate_iiif_access_derivative, recognize_business_activity_faces
 from ..utils.metadata import extract_metadata
 
 router = APIRouter(prefix="/image-records", tags=["image-records"])
@@ -59,6 +60,7 @@ PENDING_UPLOAD_KEY = "pending_upload"
 SHEET_DRAFT_STATUS = "draft"
 SHEET_IN_PROGRESS_STATUS = "in_progress"
 SHEET_COMPLETED_STATUS = "completed"
+UPLOAD_VISIBLE_STATUSES = {READY_STATUS, UPLOADED_PENDING_VALIDATION_STATUS}
 
 SHEET_TO_PROFILE_KEY = {
     "movable_artifact": "movable_artifact",
@@ -143,6 +145,11 @@ def _profile_fields(record: ImageRecord) -> dict[str, Any]:
         return {}
     fields = profile.get("fields")
     return fields if isinstance(fields, dict) else {}
+
+
+def _record_raw_metadata(record: ImageRecord) -> dict[str, Any]:
+    raw_metadata = _record_layers(record).get("raw_metadata")
+    return dict(raw_metadata) if isinstance(raw_metadata, dict) else {}
 
 
 def _append_audit_entry(record: ImageRecord, action: str, actor: CurrentUser, note: str | None = None) -> None:
@@ -256,7 +263,32 @@ def _is_sheet_visible_to_user(sheet: ImageIngestSheet, user: CurrentUser) -> boo
         item.assigned_photographer_user is not None and item.assigned_photographer_user.username == user_db_id
         for item in sheet.items
     )
-    return SHEET_DRAFT_STATUS
+
+
+def _is_record_assigned_to_user(record: ImageRecord, user: CurrentUser) -> bool:
+    user_db_id = user.user_id
+    if record.assigned_photographer_user is not None and record.assigned_photographer_user.username == user_db_id:
+        return True
+    if (
+        record.sheet is not None
+        and record.sheet.assigned_photographer_user is not None
+        and record.sheet.assigned_photographer_user.username == user_db_id
+    ):
+        return True
+    return False
+
+
+def _visible_sheet_items_for_user(sheet: ImageIngestSheet, user: CurrentUser | None = None) -> list[ImageRecord]:
+    items = list(sheet.items or [])
+    if user is None or user.has_permission("image.record.list"):
+        return items
+    if not user.has_permission("image.record.view_ready_for_upload"):
+        return []
+    return [
+        item
+        for item in items
+        if item.status in UPLOAD_VISIBLE_STATUSES and _is_record_assigned_to_user(item, user)
+    ]
 
 
 def _serialize_sheet_summary(sheet: ImageIngestSheet) -> ImageIngestSheetSummary:
@@ -282,14 +314,14 @@ def _serialize_sheet_summary(sheet: ImageIngestSheet) -> ImageIngestSheetSummary
     )
 
 
-def _serialize_sheet_detail(sheet: ImageIngestSheet) -> ImageIngestSheetDetailResponse:
+def _serialize_sheet_detail(sheet: ImageIngestSheet, user: CurrentUser | None = None) -> ImageIngestSheetDetailResponse:
     summary = _serialize_sheet_summary(sheet)
     return ImageIngestSheetDetailResponse(
         **summary.model_dump(),
         copyright_owner=sheet.copyright_owner,
         remark=sheet.remark,
         metadata_info=_sheet_metadata_info(sheet),
-        items=[_serialize_image_record(item) for item in sheet.items],
+        items=[_serialize_image_record(item) for item in _visible_sheet_items_for_user(sheet, user)],
     )
 
 
@@ -572,14 +604,10 @@ def _get_image_record_or_404(record_id: int, db: Session) -> ImageRecord:
 def _is_visible_to_user(record: ImageRecord, user: CurrentUser) -> bool:
     if user.has_permission("image.record.list"):
         return True
-    if record.sheet is not None and _is_sheet_visible_to_user(record.sheet, user):
-        return True
-    user_db_id = user.user_id
     return (
         user.has_permission("image.record.view_ready_for_upload")
-        and record.assigned_photographer_user is not None
-        and record.assigned_photographer_user.username == user_db_id
-        and record.status in {READY_STATUS, UPLOADED_PENDING_VALIDATION_STATUS}
+        and record.status in UPLOAD_VISIBLE_STATUSES
+        and _is_record_assigned_to_user(record, user)
     )
 
 
@@ -909,6 +937,63 @@ def _enqueue_asset_derivative_generation(asset: Asset) -> None:
         generate_iiif_access_derivative.delay(asset.id, asset.file_path)
 
 
+def _set_face_recognition_pending(record: ImageRecord, asset: Asset) -> None:
+    if record.profile_key != "business_activity" or not config.FACE_RECOGNITION_ENABLED:
+        return
+
+    face_recognition = build_face_recognition_pending_state(
+        asset_id=asset.id,
+        threshold=config.FACE_RECOGNITION_THRESHOLD,
+    )
+
+    raw_metadata = _record_raw_metadata(record)
+    raw_metadata["face_recognition"] = face_recognition
+    profile_fields = dict(_profile_fields(record))
+    profile_fields.pop("main_person", None)
+    record.metadata_info = _build_layers(
+        record_no=record.record_no,
+        title=record.title,
+        status_code=record.status,
+        resource_type=record.resource_type,
+        visibility_scope=record.visibility_scope,
+        collection_object_id=record.collection_object_id,
+        profile_key=record.profile_key,
+        management=_management_section(record),
+        profile_fields=profile_fields,
+        raw_metadata=raw_metadata,
+    )
+
+    asset_layers = build_metadata_layers(
+        asset_id=asset.id,
+        asset_filename=asset.filename,
+        asset_file_path=asset.file_path,
+        asset_file_size=asset.file_size,
+        asset_mime_type=asset.mime_type,
+        asset_status=asset.status,
+        asset_resource_type=asset.resource_type,
+        asset_visibility_scope=asset.visibility_scope,
+        asset_collection_object_id=asset.collection_object_id,
+        asset_created_at=asset.created_at,
+        metadata=asset.metadata_info or {},
+        source_metadata={
+            **(
+                asset.metadata_info.get("raw_metadata", {})
+                if isinstance(asset.metadata_info, dict) and isinstance(asset.metadata_info.get("raw_metadata"), dict)
+                else {}
+            ),
+            "face_recognition": face_recognition,
+        },
+        profile_hint=record.profile_key,
+    )
+    asset.metadata_info = asset_layers
+
+
+def _enqueue_business_activity_face_recognition(record: ImageRecord, asset: Asset) -> None:
+    if record.profile_key != "business_activity" or not config.FACE_RECOGNITION_ENABLED:
+        return
+    recognize_business_activity_faces.delay(record.id, asset.id)
+
+
 def _build_pending_upload_payload(
     record: ImageRecord,
     asset_file: UploadFile,
@@ -1137,7 +1222,7 @@ def create_image_ingest_sheet(
     _apply_sheet_payload(sheet, payload, db, user)
     db.commit()
     db.refresh(sheet)
-    return _serialize_sheet_detail(sheet)
+    return _serialize_sheet_detail(sheet, user)
 
 
 @router.get("/sheets/{sheet_id}", response_model=ImageIngestSheetDetailResponse)
@@ -1149,7 +1234,7 @@ def get_image_ingest_sheet(
     sheet = _get_sheet_or_404(sheet_id, db)
     if not _is_sheet_visible_to_user(sheet, user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Image ingest sheet is not visible to current user")
-    return _serialize_sheet_detail(sheet)
+    return _serialize_sheet_detail(sheet, user)
 
 
 @router.patch("/sheets/{sheet_id}", response_model=ImageIngestSheetDetailResponse)
@@ -1163,7 +1248,7 @@ def update_image_ingest_sheet(
     _apply_sheet_payload(sheet, payload, db, user)
     db.commit()
     db.refresh(sheet)
-    return _serialize_sheet_detail(sheet)
+    return _serialize_sheet_detail(sheet, user)
 
 
 @router.post("/sheets/{sheet_id}/items", response_model=ImageRecordDetailResponse, status_code=status.HTTP_201_CREATED)
@@ -1470,9 +1555,11 @@ def confirm_bind_image_record(
     )
     _apply_asset_access_strategy(db_asset)
     db.add(db_asset)
+    db.flush()
 
     _set_record_status(record, UPLOADED_PENDING_VALIDATION_STATUS)
     _set_binding_validation(record, validation)
+    _set_face_recognition_pending(record, db_asset)
     _set_pending_upload(record, None)
     _append_audit_entry(record, "asset_bound", user, payload.note)
 
@@ -1480,6 +1567,7 @@ def confirm_bind_image_record(
     db.refresh(record)
     db.refresh(db_asset)
     _enqueue_asset_derivative_generation(db_asset)
+    _enqueue_business_activity_face_recognition(record, db_asset)
     return _serialize_image_record_detail(record, db)
 
 
@@ -1525,9 +1613,11 @@ def confirm_replace_image_record_asset(
     )
     _apply_asset_access_strategy(db_asset)
     db.add(db_asset)
+    db.flush()
 
     _set_record_status(record, UPLOADED_PENDING_VALIDATION_STATUS)
     _set_binding_validation(record, validation)
+    _set_face_recognition_pending(record, db_asset)
     _set_pending_upload(record, None)
     _append_audit_entry(record, "asset_replaced", user, payload.note or f"replaced_asset_id={replaced_asset.id}")
 
@@ -1535,4 +1625,5 @@ def confirm_replace_image_record_asset(
     db.refresh(record)
     db.refresh(db_asset)
     _enqueue_asset_derivative_generation(db_asset)
+    _enqueue_business_activity_face_recognition(record, db_asset)
     return _serialize_image_record_detail(record, db)

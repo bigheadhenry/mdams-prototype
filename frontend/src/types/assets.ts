@@ -162,7 +162,8 @@ export interface ImageIngestSheetDetailResponse extends ImageIngestSheetSummary 
 
 export interface ApplicationCartItem {
   assetId: number;
-  resourceId: string;
+  sourceSystem?: string | null;
+  sourceId?: string | null;
   title: string;
   manifestUrl: string;
   objectNumber?: string | null;
@@ -312,6 +313,32 @@ export interface AssetMetadataLayers {
   raw_metadata?: Record<string, unknown>;
 }
 
+export interface FaceRecognitionFaceResult {
+  face_index: number;
+  name?: string | null;
+  recognized: boolean;
+  confidence: number;
+  score: number;
+  bbox: number[];
+  cluster_id?: string | null;
+}
+
+export interface FaceRecognitionMetadata {
+  status: string;
+  provider?: string | null;
+  threshold?: number | null;
+  asset_id?: number | null;
+  last_run_at?: string | null;
+  face_count?: number;
+  recognized_count?: number;
+  recognized_names?: string[];
+  image_width?: number | null;
+  image_height?: number | null;
+  faces?: FaceRecognitionFaceResult[];
+  error_message?: string | null;
+  raw_response?: Record<string, unknown>;
+}
+
 export interface AssetAccessSummary {
   manifest_url: string;
   preview_enabled: boolean;
@@ -321,7 +348,8 @@ export interface MiradorSearchResult {
   asset_id: number;
   title: string;
   manifest_url: string;
-  resource_id: string;
+  source_system: string;
+  source_id: string;
   object_number?: string | null;
   filename?: string | null;
   score?: number;
@@ -366,7 +394,8 @@ export interface MiradorAIRequest {
   current_manifest_url?: string | null;
   current_title?: string | null;
   current_object_number?: string | null;
-  current_resource_id?: string | null;
+  current_source_system?: string | null;
+  current_source_id?: string | null;
   max_candidates?: number;
 }
 
@@ -379,6 +408,17 @@ export interface UnifiedResourceSourceSummary {
   healthy: boolean;
   last_synced_at?: string | null;
   entrypoint: string;
+}
+
+export interface UnifiedResourceAction {
+  key: string;
+  label: string;
+  kind: string;
+  target: string;
+  url?: string | null;
+  method?: string;
+  enabled: boolean;
+  reason?: string | null;
 }
 
 export interface UnifiedResourceSummary {
@@ -395,11 +435,14 @@ export interface UnifiedResourceSummary {
   manifest_url: string;
   detail_url: string;
   updated_at: string;
+  actions?: UnifiedResourceAction[];
 }
 
 export interface UnifiedResourceDetail extends UnifiedResourceSummary {
   source_detail_url: string;
-  source_record?: AssetDetailResponse | null;
+  source_record_type?: 'asset_detail' | 'three_d_detail' | string | null;
+  source_record_schema?: string | null;
+  source_record?: AssetDetailResponse | ThreeDDetailResponse | null;
 }
 
 export interface ThreeDAssetSummary {

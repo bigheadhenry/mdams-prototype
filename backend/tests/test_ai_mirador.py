@@ -33,7 +33,8 @@ def test_attach_tool_call_serializes_compare_target():
         asset_id=42,
         title="Blue Vase Study",
         manifest_url="http://testserver/api/iiif/42/manifest",
-        resource_id="image_2d:42",
+        source_system="image_2d",
+        source_id="42",
         object_number="OBJ-42",
         score=3.0,
         reasons=["blue", "vase"],
@@ -54,6 +55,8 @@ def test_attach_tool_call_serializes_compare_target():
     assert plan.tool_call.arguments["mode"] == "side_by_side"
     assert plan.tool_call.arguments["query"] == "blue vase"
     assert plan.tool_call.arguments["target_asset"]["asset_id"] == 42
+    assert plan.tool_call.arguments["target_asset"]["source_system"] == "image_2d"
+    assert plan.tool_call.arguments["target_asset"]["source_id"] == "42"
 
 
 def _make_request(headers=None):
@@ -104,7 +107,8 @@ def _create_asset(
                 "object_number": title,
                 "visibility_scope": visibility_scope,
                 "collection_object_id": collection_object_id,
-                "resource_id": f"image_2d:{asset_id}",
+                "source_system": "image_2d",
+                "source_id": str(asset_id),
             },
             "technical": {},
             "management": {},
@@ -151,7 +155,8 @@ def test_interpret_mirador_command_uses_openai_compare_search_and_excludes_curre
                 current_manifest_url="http://localhost:3000/api/iiif/101/manifest",
                 current_title=current_asset.filename,
                 current_object_number="Blue Vase",
-                current_resource_id="image_2d:101",
+                current_source_system="image_2d",
+                current_source_id=str(current_asset.id),
                 max_candidates=5,
             ),
             _make_request({"host": "localhost:3000"}),
@@ -194,7 +199,8 @@ def test_interpret_mirador_command_falls_back_to_search_when_compare_has_no_cand
                 current_manifest_url="http://localhost:3000/api/iiif/201/manifest",
                 current_title="Unrelated Archive",
                 current_object_number="201",
-                current_resource_id="image_2d:201",
+                current_source_system="image_2d",
+                current_source_id="201",
                 max_candidates=5,
             ),
             _make_request({"host": "localhost:3000"}),

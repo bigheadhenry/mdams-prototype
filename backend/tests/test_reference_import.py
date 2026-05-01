@@ -136,6 +136,44 @@ def test_assess_manifest_completeness_reports_missing_profile_fields():
     assert result["expected"] == 12
 
 
+def test_assess_manifest_completeness_uses_shared_movable_artifact_rules():
+    manifest = {
+        "hash": "abc",
+        "metadata": {
+            "core": {
+                "title": "铜镜正面",
+                "source_system": "reference_resource_pack",
+                "resource_type": "image_2d_cultural_object",
+                "visibility_scope": "open",
+            },
+            "management": {
+                "project_name": "文物影像",
+                "image_category": "文物影像",
+                "image_name": "铜镜正面",
+            },
+            "technical": {
+                "original_file_name": "artifact.jpg",
+                "file_size": 1024,
+                "checksum": "abc",
+                "ingest_method": "reference_manifest",
+            },
+            "profile": {
+                "key": "movable_artifact",
+                "fields": {
+                    "object_name": "铜镜",
+                },
+            },
+        },
+    }
+
+    result = assess_manifest_completeness(manifest)
+
+    assert result["profile_key"] == "movable_artifact"
+    assert "profile.object_number" in result["missing"]
+    assert result["filled"] == 11
+    assert result["expected"] == 12
+
+
 def test_build_reference_manifest_extracts_business_activity_location_and_person(tmp_path):
     source_root = tmp_path / "reference"
     resource_dir = source_root / "业务活动影像" / "标准化工作会议"
@@ -167,3 +205,35 @@ def test_build_reference_manifest_extracts_business_activity_location_and_person
     assert candidate is not None
     assert candidate.manifest["metadata"]["profile"]["fields"]["main_location"] == "致正斋"
     assert candidate.manifest["metadata"]["profile"]["fields"]["main_person"] == "王旭东"
+
+
+def test_build_reference_manifest_extracts_movable_artifact_object_number_when_present(tmp_path):
+    source_root = tmp_path / "reference"
+    resource_dir = source_root / "文物影像" / "铜镜正面"
+    _write_image(resource_dir / "artifact.tif")
+    (resource_dir / "artifact.unified.json").write_text(
+        """
+        {
+          "source_id": "artifact-123",
+          "source_label": "文物影像",
+          "profile_key": "movable_artifact",
+          "title": "铜镜正面",
+          "metadata_layers": {
+            "source_record": {
+              "文物号": "故00123456"
+            }
+          }
+        }
+        """.strip(),
+        encoding="utf-8",
+    )
+
+    candidate = build_reference_manifest(source_dir=resource_dir, source_root=source_root)
+
+    assert candidate is not None
+    assert candidate.manifest["metadata"]["profile"]["fields"]["object_name"] == "铜镜正面"
+    assert candidate.manifest["metadata"]["profile"]["fields"]["object_number"] == "故00123456"
+
+    completeness = assess_manifest_completeness(candidate.manifest)
+    assert completeness["missing"] == []
+    assert completeness["ratio"] == 1.0

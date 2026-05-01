@@ -33,6 +33,10 @@ class TemplateSourceAdapter(PlatformSourceAdapter):
     ) -> list[UnifiedResourceSummary]:
         raise NotImplementedError("Replace this template with a concrete source adapter.")
 
-    def get_unified_resource(self, resource_id: str, db: Session) -> UnifiedResourceDetail:
+    def get_unified_resource_by_source(
+        self,
+        source_system: str,
+        source_id: str,
+        db: Session,
+    ) -> UnifiedResourceDetail:
         raise NotImplementedError("Replace this template with a concrete source adapter.")
-

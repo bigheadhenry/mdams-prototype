@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..models import Asset
 from ..schemas import (
+    UnifiedResourceAction,
     UnifiedResourceDetail,
     UnifiedResourceSourceSummary,
     UnifiedResourceSummary,
@@ -22,8 +23,54 @@ SOURCE_LABEL = "二维影像子系统"
 RESOURCE_TYPE = "image_2d_cultural_object"
 
 
-def _resource_id(asset_id: int) -> str:
+def _platform_id(asset_id: int) -> str:
     return f"{SOURCE_SYSTEM}:{asset_id}"
+
+
+def _resource_detail_url(asset_id: int) -> str:
+    return f"/api/platform/resources/{SOURCE_SYSTEM}/{asset_id}"
+
+
+def _resource_actions(asset_id: int, *, preview_enabled: bool) -> list[UnifiedResourceAction]:
+    return [
+        UnifiedResourceAction(
+            key="preview",
+            label="打开 IIIF 预览",
+            kind="preview",
+            target="access_representation",
+            url=f"/api/iiif/{asset_id}/manifest",
+            enabled=preview_enabled,
+            reason=None if preview_enabled else "IIIF access source is not ready.",
+        ),
+        UnifiedResourceAction(
+            key="platform_detail",
+            label="查看统一详情",
+            kind="detail",
+            target="platform",
+            url=_resource_detail_url(asset_id),
+        ),
+        UnifiedResourceAction(
+            key="source_detail",
+            label="查看二维来源详情",
+            kind="source_detail",
+            target="source",
+            url=f"/api/assets/{asset_id}",
+        ),
+        UnifiedResourceAction(
+            key="download",
+            label="下载当前文件",
+            kind="download",
+            target="source",
+            url=f"/api/assets/{asset_id}/download",
+        ),
+        UnifiedResourceAction(
+            key="export_bagit",
+            label="下载 BagIt 包",
+            kind="export",
+            target="export_package",
+            url=f"/api/assets/{asset_id}/download-bag",
+        ),
+    ]
 
 
 def _source_last_synced_at(db: Session) -> datetime:
@@ -133,7 +180,7 @@ def list_unified_resources_filtered(
             continue
         resources.append(
             UnifiedResourceSummary(
-                id=_resource_id(asset.id),
+                id=_platform_id(asset.id),
                 source_system=SOURCE_SYSTEM,
                 source_id=str(asset.id),
                 source_label=SOURCE_LABEL,
@@ -144,19 +191,16 @@ def list_unified_resources_filtered(
                 status=asset.status,
                 preview_enabled=asset_preview_enabled,
                 manifest_url=f"/api/iiif/{asset.id}/manifest",
-                detail_url=f"/api/platform/resources/{_resource_id(asset.id)}",
+                detail_url=_resource_detail_url(asset.id),
                 updated_at=asset.created_at,
+                actions=_resource_actions(asset.id, preview_enabled=asset_preview_enabled),
             )
         )
     return resources
 
 
-def get_unified_resource(resource_id: str, db: Session) -> UnifiedResourceDetail:
-    source_system, separator, source_id = resource_id.partition(":")
-    if not separator or source_system != SOURCE_SYSTEM or not source_id.isdigit():
-        raise ValueError("Unknown unified resource id")
-
-    asset = db.query(Asset).filter(Asset.id == int(source_id)).first()
+def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if asset is None:
         raise LookupError("Resource not found")
 
@@ -175,7 +219,7 @@ def get_unified_resource(resource_id: str, db: Session) -> UnifiedResourceDetail
     )
 
     return UnifiedResourceDetail(
-        id=_resource_id(asset.id),
+        id=_platform_id(asset.id),
         source_system=SOURCE_SYSTEM,
         source_id=str(asset.id),
         source_label=SOURCE_LABEL,
@@ -186,10 +230,13 @@ def get_unified_resource(resource_id: str, db: Session) -> UnifiedResourceDetail
         status=asset.status,
         preview_enabled=preview_enabled,
         manifest_url=f"/api/iiif/{asset.id}/manifest",
-        detail_url=f"/api/assets/{asset.id}",
+        detail_url=_resource_detail_url(asset.id),
         updated_at=asset.created_at,
+        actions=_resource_actions(asset.id, preview_enabled=preview_enabled),
         source_detail_url=f"/api/assets/{asset.id}",
-        source_record=source_record,
+        source_record_type="asset_detail",
+        source_record_schema="asset_detail.v1",
+        source_record=source_record.model_dump(mode="json"),
     )
 
 
@@ -220,8 +267,15 @@ class Image2DSourceAdapter(PlatformSourceAdapter):
             preview_enabled=preview_enabled,
         )
 
-    def get_unified_resource(self, resource_id: str, db: Session) -> UnifiedResourceDetail:
-        return get_unified_resource(resource_id, db)
+    def get_unified_resource_by_source(
+        self,
+        source_system: str,
+        source_id: str,
+        db: Session,
+    ) -> UnifiedResourceDetail:
+        if source_system != SOURCE_SYSTEM or not source_id.isdigit():
+            raise ValueError("Unknown unified resource id")
+        return get_unified_resource(int(source_id), db)
 
 
 registry.register(Image2DSourceAdapter())

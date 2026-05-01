@@ -36,6 +36,16 @@ class PlatformSourceAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_unified_resource(self, resource_id: str, db: Session) -> UnifiedResourceDetail:
+    def get_unified_resource_by_source(
+        self,
+        source_system: str,
+        source_id: str,
+        db: Session,
+    ) -> UnifiedResourceDetail:
         raise NotImplementedError
 
+    def get_unified_resource(self, resource_id: str, db: Session) -> UnifiedResourceDetail:
+        source_system, separator, source_id = resource_id.partition(":")
+        if not separator:
+            raise ValueError("Unknown unified resource id")
+        return self.get_unified_resource_by_source(source_system, source_id, db)

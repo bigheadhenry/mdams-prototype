@@ -100,6 +100,7 @@ def test_iiif_manifest_blocks_hidden_assets(db_session, monkeypatch, tmp_path):
         file_path=str(hidden_file),
     )
     monkeypatch.setattr(iiif_router.config, "CANTALOUPE_PUBLIC_URL", "http://localhost:8182/iiif/2")
+    monkeypatch.setattr(iiif_router.config, "API_PUBLIC_URL", "http://localhost:3000/api")
 
     public_user = get_current_user(x_mdams_user="resource-user")
     owner_user = get_current_user(x_mdams_user="collection-owner", x_mdams_collection_scope="42")
@@ -120,4 +121,6 @@ def test_iiif_manifest_blocks_hidden_assets(db_session, monkeypatch, tmp_path):
         user=owner_user,
     )
     assert manifest["id"].endswith(f"/iiif/{owner_asset.id}/manifest")
-    assert manifest["items"][0]["items"][0]["items"][0]["body"]["service"][0]["id"] == "http://localhost:8182/iiif/2/hidden.jpg"
+    assert manifest["items"][0]["items"][0]["items"][0]["body"]["service"][0]["id"] == (
+        f"http://localhost:3000/api/iiif/{owner_asset.id}/service/hidden.jpg"
+    )

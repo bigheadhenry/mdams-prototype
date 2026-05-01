@@ -76,7 +76,12 @@ def _create_asset(db_session, *, asset_id: int, original_path: Path, access_path
         resource_type="image_2d_cultural_object",
         process_message=None,
         metadata_info={
-            "core": {"title": original_path.name, "resource_id": f"image_2d:{asset_id}", "visibility_scope": "open"},
+            "core": {
+                "title": original_path.name,
+                "source_system": "image_2d",
+                "source_id": str(asset_id),
+                "visibility_scope": "open",
+            },
             "technical": technical,
             "management": {},
             "profile": {"key": "other", "label": "Other", "sheet": "Other", "fields": {}},
@@ -92,6 +97,7 @@ def _create_asset(db_session, *, asset_id: int, original_path: Path, access_path
 def test_manifest_and_download_prefer_iiif_access_copy(db_session, tmp_path, monkeypatch):
     monkeypatch.setattr(app_config, "UPLOAD_DIR", str(tmp_path))
     monkeypatch.setattr(app_config, "CANTALOUPE_PUBLIC_URL", "http://cantaloupe:8182/iiif/2")
+    monkeypatch.setattr(app_config, "API_PUBLIC_URL", "http://localhost:3000/api")
 
     original_path = tmp_path / "master.tif"
     access_path = tmp_path / "derivatives" / "asset-1" / "iiif-access.pyramidal.tiff"
@@ -108,7 +114,10 @@ def test_manifest_and_download_prefer_iiif_access_copy(db_session, tmp_path, mon
         user=build_system_user(),
     )
     service_id = manifest["items"][0]["items"][0]["items"][0]["body"]["service"][0]["id"]
-    assert service_id == "http://cantaloupe:8182/iiif/2/iiif-access.pyramidal.tiff"
+    assert service_id == (
+        "http://localhost:3000/api/iiif/1/service/"
+        "derivatives/asset-1/iiif-access.pyramidal.tiff"
+    )
 
     download_response = downloads_router.download_asset_file(asset_id=asset.id, db=db_session)
     assert Path(download_response.path) == access_path

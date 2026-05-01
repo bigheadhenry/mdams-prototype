@@ -39,7 +39,8 @@ import type { MiradorAIPlan, MiradorSearchResult } from './types/assets';
 
 interface ApplicationCandidate {
   assetId: number;
-  resourceId: string;
+  sourceSystem?: string | null;
+  sourceId?: string | null;
   title: string;
   manifestUrl: string;
   objectNumber?: string | null;
@@ -250,7 +251,8 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
       current_manifest_url: manifestId,
       current_title: currentCandidate?.title ?? null,
       current_object_number: currentCandidate?.objectNumber ?? null,
-      current_resource_id: currentCandidate?.resourceId ?? null,
+      current_source_system: currentCandidate?.sourceSystem ?? null,
+      current_source_id: currentCandidate?.sourceId ?? null,
       max_candidates: 5,
     }),
     [currentCandidate, manifestId],
@@ -831,7 +833,7 @@ const MiradorAiPanel: React.FC<MiradorAiPanelProps> = ({ manifestId, currentCand
                       <Tag color={selectedTarget?.asset_id === item.asset_id ? 'blue' : 'default'}>#{item.asset_id}</Tag>
                     </Space>
                     <Typography.Text style={{ color: 'rgba(255,255,255,0.56)', fontSize: 12 }}>
-                      {item.object_number || item.filename || item.resource_id}
+                      {item.object_number || item.filename || `${item.source_system}/${item.source_id}`}
                     </Typography.Text>
                   </Space>
                 </List.Item>

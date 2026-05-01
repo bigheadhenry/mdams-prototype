@@ -52,6 +52,11 @@ backend/backend-dev.db
 backend/pytest_backend.db
 frontend/runtime/
 runtime/
+!backend/runtime/
+backend/runtime/*
+!backend/runtime/face_recognition/
+backend/runtime/face_recognition/*
+!backend/runtime/face_recognition/README.md
 META-INF/
 
 # Local scratch and generated files

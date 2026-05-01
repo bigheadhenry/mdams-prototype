@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .metadata_layers import PROFILE_KEY_ALIASES
+from .metadata_layers import PROFILE_KEY_ALIASES, get_profile_required_fields
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".tif", ".tiff", ".png", ".psb"}
 REFERENCE_SOURCE_SYSTEM = "reference_resource_pack"
@@ -17,15 +17,6 @@ COMPLETENESS_FIELD_RULES = {
     "management": ("project_name", "image_category", "image_name"),
     "technical": ("original_file_name", "file_size", "checksum", "ingest_method"),
 }
-PROFILE_COMPLETENESS_RULES = {
-    "business_activity": ("main_location",),
-    "ancient_tree": ("archive_number",),
-    "immovable_artifact": ("building_name",),
-    "movable_artifact": ("object_name",),
-    "archaeology": ("archaeology_image_category",),
-    "other": (),
-}
-
 REFERENCE_PROFILE_MAP = {
     **PROFILE_KEY_ALIASES,
     "archaeology": "archaeology",
@@ -175,13 +166,32 @@ def _build_profile_fields(
     source_dir: Path,
     title: str,
     source_label: str,
+    unified_data: dict[str, Any] | None = None,
+    core: dict[str, Any] | None = None,
     modality: dict[str, Any] | None = None,
     source_record: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    unified_data = unified_data or {}
+    core = core or {}
     modality = modality or {}
     source_record = source_record or {}
     if profile_key == "movable_artifact":
-        return {"object_name": title}
+        object_number = _first_present(
+            unified_data.get("object_number"),
+            unified_data.get("文物号"),
+            core.get("object_number"),
+            core.get("文物号"),
+            modality.get("object_number"),
+            modality.get("文物号"),
+            modality.get("藏品号"),
+            source_record.get("object_number"),
+            source_record.get("文物号"),
+            source_record.get("藏品号"),
+        )
+        fields = {"object_name": title}
+        if object_number not in (None, "", []):
+            fields["object_number"] = object_number
+        return fields
     if profile_key == "immovable_artifact":
         return {"building_name": source_dir.name}
     if profile_key == "ancient_tree":
@@ -283,7 +293,16 @@ def build_reference_manifest(
         },
         "profile": {
             "key": profile_key,
-            "fields": _build_profile_fields(profile_key, source_dir, title, source_label, modality, source_record),
+            "fields": _build_profile_fields(
+                profile_key,
+                source_dir,
+                title,
+                source_label,
+                unified_data=unified_data,
+                core=core,
+                modality=modality,
+                source_record=source_record,
+            ),
         },
         "raw_metadata": {
             "reference_category": category_name,
@@ -383,7 +402,7 @@ def assess_manifest_completeness(manifest: dict[str, Any]) -> dict[str, Any]:
             else:
                 missing.append(f"{section_name}.{field}")
 
-    for field in PROFILE_COMPLETENESS_RULES.get(profile_key, ()):
+    for field in get_profile_required_fields(profile_key):
         expected += 1
         if profile_fields.get(field) not in (None, "", []):
             filled += 1

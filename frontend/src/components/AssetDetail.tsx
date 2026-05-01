@@ -39,8 +39,8 @@ const formatBytes = (value?: number | null) => {
 };
 
 const metadataLabelMap: Record<string, string> = {
-  resource_id: '资源标识',
   source_system: '来源系统',
+  source_id: '来源资源 ID',
   source_label: '来源名称',
   resource_type: '资源类型',
   resource_type_label: '资源类型名称',
@@ -146,11 +146,13 @@ const renderMetadataSection = (section?: Record<string, unknown> | null) => {
 
   return (
     <Descriptions bordered column={1} size="small">
-      {Object.entries(section).map(([key, value]) => (
-        <Descriptions.Item key={key} label={metadataLabelMap[key] || key}>
-          {renderMetadataValue(value)}
-        </Descriptions.Item>
-      ))}
+      {Object.entries(section)
+        .filter(([key]) => key !== 'resource_id')
+        .map(([key, value]) => (
+          <Descriptions.Item key={key} label={metadataLabelMap[key] || key}>
+            {renderMetadataValue(value)}
+          </Descriptions.Item>
+        ))}
     </Descriptions>
   );
 };

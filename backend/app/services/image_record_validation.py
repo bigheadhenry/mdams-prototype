@@ -6,7 +6,7 @@ from ..models import Asset, ImageRecord
 from ..permissions import CurrentUser
 from ..schemas import ImageRecordValidationResult, ImageRecordValidationRule, ImageRecordValidationState
 from .cultural_object_lookup import TEMPORARY_OBJECT_NUMBER_TOKENS
-from .metadata_layers import PROFILE_DEFINITIONS, get_fixity_sha256
+from .metadata_layers import PROFILE_DEFINITIONS, get_fixity_sha256, get_profile_required_fields
 
 VALIDATION_STATUS_NOT_RUN = "not_run"
 VALIDATION_STATUS_PASSED = "passed"
@@ -36,14 +36,6 @@ FIELD_LABELS: dict[str, str] = {
     "building_name": "Building Name",
     "archive_number": "Archive Number",
 }
-
-PROFILE_REQUIRED_FIELDS: dict[str, list[str]] = {
-    "business_activity": ["main_location"],
-    "movable_artifact": ["object_number"],
-    "immovable_artifact": ["building_name"],
-    "ancient_tree": ["archive_number"],
-}
-
 
 def _clean_optional_text(value: object | None) -> str | None:
     if value is None:
@@ -263,7 +255,7 @@ def validate_image_record_for_submit(record: ImageRecord, *, record_no_is_unique
             )
         )
 
-    for field_key in PROFILE_REQUIRED_FIELDS.get(record.profile_key, []):
+    for field_key in get_profile_required_fields(record.profile_key):
         if not _clean_optional_text(profile_fields.get(field_key)):
             rules.append(
                 _make_rule(

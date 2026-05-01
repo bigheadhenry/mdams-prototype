@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
     libvips \
     libvips-dev \
     libvips-tools \
+    libglib2.0-0 \
+    libgomp1 \
     build-essential \
     imagemagick \
     libimage-exiftool-perl \

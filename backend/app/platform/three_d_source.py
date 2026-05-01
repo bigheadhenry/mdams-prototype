@@ -6,7 +6,12 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..models import ThreeDAsset
-from ..schemas import UnifiedResourceDetail, UnifiedResourceSourceSummary, UnifiedResourceSummary
+from ..schemas import (
+    UnifiedResourceAction,
+    UnifiedResourceDetail,
+    UnifiedResourceSourceSummary,
+    UnifiedResourceSummary,
+)
 from ..services.three_d_detail import build_three_d_detail_response
 from ..services.three_d_metadata import PROFILE_DEFINITIONS, SOURCE_LABEL, SOURCE_SYSTEM, build_three_d_metadata_layers
 from .base import PlatformSourceAdapter
@@ -15,8 +20,43 @@ from .registry import registry
 RESOURCE_TYPE = "three_d_package"
 
 
-def _resource_id(asset_id: int) -> str:
+def _platform_id(asset_id: int) -> str:
     return f"{SOURCE_SYSTEM}:{asset_id}"
+
+
+def _resource_actions(asset_id: int, *, preview_enabled: bool) -> list[UnifiedResourceAction]:
+    return [
+        UnifiedResourceAction(
+            key="preview",
+            label="打开三维预览",
+            kind="preview",
+            target="access_representation",
+            url=f"/api/three-d/resources/{asset_id}",
+            enabled=preview_enabled,
+            reason=None if preview_enabled else "This 3D version is not marked ready for web preview.",
+        ),
+        UnifiedResourceAction(
+            key="platform_detail",
+            label="查看统一详情",
+            kind="detail",
+            target="platform",
+            url=f"/api/platform/resources/{SOURCE_SYSTEM}/{asset_id}",
+        ),
+        UnifiedResourceAction(
+            key="source_detail",
+            label="查看三维来源详情",
+            kind="source_detail",
+            target="source",
+            url=f"/api/three-d/resources/{asset_id}",
+        ),
+        UnifiedResourceAction(
+            key="download",
+            label="下载三维资源包",
+            kind="download",
+            target="source",
+            url=f"/api/three-d/resources/{asset_id}/download",
+        ),
+    ]
 
 
 def _source_last_synced_at(db: Session) -> datetime:
@@ -140,7 +180,7 @@ def list_unified_resources(
 
         resources.append(
             UnifiedResourceSummary(
-                id=_resource_id(asset.id),
+                id=_platform_id(asset.id),
                 source_system=SOURCE_SYSTEM,
                 source_id=str(asset.id),
                 source_label=SOURCE_LABEL,
@@ -151,19 +191,16 @@ def list_unified_resources(
                 status=asset.status,
                 preview_enabled=asset_preview_enabled,
                 manifest_url=f"/api/three-d/resources/{asset.id}" if asset_preview_enabled else f"/api/three-d/resources/{asset.id}",
-                detail_url=f"/api/platform/resources/{_resource_id(asset.id)}",
+                detail_url=f"/api/platform/resources/{SOURCE_SYSTEM}/{asset.id}",
                 updated_at=asset.created_at,
+                actions=_resource_actions(asset.id, preview_enabled=asset_preview_enabled),
             )
         )
     return resources
 
 
-def get_unified_resource(resource_id: str, db: Session) -> UnifiedResourceDetail:
-    source_system, separator, source_id = resource_id.partition(":")
-    if not separator or source_system != SOURCE_SYSTEM or not source_id.isdigit():
-        raise ValueError("Unknown unified resource id")
-
-    asset = db.query(ThreeDAsset).filter(ThreeDAsset.id == int(source_id)).first()
+def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
+    asset = db.query(ThreeDAsset).filter(ThreeDAsset.id == asset_id).first()
     if asset is None:
         raise LookupError("Resource not found")
 
@@ -171,7 +208,7 @@ def get_unified_resource(resource_id: str, db: Session) -> UnifiedResourceDetail
     layers = detail.metadata_layers
 
     return UnifiedResourceDetail(
-        id=_resource_id(asset.id),
+        id=_platform_id(asset.id),
         source_system=SOURCE_SYSTEM,
         source_id=str(asset.id),
         source_label=SOURCE_LABEL,
@@ -182,10 +219,13 @@ def get_unified_resource(resource_id: str, db: Session) -> UnifiedResourceDetail
         status=asset.status,
         preview_enabled=_asset_preview_enabled(asset, layers),
         manifest_url=f"/api/three-d/resources/{asset.id}",
-        detail_url=f"/api/three-d/resources/{asset.id}",
+        detail_url=f"/api/platform/resources/{SOURCE_SYSTEM}/{asset.id}",
         updated_at=asset.created_at,
+        actions=_resource_actions(asset.id, preview_enabled=_asset_preview_enabled(asset, layers)),
         source_detail_url=f"/api/three-d/resources/{asset.id}",
-        source_record=None,
+        source_record_type="three_d_detail",
+        source_record_schema="three_d_detail.v1",
+        source_record=detail.model_dump(mode="json"),
     )
 
 
@@ -216,8 +256,15 @@ class ThreeDSourceAdapter(PlatformSourceAdapter):
             preview_enabled=preview_enabled,
         )
 
-    def get_unified_resource(self, resource_id: str, db: Session) -> UnifiedResourceDetail:
-        return get_unified_resource(resource_id, db)
+    def get_unified_resource_by_source(
+        self,
+        source_system: str,
+        source_id: str,
+        db: Session,
+    ) -> UnifiedResourceDetail:
+        if source_system != SOURCE_SYSTEM or not source_id.isdigit():
+            raise ValueError("Unknown unified resource id")
+        return get_unified_resource(int(source_id), db)
 
 
 registry.register(ThreeDSourceAdapter())

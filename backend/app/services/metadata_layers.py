@@ -90,6 +90,7 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "label": "可移动文物",
         "sheet": "可移动文物",
         "aliases": ("movable_artifact", "image_2d_cultural_object", "cultural_object", "artifact"),
+        "required_fields": ("object_number",),
         "fields": [
             ("object_number", "Object Number", ("object_number", "文物号")),
             ("object_name", "Object Name", ("object_name", "文物名称")),
@@ -106,6 +107,7 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "label": "不可移动文物",
         "sheet": "不可移动文物",
         "aliases": ("immovable_artifact", "building"),
+        "required_fields": ("building_name",),
         "fields": [
             ("region_level_1", "Region Level 1", ("region_level_1", "一级区域")),
             ("region_level_2", "Region Level 2", ("region_level_2", "二级区域")),
@@ -121,6 +123,7 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "label": "艺术摄影",
         "sheet": "艺术摄影",
         "aliases": ("art_photography",),
+        "required_fields": (),
         "fields": [
             ("art_photography_type", "Art Photography Type", ("art_photography_type",)),
             ("collection_type", "Collection Type", ("collection_type",)),
@@ -139,6 +142,7 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "label": "业务活动",
         "sheet": "业务活动",
         "aliases": ("business_activity", "activity"),
+        "required_fields": ("main_location",),
         "fields": [
             ("main_location", "Main Location", ("main_location", "主要地点")),
             ("main_person", "Main Person", ("main_person", "主要人物")),
@@ -148,6 +152,7 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "label": "全景",
         "sheet": "全景",
         "aliases": ("panorama",),
+        "required_fields": (),
         "fields": [
             ("panorama_type", "Panorama Type", ("panorama_type",)),
             ("location", "Location", ("location",)),
@@ -157,6 +162,7 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "label": "古树",
         "sheet": "古树",
         "aliases": ("ancient_tree", "tree"),
+        "required_fields": ("archive_number",),
         "fields": [
             ("archive_number", "Archive Number", ("archive_number", "档案编号")),
             ("plant_type", "Plant Type", ("plant_type", "植物类型")),
@@ -170,6 +176,7 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "label": "考古",
         "sheet": "考古",
         "aliases": ("archaeology",),
+        "required_fields": ("archaeology_image_category",),
         "fields": [
             ("archaeology_image_category", "Archaeology Image Category", ("archaeology_image_category", "考古影像分类")),
         ],
@@ -178,6 +185,7 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "label": "其他",
         "sheet": "其他",
         "aliases": ("other",),
+        "required_fields": (),
         "fields": [],
     },
 }
@@ -255,6 +263,14 @@ def _canonicalize_profile_key(candidate: Any) -> str | None:
     return candidate_text
 
 
+def get_profile_required_fields(profile_key: Any) -> tuple[str, ...]:
+    normalized_profile_key = _canonicalize_profile_key(profile_key)
+    if normalized_profile_key not in PROFILE_DEFINITIONS:
+        normalized_profile_key = "other"
+    required_fields = PROFILE_DEFINITIONS[normalized_profile_key].get("required_fields", ())
+    return tuple(str(field_key) for field_key in required_fields)
+
+
 def _build_field_section(metadata: Mapping[str, Any], fields: list[tuple[str, str, tuple[str, ...]]]) -> dict[str, Any]:
     section: dict[str, Any] = {}
     for field_key, _field_label, aliases in fields:
@@ -317,7 +333,7 @@ def _build_core_section(
     title = _lookup_value(metadata, "title", "image_name", "object_name", "resource_title") or asset_filename or "Untitled Asset"
 
     core = {
-        "resource_id": f"asset-{asset_id}" if asset_id is not None else _lookup_value(metadata, "resource_id") or _lookup_value(metadata, "id"),
+        "source_id": str(asset_id) if asset_id is not None else _lookup_value(metadata, "source_id") or _lookup_value(metadata, "id"),
         "source_system": _lookup_value(metadata, "source_system") or SOURCE_SYSTEM,
         "source_label": _lookup_value(metadata, "source_label") or SOURCE_LABEL,
         "resource_type": resource_type,

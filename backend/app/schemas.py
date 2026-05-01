@@ -155,6 +155,17 @@ class UnifiedResourceSourceSummary(BaseModel):
     entrypoint: str
 
 
+class UnifiedResourceAction(BaseModel):
+    key: str
+    label: str
+    kind: str
+    target: str
+    url: str | None = None
+    method: str = "GET"
+    enabled: bool = True
+    reason: str | None = None
+
+
 class UnifiedResourceSummary(BaseModel):
     id: str
     source_system: str
@@ -169,11 +180,14 @@ class UnifiedResourceSummary(BaseModel):
     manifest_url: str
     detail_url: str
     updated_at: datetime
+    actions: list[UnifiedResourceAction] = Field(default_factory=list)
 
 
 class UnifiedResourceDetail(UnifiedResourceSummary):
     source_detail_url: str
-    source_record: AssetDetailResponse | None = None
+    source_record_type: str | None = None
+    source_record_schema: str | None = None
+    source_record: dict[str, Any] | None = None
 
 
 class IngestSipResponse(BaseModel):

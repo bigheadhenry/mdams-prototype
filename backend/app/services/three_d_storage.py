@@ -184,7 +184,7 @@ def build_three_d_package_manifest(
 ) -> Path:
     manifest_path = resource_dir / 'manifest.json'
     payload = {
-        'resource_id': getattr(asset, 'id', None),
+        'source_id': getattr(asset, 'id', None),
         'title': metadata_layers.get('core', {}).get('title'),
         'resource_type': metadata_layers.get('core', {}).get('resource_type'),
         'profile_key': metadata_layers.get('core', {}).get('profile_key'),

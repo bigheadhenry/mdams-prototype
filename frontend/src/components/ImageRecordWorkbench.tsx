@@ -28,6 +28,7 @@ import type { AuthContext, AuthUserSummary } from '../auth/permissions';
 import type {
   CulturalObjectLookupResponse,
   CulturalObjectSampleListResponse,
+  FaceRecognitionMetadata,
   ImageIngestSheetDetailResponse,
   ImageIngestSheetSavePayload,
   ImageIngestSheetSummary,
@@ -54,6 +55,13 @@ const STATUS_LABELS: Record<string, string> = {
   ready_for_upload: '待上传',
   returned: '已退回',
   uploaded_pending_validation: '已上传待校验',
+};
+
+const FACE_RECOGNITION_STATUS_LABELS: Record<string, string> = {
+  pending: '识别中',
+  success: '识别完成',
+  no_face: '未检测到人脸',
+  failed: '识别失败',
 };
 
 const IMAGE_TYPE_OPTIONS = [
@@ -145,6 +153,19 @@ function getStatusLabel(value?: string | null) {
 function getImageTypeLabel(value?: string | null) {
   if (!value) return '-';
   return IMAGE_TYPE_OPTIONS.find((item) => item.value === value)?.label || value;
+}
+
+function getFaceRecognitionStatusLabel(value?: string | null) {
+  if (!value) return '-';
+  return FACE_RECOGNITION_STATUS_LABELS[value] || value;
+}
+
+function getFaceRecognitionMetadata(item: ImageRecordDetailResponse | null): FaceRecognitionMetadata | null {
+  const rawMetadata = item?.metadata_info?.raw_metadata;
+  if (!rawMetadata || typeof rawMetadata !== 'object') return null;
+  const faceRecognition = (rawMetadata as Record<string, unknown>).face_recognition;
+  if (!faceRecognition || typeof faceRecognition !== 'object') return null;
+  return faceRecognition as FaceRecognitionMetadata;
 }
 
 type SheetFormValues = {
@@ -256,6 +277,18 @@ const ImageRecordWorkbench: React.FC<ImageRecordWorkbenchProps> = ({ authContext
 
   const currentImageType = Form.useWatch('image_type', sheetForm) || selectedSheet?.image_type || 'other';
   const selectedProfileFields = PROFILE_FIELD_MAP[currentImageType] || PROFILE_FIELD_MAP.other;
+  const faceRecognition = useMemo(() => getFaceRecognitionMetadata(selectedItem), [selectedItem]);
+  const faceRecognitionFaces = faceRecognition?.faces || [];
+  const faceRecognitionPreviewUrl =
+    faceRecognition?.asset_id ? `/api/assets/${faceRecognition.asset_id}/preview` : null;
+  const faceRecognitionImageWidth =
+    typeof faceRecognition?.image_width === 'number' && faceRecognition.image_width > 0
+      ? faceRecognition.image_width
+      : null;
+  const faceRecognitionImageHeight =
+    typeof faceRecognition?.image_height === 'number' && faceRecognition.image_height > 0
+      ? faceRecognition.image_height
+      : null;
 
   const loadSheets = useCallback(async () => {
     setLoadingSheets(true);
@@ -979,21 +1012,179 @@ const ImageRecordWorkbench: React.FC<ImageRecordWorkbenchProps> = ({ authContext
                             ) : null}
                           </Space>
 
-                          <Descriptions bordered size="small" column={2}>
-                            <Descriptions.Item label="记录号">{selectedItem.record_no}</Descriptions.Item>
-                            <Descriptions.Item label="状态">{getStatusLabel(selectedItem.status)}</Descriptions.Item>
-                            <Descriptions.Item label="摄影师">
-                              {selectedItem.assigned_photographer_display_name || '-'}
+                            <Descriptions bordered size="small" column={2}>
+                              <Descriptions.Item label="记录号">{selectedItem.record_no}</Descriptions.Item>
+                              <Descriptions.Item label="状态">{getStatusLabel(selectedItem.status)}</Descriptions.Item>
+                              <Descriptions.Item label="摄影师">
+                                {selectedItem.assigned_photographer_display_name || '-'}
                             </Descriptions.Item>
-                            <Descriptions.Item label="当前资产">
-                              {selectedItem.asset ? selectedItem.asset.filename || `资产 #${selectedItem.asset.asset_id}` : '暂无绑定'}
-                            </Descriptions.Item>
-                          </Descriptions>
+                              <Descriptions.Item label="当前资产">
+                                {selectedItem.asset ? selectedItem.asset.filename || `资产 #${selectedItem.asset.asset_id}` : '暂无绑定'}
+                              </Descriptions.Item>
+                            </Descriptions>
 
-                          {selectedItem.pending_upload ? (
-                            <Alert
-                              style={{ marginTop: 16 }}
-                              type="info"
+                            {selectedItem.profile_key === 'business_activity' ? (
+                              <Card
+                                size="small"
+                                title="人脸识别结果"
+                                style={{ marginTop: 16 }}
+                                bodyStyle={{ paddingBottom: 12 }}
+                              >
+                                <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                                  <Descriptions bordered size="small" column={2}>
+                                    <Descriptions.Item label="识别状态">
+                                      <Tag
+                                        color={
+                                          faceRecognition?.status === 'success'
+                                            ? 'green'
+                                            : faceRecognition?.status === 'pending'
+                                              ? 'processing'
+                                              : faceRecognition?.status === 'failed'
+                                                ? 'red'
+                                                : 'default'
+                                        }
+                                      >
+                                        {getFaceRecognitionStatusLabel(faceRecognition?.status)}
+                                      </Tag>
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="最后识别时间">
+                                      {faceRecognition?.last_run_at || '-'}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="识别到的人员名单">
+                                      {faceRecognition?.recognized_names?.length
+                                        ? faceRecognition.recognized_names.join('、')
+                                        : '暂无识别结果'}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="人脸数量">
+                                      {faceRecognition?.face_count ?? '-'}
+                                    </Descriptions.Item>
+                                  </Descriptions>
+
+                                  {faceRecognition?.error_message ? (
+                                    <Alert
+                                      type="error"
+                                      showIcon
+                                      message="人脸识别失败"
+                                      description={faceRecognition.error_message}
+                                    />
+                                  ) : null}
+
+                                  {faceRecognitionPreviewUrl && faceRecognitionFaces.length > 0 && faceRecognitionImageWidth && faceRecognitionImageHeight ? (
+                                    <div
+                                      style={{
+                                        position: 'relative',
+                                        width: '100%',
+                                        maxWidth: 560,
+                                        border: '1px solid #f0f0f0',
+                                        borderRadius: 8,
+                                        overflow: 'hidden',
+                                        background: '#fafafa',
+                                      }}
+                                    >
+                                      <img
+                                        src={faceRecognitionPreviewUrl}
+                                        alt="人脸识别预览"
+                                        style={{ width: '100%', display: 'block' }}
+                                      />
+                                      {faceRecognitionFaces.map((face) => {
+                                        const [x1, y1, x2, y2] = face.bbox || [];
+                                        const boxWidth = x2 - x1;
+                                        const boxHeight = y2 - y1;
+                                        if (boxWidth <= 0 || boxHeight <= 0) return null;
+                                        return (
+                                          <div
+                                            key={`face-box-${face.face_index}`}
+                                            style={{
+                                              position: 'absolute',
+                                              left: `${(x1 / faceRecognitionImageWidth) * 100}%`,
+                                              top: `${(y1 / faceRecognitionImageHeight) * 100}%`,
+                                              width: `${(boxWidth / faceRecognitionImageWidth) * 100}%`,
+                                              height: `${(boxHeight / faceRecognitionImageHeight) * 100}%`,
+                                              border: `2px solid ${face.recognized ? '#52c41a' : '#faad14'}`,
+                                              borderRadius: 4,
+                                              boxSizing: 'border-box',
+                                            }}
+                                          >
+                                            <div
+                                              style={{
+                                                position: 'absolute',
+                                                left: 0,
+                                                top: 0,
+                                                transform: 'translateY(-100%)',
+                                                background: face.recognized ? '#52c41a' : '#faad14',
+                                                color: '#fff',
+                                                fontSize: 12,
+                                                padding: '2px 6px',
+                                                whiteSpace: 'nowrap',
+                                              }}
+                                            >
+                                              {(face.name || '未识别') + ` (${face.confidence.toFixed(2)})`}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : null}
+
+                                  {faceRecognitionFaces.length > 0 ? (
+                                    <Table
+                                      size="small"
+                                      pagination={false}
+                                      rowKey={(record) => `face-${record.face_index}`}
+                                      dataSource={faceRecognitionFaces}
+                                      columns={[
+                                        {
+                                          title: '人脸',
+                                          dataIndex: 'face_index',
+                                          key: 'face_index',
+                                          width: 80,
+                                          render: (value: number) => `#${value + 1}`,
+                                        },
+                                        {
+                                          title: '姓名',
+                                          dataIndex: 'name',
+                                          key: 'name',
+                                          render: (value: string | null | undefined, record) =>
+                                            value || (record.recognized ? '已匹配未命名' : '未识别'),
+                                        },
+                                        {
+                                          title: '置信度',
+                                          dataIndex: 'confidence',
+                                          key: 'confidence',
+                                          width: 100,
+                                          render: (value: number) => value.toFixed(2),
+                                        },
+                                        {
+                                          title: '相似度',
+                                          dataIndex: 'score',
+                                          key: 'score',
+                                          width: 100,
+                                          render: (value: number) => value.toFixed(2),
+                                        },
+                                        {
+                                          title: '边框',
+                                          dataIndex: 'bbox',
+                                          key: 'bbox',
+                                          render: (value: number[]) =>
+                                            Array.isArray(value) && value.length === 4 ? value.join(', ') : '-',
+                                        },
+                                      ]}
+                                    />
+                                  ) : (
+                                    <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                                      {faceRecognition?.status === 'pending'
+                                        ? '当前正在进行人脸识别，请稍后刷新查看结果。'
+                                        : '当前暂无可展示的人脸识别结果。'}
+                                    </Paragraph>
+                                  )}
+                                </Space>
+                              </Card>
+                            ) : null}
+
+                            {selectedItem.pending_upload ? (
+                              <Alert
+                                style={{ marginTop: 16 }}
+                                type="info"
                               showIcon
                               message={`待确认文件：${selectedItem.pending_upload.filename}`}
                               description={selectedItem.pending_upload.warnings.join(' | ') || '文件已准备好，可继续确认。'}

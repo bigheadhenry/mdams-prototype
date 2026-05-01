@@ -255,7 +255,7 @@ def build_three_d_metadata_layers(
         primary_file = saved_files[0]
 
     core = {
-        'resource_id': f'three_d-{asset_id}' if asset_id is not None else _lookup_value(source, 'resource_id') or _lookup_value(source, 'id'),
+        'source_id': str(asset_id) if asset_id is not None else _lookup_value(source, 'source_id') or _lookup_value(source, 'id'),
         'source_system': SOURCE_SYSTEM,
         'source_label': SOURCE_LABEL,
         'resource_type': resource_type,

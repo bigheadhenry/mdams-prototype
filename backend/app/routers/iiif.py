@@ -87,8 +87,8 @@ def _api_base_url(request: Request) -> str:
 
 
 def _cantaloupe_base_url(request: Request) -> str:
-    if config.CANTALOUPE_PUBLIC_URL:
-        return config.CANTALOUPE_PUBLIC_URL.rstrip("/")
+    if config.CANTALOUPE_INTERNAL_URL:
+        return config.CANTALOUPE_INTERNAL_URL.rstrip("/")
 
     forwarded_host = request.headers.get("x-forwarded-host")
     forwarded_proto = request.headers.get("x-forwarded-proto", "http")
@@ -104,8 +104,48 @@ def _cantaloupe_base_url(request: Request) -> str:
     return "http://localhost:8182/iiif/2"
 
 
-def _cantaloupe_image_service_url(request: Request, actual_filename: str) -> str:
-    return f"{_cantaloupe_base_url(request)}/{quote(actual_filename, safe='')}"
+def _quote_iiif_identifier(identifier: str) -> str:
+    return quote(identifier.replace("\\", "/"), safe="/")
+
+
+def _iiif_identifier_for_source_path(source_path: str) -> str:
+    source_abs = os.path.abspath(source_path)
+    upload_abs = os.path.abspath(config.UPLOAD_DIR)
+    try:
+        relative_path = os.path.relpath(source_abs, upload_abs)
+    except ValueError:
+        return os.path.basename(source_abs)
+
+    if relative_path == "." or relative_path == ".." or relative_path.startswith(f"..{os.sep}"):
+        return os.path.basename(source_abs)
+    return relative_path.replace(os.sep, "/")
+
+
+def _backend_image_service_url(request: Request, asset_id: int, iiif_identifier: str) -> str:
+    return f"{_api_base_url(request)}/iiif/{asset_id}/service/{_quote_iiif_identifier(iiif_identifier)}"
+
+
+def _cantaloupe_image_service_url(request: Request, iiif_identifier: str) -> str:
+    return f"{_cantaloupe_base_url(request)}/{_quote_iiif_identifier(iiif_identifier)}"
+
+
+def _resolve_requested_iiif_identifier(
+    image_path: str,
+    *,
+    expected_identifier: str,
+    aliases: set[str],
+) -> tuple[str, str]:
+    normalized_path = image_path.lstrip("/")
+    expected_identifier = expected_identifier.strip("/")
+
+    for candidate in (expected_identifier, *sorted(alias.strip("/") for alias in aliases if alias)):
+        if normalized_path == candidate:
+            return expected_identifier, ""
+        prefix = f"{candidate}/"
+        if normalized_path.startswith(prefix):
+            return expected_identifier, normalized_path[len(prefix):]
+
+    raise HTTPException(status_code=404, detail="Image service not found")
 
 
 def _resolve_iiif_source_path(asset: Asset) -> str:
@@ -155,8 +195,8 @@ def get_iiif_manifest(
     annotation_page_id = f"{api_base_url}/iiif/{asset_id}/page/1"
     annotation_id = f"{api_base_url}/iiif/{asset_id}/annotation/1"
 
-    actual_filename = os.path.basename(iiif_source_path)
-    image_service_id = _cantaloupe_image_service_url(request, actual_filename)
+    iiif_identifier = _iiif_identifier_for_source_path(iiif_source_path)
+    image_service_id = _backend_image_service_url(request, asset_id, iiif_identifier)
 
     metadata_layers = build_metadata_layers(
         asset_id=asset.id,
@@ -204,8 +244,12 @@ def get_iiif_manifest(
         "metadata": [
             {"label": {"en": ["Asset ID"]}, "value": {"en": [str(asset.id)]}},
             {
-                "label": {"en": ["Resource ID"]},
-                "value": {"en": [str(metadata_layers["core"].get("resource_id") or f"image_2d:{asset.id}")]},
+                "label": {"en": ["Source System"]},
+                "value": {"en": [str(metadata_layers["core"].get("source_system") or "image_2d")]},
+            },
+            {
+                "label": {"en": ["Source ID"]},
+                "value": {"en": [str(metadata_layers["core"].get("source_id") or asset.id)]},
             },
             {"label": {"en": ["Title"]}, "value": {"en": [manifest_title]}},
             {"label": {"en": ["File Size"]}, "value": {"en": [f"{asset.file_size} bytes"]}},
@@ -269,12 +313,15 @@ def proxy_iiif_image(
     _assert_asset_visible(asset, user)
 
     iiif_source_path = _resolve_iiif_source_path(asset)
+    iiif_identifier = _iiif_identifier_for_source_path(iiif_source_path)
     actual_filename = os.path.basename(iiif_source_path)
-    requested_filename, _, suffix = image_path.partition("/")
-    if requested_filename not in {actual_filename, asset.filename}:
-        raise HTTPException(status_code=404, detail="Image service not found")
+    resolved_identifier, suffix = _resolve_requested_iiif_identifier(
+        image_path,
+        expected_identifier=iiif_identifier,
+        aliases={actual_filename, asset.filename or ""},
+    )
 
-    target_url = _cantaloupe_image_service_url(request, actual_filename)
+    target_url = _cantaloupe_image_service_url(request, resolved_identifier)
     if suffix:
         target_url = f"{target_url}/{suffix}"
 
@@ -285,7 +332,7 @@ def proxy_iiif_image(
     if suffix.endswith("info.json") and "json" in content_type.lower():
         try:
             info_json = upstream.json()
-            proxy_base_url = f"{_api_base_url(request)}/iiif/{asset_id}/service/{quote(actual_filename, safe='')}"
+            proxy_base_url = _backend_image_service_url(request, asset_id, resolved_identifier)
             info_json["@id"] = proxy_base_url
             info_json["atId"] = proxy_base_url
             info_json["id"] = proxy_base_url

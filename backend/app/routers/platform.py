@@ -48,17 +48,30 @@ def get_resources(
     return resources
 
 
-@router.get("/resources/{resource_id}", response_model=UnifiedResourceDetail)
-def get_resource(resource_id: str, db: Session = Depends(get_db)):
-    source_system, separator, _source_id = resource_id.partition(":")
-    if not separator:
-        raise HTTPException(status_code=400, detail="Unknown unified resource id")
+def _get_resource_detail(
+    source_system: str,
+    source_id: str,
+    db: Session,
+) -> UnifiedResourceDetail:
     adapter = registry.get(source_system)
     if adapter is None:
         raise HTTPException(status_code=404, detail="Resource not found")
     try:
-        return adapter.get_unified_resource(resource_id, db)
+        return adapter.get_unified_resource_by_source(source_system, source_id, db)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/resources/{source_system}/{source_id}", response_model=UnifiedResourceDetail)
+def get_resource_by_source(source_system: str, source_id: str, db: Session = Depends(get_db)):
+    return _get_resource_detail(source_system, source_id, db)
+
+
+@router.get("/resources/{resource_id}", response_model=UnifiedResourceDetail, deprecated=True)
+def get_resource(resource_id: str, db: Session = Depends(get_db)):
+    source_system, separator, source_id = resource_id.partition(":")
+    if not separator:
+        raise HTTPException(status_code=400, detail="Unknown unified resource id")
+    return _get_resource_detail(source_system, source_id, db)

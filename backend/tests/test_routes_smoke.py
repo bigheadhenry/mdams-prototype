@@ -110,8 +110,8 @@ def test_root_health_and_upload_chain(db_session, test_upload_dir, monkeypatch):
     )
     assert manifest["id"].endswith(f"/iiif/{uploaded.id}/manifest")
     assert manifest["items"][0]["id"].endswith(f"/iiif/{uploaded.id}/canvas/1")
-    assert manifest["items"][0]["items"][0]["items"][0]["body"]["service"][0]["id"] == (
-        "http://cantaloupe:8182/iiif/2/smoke.png"
+    assert manifest["items"][0]["items"][0]["items"][0]["body"]["service"][0]["id"].endswith(
+        f"/iiif/{uploaded.id}/service/smoke.png"
     )
 
     download_response = downloads_router.download_asset_file(asset_id=uploaded.id, db=db_session)

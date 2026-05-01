@@ -25,7 +25,7 @@ const PROFILE_OPTIONS = [
 interface PlatformDirectoryProps {
   onPreview: (manifestUrl: string) => void;
   onOpenAssetDetail?: (assetId: number) => void;
-  onOpenUnifiedResourceDetail?: (resourceId: string) => void;
+  onOpenUnifiedResourceDetail?: (sourceSystem: string, sourceId: string) => void;
 }
 
 const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
@@ -129,7 +129,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
             <Button
               data-testid={`platform-unified-detail-${record.source_id}`}
               icon={<LinkOutlined />}
-              onClick={() => onOpenUnifiedResourceDetail?.(record.id)}
+              onClick={() => onOpenUnifiedResourceDetail?.(record.source_system, record.source_id)}
             >
               统一详情
             </Button>
