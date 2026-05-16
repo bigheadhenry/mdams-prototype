@@ -709,7 +709,7 @@ const App: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0">
+      <Sider breakpoint="lg" collapsedWidth="0" collapsible>
         <div style={{ padding: 16, color: '#fff' }}>
           <Space direction="vertical" size={4} style={{ width: '100%' }}>
             <Text style={{ color: '#fff', fontWeight: 700 }}>MDAMS 原型系统</Text>

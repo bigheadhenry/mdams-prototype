@@ -20,7 +20,7 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { DeleteOutlined, DownloadOutlined, EyeOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DownloadOutlined, EyeOutlined, FileTextOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import type { ThreeDAssetSummary, ThreeDCollectionObjectSummary, ThreeDDetailResponse } from '../types/assets';
 import ThreeDViewer from './ThreeDViewer';
@@ -93,6 +93,15 @@ const getRecordStatusLabel = (value?: string | null) => {
   if (!value) return '-';
   return RECORD_STATUS_LABELS[value] || value;
 };
+
+const getFileExtUpper = (filename?: string | null): string => {
+  if (!filename) return '?';
+  const dotIdx = filename.lastIndexOf('.');
+  if (dotIdx < 0 || dotIdx === filename.length - 1) return '?';
+  return filename.substring(dotIdx + 1).toUpperCase().slice(0, 6);
+};
+
+const isImageMime = (mime?: string | null): boolean => Boolean(mime && mime.startsWith('image/'));
 
 type RepresentationLike = Pick<ThreeDAssetSummary, 'version_label' | 'is_web_preview' | 'web_preview_status'>;
 
@@ -972,22 +981,43 @@ const ThreeDManagement: React.FC = () => {
 
             <ThreeDViewer viewer={detail.viewer} title={detail.title} />
 
-            <Card size="small" title="图像预览">
+            <Card size="small" title="预览">
               <Row gutter={[12, 12]}>
                 {previewFiles.length > 0 ? (
                   previewFiles.map((file) => {
                     const imageUrl = file.preview_url || file.download_url;
+                    const isImage = isImageMime(file.mime_type);
                     return (
                       <Col key={`${file.role}-${file.actual_filename}-${file.sort_order ?? 0}`} xs={24} sm={12} md={8}>
                         <Card size="small" bodyStyle={{ padding: 12 }}>
-                          <Space direction="vertical" style={{ width: '100%' }}>
-                            {imageUrl ? (
-                              <Image
-                                src={imageUrl}
-                                alt={file.actual_filename}
-                                style={{ width: '100%', maxHeight: 220, objectFit: 'cover' }}
-                              />
-                            ) : null}
+                          {imageUrl && isImage ? (
+                            <Image
+                              src={imageUrl}
+                              alt={file.actual_filename}
+                              style={{ width: '100%', maxHeight: 220, objectFit: 'cover' }}
+                              fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '100%',
+                                height: 220,
+                                background: '#f5f5f5',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: 6,
+                                gap: 8,
+                              }}
+                            >
+                              <FileTextOutlined style={{ fontSize: 40, color: '#bfbfbf' }} />
+                              <Text type="secondary" style={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 600 }}>
+                                {getFileExtUpper(file.actual_filename)}
+                              </Text>
+                            </div>
+                          )}
+                          <Space direction="vertical" size={0} style={{ marginTop: 8 }}>
                             <Text strong>{file.actual_filename}</Text>
                             <Text type="secondary">{file.role_label}</Text>
                           </Space>
