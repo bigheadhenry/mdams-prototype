@@ -52,14 +52,18 @@ def test_platform_resource_directory_maps_image_subsystem(db_session, test_uploa
     )
 
     sources = platform_router.get_sources(db=db_session)
-    assert len(sources) == 2
+    assert len(sources) == 3
     assert sources[0].source_system == image_source.SOURCE_SYSTEM
     assert sources[0].source_label == "二维影像子系统"
     assert sources[0].resource_count == 2
     three_d_summary = next(source for source in sources if source.source_system == "three_d")
     assert three_d_summary.resource_count == 0
+    video_summary = next(source for source in sources if source.source_system == "video")
+    assert video_summary.resource_count == 0
 
-    resources = platform_router.get_resources(db=db_session)
+    resources_page = platform_router.get_resources(db=db_session)
+    resources = resources_page.items
+    assert resources_page.total == 2
     assert len(resources) == 2
 
     resource = next(item for item in resources if item.id == f"{image_source.SOURCE_SYSTEM}:{uploaded.id}")
@@ -85,7 +89,7 @@ def test_platform_resource_directory_maps_image_subsystem(db_session, test_uploa
     assert profile_resource.profile_key == "movable_artifact"
     assert profile_resource.profile_label == "可移动文物"
 
-    detail = platform_router.get_resource(source_system=resource.source_system, source_id=resource.source_id, db=db_session)
+    detail = platform_router.get_resource_by_source(source_system=resource.source_system, source_id=resource.source_id, db=db_session)
     assert detail.id == resource.id
     assert detail.source_label == "二维影像子系统"
     assert detail.source_record is not None
@@ -99,19 +103,19 @@ def test_platform_resource_directory_maps_image_subsystem(db_session, test_uploa
     assert detail.profile_label == "其他"
     assert next(action for action in detail.actions if action.key == "export_bagit").target == "export_package"
 
-    filtered = platform_router.get_resources(q="platform-sample", db=db_session)
+    filtered = platform_router.get_resources(q="platform-sample", db=db_session).items
     assert len(filtered) == 1
     assert filtered[0].id == resource.id
 
-    status_filtered = platform_router.get_resources(status="ready", db=db_session)
+    status_filtered = platform_router.get_resources(status="ready", db=db_session).items
     assert len(status_filtered) == 2
     assert all(item.status == "ready" for item in status_filtered)
 
-    profile_filtered = platform_router.get_resources(profile_key="movable_artifact", db=db_session)
+    profile_filtered = platform_router.get_resources(profile_key="movable_artifact", db=db_session).items
     assert len(profile_filtered) == 1
     assert profile_filtered[0].id == profile_resource.id
 
-    other_filtered = platform_router.get_resources(profile_key="other", db=db_session)
+    other_filtered = platform_router.get_resources(profile_key="other", db=db_session).items
     assert len(other_filtered) == 1
     assert other_filtered[0].id == resource.id
 

@@ -16,3 +16,17 @@ body {
   min-height: 0;
   overflow: hidden;
 }
+
+.unified-resource-hero {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.1fr) minmax(300px, 0.9fr);
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1180px) {
+  .unified-resource-hero {
+    grid-template-columns: 1fr;
+  }
+}

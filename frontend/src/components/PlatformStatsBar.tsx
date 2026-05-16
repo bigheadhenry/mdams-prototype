@@ -13,6 +13,8 @@ const { Text } = Typography;
 interface PlatformStatsBarProps {
   sources: UnifiedResourceSourceSummary[];
   totalResources: number;
+  activeSourceSystem: string;
+  previewResourceCount: number;
 }
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -27,14 +29,19 @@ const SOURCE_LABELS: Record<string, string> = {
   video: '视频资产',
 };
 
-const PlatformStatsBar: React.FC<PlatformStatsBarProps> = ({ sources, totalResources }) => {
+const PlatformStatsBar: React.FC<PlatformStatsBarProps> = ({
+  sources,
+  totalResources,
+  activeSourceSystem,
+  previewResourceCount,
+}) => {
+  const activeSource = sources.find((source) => source.source_system === activeSourceSystem);
   const stats = useMemo(() => {
     const totalSources = sources.length;
     const healthySources = sources.filter((s) => s.healthy).length;
-    const previewAvailable = sources.reduce((sum, s) => sum + s.resource_count, 0);
     const healthyRate = totalSources > 0 ? Math.round((healthySources / totalSources) * 100) : 0;
 
-    return { totalSources, healthySources, previewAvailable, healthyRate };
+    return { totalSources, healthySources, healthyRate };
   }, [sources]);
 
   return (
@@ -42,7 +49,7 @@ const PlatformStatsBar: React.FC<PlatformStatsBarProps> = ({ sources, totalResou
       <Row gutter={[16, 12]}>
         <Col span={12}>
           <Statistic
-            title="资源总数"
+            title={activeSource ? SOURCE_LABELS[activeSource.source_system] || activeSource.source_label : '当前资源'}
             value={totalResources}
             prefix={<DatabaseOutlined />}
             valueStyle={{ color: '#1677ff', fontSize: 24 }}
@@ -73,7 +80,7 @@ const PlatformStatsBar: React.FC<PlatformStatsBarProps> = ({ sources, totalResou
         <Col span={24}>
           <Space wrap size={[4, 4]}>
             <Text type="secondary" style={{ fontSize: 12, marginRight: 4 }}>
-              来源分布：
+              全平台分布：
             </Text>
             {sources.map((source) => (
               <Tag
@@ -90,10 +97,10 @@ const PlatformStatsBar: React.FC<PlatformStatsBarProps> = ({ sources, totalResou
         <Col span={24}>
           <Space>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              预览可用：
+              当前可预览：
             </Text>
             <Tag icon={<EyeOutlined />} color="green">
-              {stats.previewAvailable} 资源
+              {previewResourceCount} 资源
             </Tag>
           </Space>
         </Col>

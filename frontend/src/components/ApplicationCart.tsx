@@ -7,8 +7,8 @@ const { Paragraph, Text, Title } = Typography;
 
 interface ApplicationCartProps {
   items: ApplicationCartItem[];
-  onRemove: (assetId: number) => void;
-  onUpdateNote: (assetId: number, note: string) => void;
+  onRemove: (cartKey: string) => void;
+  onUpdateNote: (cartKey: string, note: string) => void;
   onSubmit: (payload: {
     requesterName: string;
     requesterOrg?: string;
@@ -22,13 +22,13 @@ interface ApplicationCartProps {
 const ApplicationCart: React.FC<ApplicationCartProps> = ({ items, onRemove, onUpdateNote, onSubmit, submitting = false }) => {
   const [form] = Form.useForm();
 
-  const hint = items.length === 0 ? '当前还没有待申请资源，先去预览或列表里加入图片。' : `当前已选 ${items.length} 项资源，可以统一提交成一张申请单。`;
+  const hint = items.length === 0 ? '当前还没有待申请资源，先去统一资源目录加入资源。' : `当前已选 ${items.length} 项资源，可以统一提交成一张申请单。`;
 
   if (items.length === 0) {
     return (
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Card>
-          <Empty description="申请车还是空的，先去预览或列表里加入图片。" />
+          <Empty description="申请车还是空的，先去统一资源目录加入资源。" />
         </Card>
       </Space>
     );
@@ -38,7 +38,7 @@ const ApplicationCart: React.FC<ApplicationCartProps> = ({ items, onRemove, onUp
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Card>
         <Space direction="vertical" size="small" style={{ width: '100%' }}>
-          <Tag color="blue">二维影像利用申请</Tag>
+          <Tag color="blue">统一资源利用申请</Tag>
           <Title level={4} style={{ margin: 0 }}>
             申请车
           </Title>
@@ -92,9 +92,9 @@ const ApplicationCart: React.FC<ApplicationCartProps> = ({ items, onRemove, onUp
               <Card style={{ width: '100%' }}>
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                   <Space wrap>
-                    <Tag color="geekblue">Asset #{item.assetId}</Tag>
+                    <Tag color="geekblue">{item.resourceType || '统一资源'}</Tag>
                     <Tag color="purple">
-                      {item.sourceSystem && item.sourceId ? `${item.sourceSystem}/${item.sourceId}` : `Asset #${item.assetId}`}
+                      {item.sourceSystem && item.sourceId ? `${item.sourceSystem}/${item.sourceId}` : item.cartKey}
                     </Tag>
                     {item.objectNumber ? <Tag color="gold">{item.objectNumber}</Tag> : null}
                     {item.sourceLabel ? <Tag>{item.sourceLabel}</Tag> : null}
@@ -103,7 +103,7 @@ const ApplicationCart: React.FC<ApplicationCartProps> = ({ items, onRemove, onUp
                   <div>
                     <Text strong>{item.title}</Text>
                     <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                      Manifest: {item.manifestUrl}
+                      访问地址: {item.manifestUrl}
                     </Paragraph>
                   </div>
 
@@ -111,11 +111,11 @@ const ApplicationCart: React.FC<ApplicationCartProps> = ({ items, onRemove, onUp
                     rows={3}
                     placeholder="填写该资源的申请备注，例如用途、分辨率、交付说明。"
                     value={item.note || ''}
-                    onChange={(event) => onUpdateNote(item.assetId, event.target.value)}
+                    onChange={(event) => onUpdateNote(item.cartKey, event.target.value)}
                   />
 
                   <Space wrap>
-                    <Button danger icon={<DeleteOutlined />} onClick={() => onRemove(item.assetId)}>
+                    <Button danger icon={<DeleteOutlined />} onClick={() => onRemove(item.cartKey)}>
                       移出申请车
                     </Button>
                   </Space>

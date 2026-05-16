@@ -4,7 +4,6 @@ import {
   Card,
   Col,
   Image,
-  Layout,
   Pagination,
   Row,
   Space,
@@ -15,9 +14,9 @@ import {
 } from 'antd';
 import {
   EyeOutlined,
-  FileTextOutlined,
   LinkOutlined,
   PlayCircleOutlined,
+  ShoppingCartOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import AdvancedSearchPanel from './AdvancedSearchPanel';
@@ -32,7 +31,6 @@ import type {
 } from '../types/assets';
 
 const { Paragraph, Text, Title } = Typography;
-const { Content, Sider } = Layout;
 
 const STATUS_COLOR_MAP: Record<string, string> = {
   ready: 'green',
@@ -50,6 +48,7 @@ interface PlatformDirectoryProps {
   onPreview: (resource: UnifiedResourceSummary) => void;
   onOpenAssetDetail?: (assetId: number) => void;
   onOpenUnifiedResourceDetail?: (sourceSystem: string, sourceId: string) => void;
+  onAddToApplication?: (resource: UnifiedResourceSummary) => boolean;
 }
 
 const RESOURCE_TYPE_LABELS: Record<string, string> = {
@@ -68,10 +67,22 @@ const TAB_SOURCE_MAP: Record<string, string> = {
   video: 'video',
 };
 
+const SOURCE_LABELS: Record<string, string> = {
+  image_2d: '二维资源',
+  three_d: '三维数字对象',
+  video: '视频资源',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  ready: '可申请',
+  processing: '处理中',
+  error: '异常',
+};
+
 const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
   onPreview,
-  onOpenAssetDetail,
   onOpenUnifiedResourceDetail,
+  onAddToApplication,
 }) => {
   const [sources, setSources] = useState<UnifiedResourceSourceSummary[]>([]);
   const [resources, setResources] = useState<UnifiedResourceSummary[]>([]);
@@ -150,6 +161,13 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
     setActiveTab(tabKey);
   }, []);
 
+  const activeSourceSystem = TAB_SOURCE_MAP[activeTab];
+  const activeSourceLabel = SOURCE_LABELS[activeSourceSystem] || '资源';
+  const previewResourceCount = useMemo(
+    () => resources.filter((resource) => resource.preview_enabled).length,
+    [resources],
+  );
+
   // 标签页切换时重新加载数据（重置到第一页）
   useEffect(() => {
     void fetchDirectory(advancedParams, 1, pageSize);
@@ -192,13 +210,13 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
               color={record.preview_enabled ? 'green' : 'blue'}
               style={{ fontSize: 11, margin: 0 }}
             >
-              {record.preview_enabled ? '可预览' : '仅下载'}
+              {record.preview_enabled ? '可预览' : '可申请'}
             </Tag>
             <Tag
               color={STATUS_COLOR_MAP[record.status] || 'default'}
               style={{ fontSize: 11, margin: 0 }}
             >
-              {record.status}
+              {STATUS_LABELS[record.status] || record.status}
             </Tag>
             {record.profile_label && (
               <Tag style={{ fontSize: 11, margin: 0 }}>{record.profile_label}</Tag>
@@ -244,45 +262,36 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
               详情
             </Button>
             <Button
-              data-testid={`platform-source-detail-${record.source_id}`}
+              data-testid={`platform-apply-${record.source_id}`}
               size="small"
-              icon={<FileTextOutlined />}
-              onClick={() => {
-                if (record.source_system === 'three_d' || record.source_system === 'video') {
-                  onOpenUnifiedResourceDetail?.(record.source_system, record.source_id);
-                  return;
-                }
-                const assetId = Number(record.source_id);
-                if (!Number.isNaN(assetId) && onOpenAssetDetail) {
-                  onOpenAssetDetail(assetId);
-                }
-              }}
+              icon={<ShoppingCartOutlined />}
+              onClick={() => onAddToApplication?.(record)}
             >
-              来源
+              加入申请车
             </Button>
           </Space>
         ),
       },
     ],
-    [onOpenAssetDetail, onOpenUnifiedResourceDetail, onPreview],
+    [onAddToApplication, onOpenUnifiedResourceDetail, onPreview],
   );
 
   return (
-    <Layout
+    <Row
+      gutter={[16, 16]}
       data-testid="platform-directory"
-      style={{ background: 'transparent', minHeight: 400 }}
-      hasSider
+      style={{ minHeight: 400, width: '100%', margin: 0 }}
     >
-      <Sider
-        width={240}
-        style={{ background: 'transparent', paddingRight: 16 }}
-        breakpoint="lg"
-        collapsedWidth={0}
-      >
-        <PlatformStatsBar sources={sources} totalResources={total} />
-      </Sider>
+      <Col xs={24} xl={6} xxl={5}>
+        <PlatformStatsBar
+          sources={sources}
+          totalResources={total}
+          activeSourceSystem={activeSourceSystem}
+          previewResourceCount={previewResourceCount}
+        />
+      </Col>
 
-      <Content style={{ minWidth: 0 }}>
+      <Col xs={24} xl={18} xxl={19} style={{ minWidth: 0 }}>
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <div
             style={{
@@ -295,7 +304,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
               统一资源目录
             </Title>
             <Text type="secondary">
-              共 {total} 条资源
+              {activeSourceLabel} · 共 {total} 条
             </Text>
           </div>
 
@@ -312,6 +321,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
 
           <AdvancedSearchPanel
             viewMode={viewMode}
+            sourceSystem={activeSourceSystem}
             onViewModeChange={setViewMode}
             onSearch={handleSearch}
             onRefresh={handleRefresh}
@@ -322,7 +332,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
             <>
               <Row gutter={[16, 16]}>
                 {resources.map((resource) => (
-                  <Col key={resource.id} xl={6} lg={8} md={12} sm={24}>
+                  <Col key={resource.id} xxl={6} xl={8} lg={12} md={12} sm={24} xs={24}>
                     <Card
                       hoverable
                       size="small"
@@ -333,13 +343,13 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                             title={resource.title}
                             previewData={resource.preview_data}
                             fallbackUrl={resource.thumbnail_url}
-                            height={160}
+                            height={150}
                           />
                         ) : resource.source_system === 'video' ? (
                           <div
                             style={{
-                              height: 160,
-                              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                              height: 150,
+                              background: 'linear-gradient(135deg, #18212f 0%, #223b46 100%)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -349,13 +359,13 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                           >
                             <PlayCircleOutlined style={{ fontSize: 48, color: '#fa8c16' }} />
                             <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>
-                              视频资源
+                              可播放视频
                             </Text>
                           </div>
                         ) : (
                           <div
                             style={{
-                              height: 160,
+                              height: 150,
                               background: '#fafafa',
                               display: 'flex',
                               alignItems: 'center',
@@ -376,7 +386,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                               preview={false}
                             />
                             ) : (
-                            <FileTextOutlined
+                            <PlayCircleOutlined
                               style={{ fontSize: 48, color: '#d9d9d9' }}
                             />
                             )}
@@ -384,17 +394,6 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                         )
                       }
                       actions={[
-                        <Button
-                          key="preview"
-                          data-testid={`platform-preview-${resource.source_id}`}
-                          type="link"
-                          size="small"
-                          icon={<EyeOutlined />}
-                          disabled={!resource.preview_enabled}
-                          onClick={() => onPreview(resource)}
-                        >
-                          预览
-                        </Button>,
                         <Button
                           key="detail"
                           data-testid={`platform-unified-detail-${resource.source_id}`}
@@ -409,6 +408,27 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                           }
                         >
                           详情
+                        </Button>,
+                        <Button
+                          key="preview"
+                          data-testid={`platform-preview-${resource.source_id}`}
+                          type="link"
+                          size="small"
+                          icon={<EyeOutlined />}
+                          disabled={!resource.preview_enabled}
+                          onClick={() => onPreview(resource)}
+                        >
+                          预览
+                        </Button>,
+                        <Button
+                          key="apply"
+                          data-testid={`platform-apply-${resource.source_id}`}
+                          type="link"
+                          size="small"
+                          icon={<ShoppingCartOutlined />}
+                          onClick={() => onAddToApplication?.(resource)}
+                        >
+                          申请
                         </Button>,
                       ]}
                     >
@@ -434,12 +454,18 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                                 {resource.source_label}
                               </Tag>
                               <Tag
+                                color={resource.preview_enabled ? 'green' : 'default'}
+                                style={{ fontSize: 11, margin: 0 }}
+                              >
+                                {resource.preview_enabled ? '可预览' : '可申请'}
+                              </Tag>
+                              <Tag
                                 color={
                                   STATUS_COLOR_MAP[resource.status] || 'default'
                                 }
                                 style={{ fontSize: 11, margin: 0 }}
                               >
-                                {resource.status}
+                                {STATUS_LABELS[resource.status] || resource.status}
                               </Tag>
                               {resource.profile_label && (
                                 <Tag style={{ fontSize: 11, margin: 0 }}>
@@ -493,8 +519,8 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
             </Card>
           )}
         </Space>
-      </Content>
-    </Layout>
+      </Col>
+    </Row>
   );
 };
 

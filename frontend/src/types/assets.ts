@@ -161,13 +161,16 @@ export interface ImageIngestSheetDetailResponse extends ImageIngestSheetSummary 
 }
 
 export interface ApplicationCartItem {
-  assetId: number;
+  cartKey: string;
+  assetId?: number | null;
   sourceSystem?: string | null;
   sourceId?: string | null;
+  resourceType?: string | null;
   title: string;
   manifestUrl: string;
   objectNumber?: string | null;
   sourceLabel?: string | null;
+  canSubmit?: boolean;
   note?: string;
 }
 
@@ -688,6 +691,21 @@ export interface ThreeDRepresentationSummary {
     preservation_status: string;
     preservation_note?: string | null;
   };
+}
+
+export interface ThreeDFileRecord {
+  id: number | null;
+  filename: string;
+  file_path: string;
+  actual_filename: string;
+  file_size: number;
+  mime_type: string | null;
+  role: string;
+  role_label: string;
+  is_primary: boolean;
+  sort_order: number;
+  download_url: string | null;
+  preview_url: string | null;
 }
 
 export interface ThreeDDigitalObjectDetailResponse {

@@ -76,6 +76,26 @@ def _build_export_package(application: Application) -> tuple[str, str, str]:
     manifest_items = []
     for item in application.items:
         asset = item.asset
+        if asset is None:
+            manifest_items.append(
+                {
+                    "application_item_id": item.id,
+                    "asset_id": None,
+                    "source_system": item.source_system,
+                    "source_id": item.source_id,
+                    "resource_type": item.resource_type,
+                    "resource_title": item.resource_title,
+                    "manifest_url": item.manifest_url,
+                    "source_label": item.source_label,
+                    "object_number": item.object_number,
+                    "requested_variant": item.requested_variant,
+                    "delivery_format": item.delivery_format,
+                    "note": item.note,
+                    "delivery_note": "This unified resource is recorded for review; no local 2D asset file was attached to this export package.",
+                }
+            )
+            continue
+
         if not asset.file_path or not os.path.exists(asset.file_path):
             raise HTTPException(status_code=404, detail=f"Physical file missing for asset {asset.id}")
 
@@ -87,6 +107,13 @@ def _build_export_package(application: Application) -> tuple[str, str, str]:
             {
                 "application_item_id": item.id,
                 "asset_id": asset.id,
+                "source_system": item.source_system or "image_2d",
+                "source_id": item.source_id or str(asset.id),
+                "resource_type": item.resource_type or asset.resource_type,
+                "resource_title": item.resource_title or asset.filename,
+                "manifest_url": item.manifest_url,
+                "source_label": item.source_label,
+                "object_number": item.object_number,
                 "filename": asset.filename,
                 "actual_filename": actual_filename,
                 "export_filename": safe_name,
@@ -138,13 +165,21 @@ def create_application(
     if not payload.items:
         raise HTTPException(status_code=400, detail="Application must include at least one item")
 
-    asset_ids = [item.asset_id for item in payload.items]
-    assets = db.query(Asset).filter(Asset.id.in_(asset_ids)).all()
+    asset_ids = [item.asset_id for item in payload.items if item.asset_id is not None]
+    assets = db.query(Asset).filter(Asset.id.in_(asset_ids)).all() if asset_ids else []
     asset_map = {asset.id: asset for asset in assets}
 
     missing_ids = [asset_id for asset_id in asset_ids if asset_id not in asset_map]
     if missing_ids:
         raise HTTPException(status_code=404, detail=f"Assets not found: {missing_ids}")
+
+    invalid_items = [
+        index + 1
+        for index, item in enumerate(payload.items)
+        if item.asset_id is None and not (item.source_system and item.source_id)
+    ]
+    if invalid_items:
+        raise HTTPException(status_code=400, detail=f"Application items missing unified resource locator: {invalid_items}")
 
     application = Application(
         application_no=_build_application_no(),
@@ -162,6 +197,13 @@ def create_application(
         application_item = ApplicationItem(
             application_id=application.id,
             asset_id=item.asset_id,
+            source_system=item.source_system or ("image_2d" if item.asset_id is not None else None),
+            source_id=item.source_id or (str(item.asset_id) if item.asset_id is not None else None),
+            resource_type=item.resource_type,
+            resource_title=item.resource_title,
+            manifest_url=item.manifest_url,
+            source_label=item.source_label,
+            object_number=item.object_number,
             requested_variant=item.requested_variant,
             delivery_format=item.delivery_format,
             note=item.note,

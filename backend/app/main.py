@@ -23,7 +23,7 @@ from .services.video_seed import seed_demo_video_asset
 
 
 def _ensure_sqlite_schema_compatibility() -> None:
-    if engine.dialect.name != "sqlite":
+    if engine.dialect.name not in {"sqlite", "postgresql"}:
         return
 
     inspector = inspect(engine)
@@ -42,6 +42,28 @@ def _ensure_sqlite_schema_compatibility() -> None:
             statements.append("ALTER TABLE image_records ADD COLUMN sheet_id INTEGER")
         if "line_no" not in image_record_columns:
             statements.append("ALTER TABLE image_records ADD COLUMN line_no INTEGER")
+
+    if "application_items" in inspector.get_table_names():
+        application_item_columns = {column["name"] for column in inspector.get_columns("application_items")}
+        application_item_column_specs = {
+            "source_system": "VARCHAR",
+            "source_id": "VARCHAR",
+            "resource_type": "VARCHAR",
+            "resource_title": "VARCHAR",
+            "manifest_url": "VARCHAR",
+            "source_label": "VARCHAR",
+            "object_number": "VARCHAR",
+        }
+        for column_name, column_type in application_item_column_specs.items():
+            if column_name not in application_item_columns:
+                statements.append(f"ALTER TABLE application_items ADD COLUMN {column_name} {column_type}")
+        if engine.dialect.name == "postgresql":
+            asset_id_column = next(
+                (column for column in inspector.get_columns("application_items") if column["name"] == "asset_id"),
+                None,
+            )
+            if asset_id_column and not asset_id_column.get("nullable", True):
+                statements.append("ALTER TABLE application_items ALTER COLUMN asset_id DROP NOT NULL")
 
     with engine.begin() as connection:
         for statement in statements:

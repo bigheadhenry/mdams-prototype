@@ -205,10 +205,13 @@ const App: React.FC = () => {
   }, [applyToken, fetchAuthContext, fetchAuthUsers]);
 
   useEffect(() => {
+    if (selectedUnifiedResource) {
+      return;
+    }
     if (!visibleMenuKeys.includes(selectedKey) && visibleMenuKeys.length > 0) {
       setSelectedKey(visibleMenuKeys[0]);
     }
-  }, [selectedKey, visibleMenuKeys]);
+  }, [selectedKey, selectedUnifiedResource, visibleMenuKeys]);
 
   const fetchAssets = useCallback(
     async (silent = false) => {
@@ -281,7 +284,7 @@ const App: React.FC = () => {
       }
       let added = false;
       setApplicationCart((current) => {
-        if (current.some((entry) => entry.assetId === item.assetId)) {
+        if (current.some((entry) => entry.cartKey === item.cartKey)) {
           return current;
         }
         added = true;
@@ -295,12 +298,12 @@ const App: React.FC = () => {
     [canCreateApplications],
   );
 
-  const updateApplicationNote = useCallback((assetId: number, note: string) => {
-    setApplicationCart((current) => current.map((item) => (item.assetId === assetId ? { ...item, note } : item)));
+  const updateApplicationNote = useCallback((cartKey: string, note: string) => {
+    setApplicationCart((current) => current.map((item) => (item.cartKey === cartKey ? { ...item, note } : item)));
   }, []);
 
-  const removeFromApplicationCart = useCallback((assetId: number) => {
-    setApplicationCart((current) => current.filter((item) => item.assetId !== assetId));
+  const removeFromApplicationCart = useCallback((cartKey: string) => {
+    setApplicationCart((current) => current.filter((item) => item.cartKey !== cartKey));
     message.success('已从申请车移除');
   }, []);
 
@@ -325,9 +328,16 @@ const App: React.FC = () => {
           purpose: payload.purpose,
           usage_scope: payload.usageScope,
           items: applicationCart.map((item) => ({
-            asset_id: item.assetId,
+            asset_id: item.assetId ?? null,
+            source_system: item.sourceSystem ?? null,
+            source_id: item.sourceId ?? null,
+            resource_type: item.resourceType ?? null,
+            resource_title: item.title,
+            manifest_url: item.manifestUrl,
+            source_label: item.sourceLabel ?? null,
+            object_number: item.objectNumber ?? null,
             requested_variant: 'current',
-            delivery_format: 'image',
+            delivery_format: item.sourceSystem === 'video' ? 'video' : item.sourceSystem === 'three_d' ? '3d_package' : 'image',
             note: item.note || null,
           })),
         });
@@ -421,8 +431,9 @@ const App: React.FC = () => {
     const isVideoResource = resource.source_system === 'video' || resource.resource_type === 'video_cultural_object';
 
     if (isVideoResource) {
-      // Open video in new tab or inline video player
-      window.open(resource.manifest_url, '_blank');
+      setSelectedUnifiedResource({ sourceSystem: resource.source_system, sourceId: resource.source_id });
+      setSelectedAssetId(null);
+      setSelectedKey('6');
       return;
     }
 
@@ -560,7 +571,6 @@ const App: React.FC = () => {
         },
         { key: '4', icon: <ExperimentOutlined />, label: <span data-testid="menu-4">{MENU_LABELS['4']}</span> },
         { key: '5', icon: <DatabaseOutlined />, label: <span data-testid="menu-5">{MENU_LABELS['5']}</span> },
-        { key: '6', icon: <FileTextOutlined />, label: <span data-testid="menu-6">{MENU_LABELS['6']}</span> },
         { key: '7', icon: <DatabaseOutlined />, label: <span data-testid="menu-7">{MENU_LABELS['7']}</span> },
         { key: '8', icon: <FileTextOutlined />, label: <span data-testid="menu-8">{MENU_LABELS['8']}</span> },
         { key: '9', icon: <FileTextOutlined />, label: <span data-testid="menu-9">{MENU_LABELS['9']}</span> },
@@ -715,9 +725,7 @@ const App: React.FC = () => {
             if (event.key !== '2') {
               setSelectedAssetId(null);
             }
-            if (event.key !== '6') {
-              setSelectedUnifiedResource(null);
-            }
+            setSelectedUnifiedResource(null);
           }}
           items={menuItems}
         />
@@ -759,8 +767,7 @@ const App: React.FC = () => {
                   setPreviewVisible(true);
                 }}
                 />
-              ) : selectedKey === '6' ? (
-              selectedUnifiedResource ? (
+              ) : selectedUnifiedResource ? (
                 <UnifiedResourceDetail
                   sourceSystem={selectedUnifiedResource.sourceSystem}
                   sourceId={selectedUnifiedResource.sourceId}
@@ -782,16 +789,24 @@ const App: React.FC = () => {
                     setSelectedAssetId(null);
                     setSelectedKey('6');
                   }}
+                  onAddToApplication={(resource) =>
+                    addToApplicationCart({
+                      cartKey: resource.id,
+                      assetId:
+                        resource.source_system === 'image_2d' && Number.isFinite(Number(resource.source_id))
+                          ? Number(resource.source_id)
+                          : null,
+                      sourceSystem: resource.source_system,
+                      sourceId: resource.source_id,
+                      resourceType: resource.resource_type,
+                      title: resource.title,
+                      manifestUrl: resource.manifest_url,
+                      sourceLabel: resource.source_label,
+                      objectNumber: resource.id,
+                      canSubmit: true,
+                    })
+                  }
                 />
-              ) : (
-                <Card>
-                  <Tag color="blue">统一资源详情</Tag>
-                  <Paragraph>请先从统一资源目录中选择一条资源。</Paragraph>
-                  <Button type="primary" onClick={() => setSelectedKey('5')}>
-                    返回统一资源目录
-                  </Button>
-                </Card>
-              )
             ) : (
               <>
                 {selectedKey === '1' ? renderDashboard() : null}
@@ -839,6 +854,23 @@ const App: React.FC = () => {
                       setSelectedAssetId(null);
                       setSelectedKey('6');
                     }}
+                    onAddToApplication={(resource) =>
+                      addToApplicationCart({
+                        cartKey: resource.id,
+                        assetId:
+                          resource.source_system === 'image_2d' && Number.isFinite(Number(resource.source_id))
+                            ? Number(resource.source_id)
+                            : null,
+                        sourceSystem: resource.source_system,
+                        sourceId: resource.source_id,
+                        resourceType: resource.resource_type,
+                        title: resource.title,
+                        manifestUrl: resource.manifest_url,
+                        sourceLabel: resource.source_label,
+                        objectNumber: resource.id,
+                        canSubmit: true,
+                      })
+                    }
                   />
                 ) : null}
 
@@ -903,13 +935,16 @@ const App: React.FC = () => {
                 manifestId={currentManifest}
                 onAddToApplication={(item) =>
                   addToApplicationCart({
+                    cartKey: item.sourceSystem && item.sourceId ? `${item.sourceSystem}:${item.sourceId}` : `image_2d:${item.assetId}`,
                     assetId: item.assetId,
                     sourceSystem: item.sourceSystem,
                     sourceId: item.sourceId,
+                    resourceType: 'image_2d_cultural_object',
                     title: item.title,
                     manifestUrl: item.manifestUrl,
                     objectNumber: item.objectNumber,
                     sourceLabel: item.sourceLabel,
+                    canSubmit: true,
                   })
                 }
               />

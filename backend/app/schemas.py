@@ -398,7 +398,14 @@ class ImageIngestSheetDetailResponse(ImageIngestSheetSummary):
 
 
 class ApplicationCreateItemRequest(BaseModel):
-    asset_id: int
+    asset_id: int | None = None
+    source_system: str | None = None
+    source_id: str | None = None
+    resource_type: str | None = None
+    resource_title: str | None = None
+    manifest_url: str | None = None
+    source_label: str | None = None
+    object_number: str | None = None
     requested_variant: str | None = "current"
     delivery_format: str | None = "image"
     note: str | None = None
@@ -428,12 +435,19 @@ class ApplicationAssetRef(BaseModel):
 
 class ApplicationItemResponse(BaseModel):
     id: int
-    asset_id: int
+    asset_id: int | None = None
+    source_system: str | None = None
+    source_id: str | None = None
+    resource_type: str | None = None
+    resource_title: str | None = None
+    manifest_url: str | None = None
+    source_label: str | None = None
+    object_number: str | None = None
     requested_variant: str | None = None
     delivery_format: str | None = None
     note: str | None = None
     created_at: datetime
-    asset: ApplicationAssetRef
+    asset: ApplicationAssetRef | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

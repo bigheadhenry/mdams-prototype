@@ -87,7 +87,7 @@ export const MENU_PERMISSION_RULES: Record<MenuKey, PermissionName[]> = {
   '3': ['application.create'],
   '4': ['image.upload', 'image.ingest_review', 'image.edit'],
   '5': ['platform.view'],
-  '6': ['platform.view'],
+  '6': [],
   '7': ['three_d.view'],
   '8': ['application.view_all', 'application.review', 'application.export'],
   '9': ['image.record.list', 'image.record.view_ready_for_upload'],

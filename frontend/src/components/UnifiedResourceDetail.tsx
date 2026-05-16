@@ -4,9 +4,11 @@ import {
   Breadcrumb,
   Button,
   Card,
+  Collapse,
   Col,
   Descriptions,
   Divider,
+  Drawer,
   Empty,
   Image,
   List,
@@ -14,6 +16,7 @@ import {
   Select,
   Space,
   Spin,
+  Table,
   Tag,
   Typography,
 } from 'antd';
@@ -22,12 +25,18 @@ import {
   BlockOutlined,
   DownloadOutlined,
   EyeOutlined,
+  FileTextOutlined,
   LinkOutlined,
   PictureOutlined,
   PlayCircleOutlined,
+  DownOutlined,
+  RightOutlined,
+  FileOutlined,
+  ShoppingCartOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import ThreeDViewer from './ThreeDViewer';
+import ThreeDTurntablePreview from './ThreeDTurntablePreview';
 import type {
   AssetDetailFileRecord,
   AssetDetailResponse,
@@ -37,6 +46,7 @@ import type {
   ThreeDDetailResponse,
   UnifiedResourceDetail as UnifiedResourceDetailType,
   UnifiedResourceSummary,
+  ThreeDFileRecord,
 } from '../types/assets';
 import type { LifecycleEntry } from '../types/assets';
 
@@ -49,6 +59,7 @@ interface UnifiedResourceDetailProps {
   onPreview?: (manifestUrl: string) => void;
   onOpenSourceDetail?: (assetId: number) => void;
   onOpenUnifiedResourceDetail?: (sourceSystem: string, sourceId: string) => void;
+  onAddToApplication?: (resource: UnifiedResourceDetailType) => boolean;
 }
 
 const statusColorMap: Record<string, string> = {
@@ -90,6 +101,105 @@ const formatBytes = (value?: number | null) => {
   return `${(value / 1024 / 1024).toFixed(2)} MB`;
 };
 
+const formatDuration = (seconds?: number | null) => {
+  if (seconds === undefined || seconds === null) return '-';
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return minutes > 0 ? `${minutes}分${String(rest).padStart(2, '0')}秒` : `${rest}秒`;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === 'object' && !Array.isArray(value));
+
+const buildMetadataRows = (metadata?: Record<string, unknown> | null) =>
+  Object.entries(metadata || {})
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => ({ key, field: key, value }));
+
+const renderMetadataValue = (value: unknown, depth = 0): React.ReactNode => {
+  if (value === null || value === undefined || value === '') return '-';
+  if (Array.isArray(value)) {
+    if (!value.length) return '-';
+    if (value.every(isRecord)) {
+      const columnKeys = Array.from(
+        new Set(value.flatMap((item) => Object.keys(item))),
+      ).slice(0, 6);
+      return (
+        <Table
+          size="small"
+          pagination={false}
+          rowKey={(_, index) => String(index)}
+          dataSource={value}
+          columns={columnKeys.map((key) => ({
+            title: key,
+            dataIndex: key,
+            key,
+            render: (cellValue: unknown) => renderMetadataValue(cellValue, depth + 1),
+          }))}
+        />
+      );
+    }
+    return (
+      <Space wrap>
+        {value.map((item, index) => (
+          <Tag key={`${String(item)}-${index}`}>{renderMetadataValue(item, depth + 1)}</Tag>
+        ))}
+      </Space>
+    );
+  }
+  if (isRecord(value)) {
+    if (depth >= 2) {
+      return Object.keys(value).length ? `${Object.keys(value).length} 个字段` : '-';
+    }
+    return (
+      <Table
+        size="small"
+        pagination={false}
+        rowKey="key"
+        dataSource={buildMetadataRows(value)}
+        columns={[
+          { title: '字段', dataIndex: 'field', key: 'field', width: 180 },
+          {
+            title: '值',
+            dataIndex: 'value',
+            key: 'value',
+            render: (cellValue: unknown) => renderMetadataValue(cellValue, depth + 1),
+          },
+        ]}
+      />
+    );
+  }
+  return String(value);
+};
+
+const MetadataTable: React.FC<{ data?: Record<string, unknown> | null }> = ({ data }) => (
+  <Table
+    size="small"
+    pagination={false}
+    rowKey="key"
+    dataSource={buildMetadataRows(data)}
+    locale={{ emptyText: '暂无技术元数据' }}
+    columns={[
+      { title: '字段', dataIndex: 'field', key: 'field', width: 220 },
+      {
+        title: '值',
+        dataIndex: 'value',
+        key: 'value',
+        render: (value: unknown) => renderMetadataValue(value),
+      },
+    ]}
+  />
+);
+
+const getFileExtUpper = (filename?: string | null): string => {
+  if (!filename) return '?';
+  const dotIdx = filename.lastIndexOf('.');
+  if (dotIdx < 0 || dotIdx === filename.length - 1) return '?';
+  return filename.substring(dotIdx + 1).toUpperCase().slice(0, 6);
+};
+
+const isImageMime = (mime?: string | null): boolean => Boolean(mime && mime.startsWith('image/'));
+
 const isAssetDetailRecord = (
   value: UnifiedResourceDetailType['source_record'],
 ): value is AssetDetailResponse => Boolean(value && 'lifecycle' in value && 'output_actions' in value);
@@ -121,6 +231,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
   onPreview,
   onOpenSourceDetail,
   onOpenUnifiedResourceDetail,
+  onAddToApplication,
 }) => {
   const [detail, setDetail] = useState<UnifiedResourceDetailType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,6 +239,10 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
   const [relatedResources, setRelatedResources] = useState<UnifiedResourceSummary[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
+  const [expandedRepFiles, setExpandedRepFiles] = useState<Record<number, ThreeDFileRecord[]>>({});
+  const [loadingRepFiles, setLoadingRepFiles] = useState<Record<number, boolean>>({});
+  const [sourceDetailDrawerOpen, setSourceDetailDrawerOpen] = useState(false);
+  const [sourceDetailData, setSourceDetailData] = useState<ThreeDDetailResponse | null>(null);
 
   const fetchDetail = useCallback(async () => {
     setLoading(true);
@@ -149,6 +264,33 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
       setLoading(false);
     }
   }, [sourceId, sourceSystem]);
+
+  const loadRepFiles = useCallback(async (repId: number, detailUrl?: string | null) => {
+    if (expandedRepFiles[repId]) {
+      // Already loaded, just toggle
+      setExpandedRepFiles((prev) => {
+        const next = { ...prev };
+        delete next[repId];
+        return next;
+      });
+      return;
+    }
+
+    setLoadingRepFiles((prev) => ({ ...prev, [repId]: true }));
+    try {
+      // Use detail_url or construct from resource_id
+      const apiUrl = detailUrl || `/api/three-d/resources/${repId}`;
+      const res = await axios.get<ThreeDDetailResponse>(apiUrl);
+      setExpandedRepFiles((prev) => ({
+        ...prev,
+        [repId]: res.data.structure.files || [],
+      }));
+    } catch (err) {
+      console.error('Failed to load representation files:', err);
+    } finally {
+      setLoadingRepFiles((prev) => ({ ...prev, [repId]: false }));
+    }
+  }, [expandedRepFiles]);
 
   useEffect(() => {
     fetchDetail();
@@ -187,6 +329,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
   }, [detail]);
 
   const sourceRecord = detail?.source_record ?? null;
+  const sourceRecordAny = sourceRecord as any;
   const assetRecord = isAssetDetailRecord(sourceRecord) ? sourceRecord : null;
   const threeDRecord = isThreeDDetailRecord(sourceRecord) ? sourceRecord : null;
   const threeDObjectRecord = isThreeDDigitalObjectDetailRecord(sourceRecord) ? sourceRecord : null;
@@ -237,10 +380,8 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
 
   const lifecycleItems = useMemo(() => assetRecord?.lifecycle || [], [assetRecord]);
   const derivativeRecords = assetRecord?.structure.derivatives || [];
-  const threeDTechnicalItems = useMemo(
-    () => Object.entries(defaultThreeDRecord?.technical_metadata || {})
-      .filter(([, value]) => value !== null && value !== undefined && value !== '')
-      .slice(0, 8),
+  const threeDTechnicalMetadata = useMemo(
+    () => defaultThreeDRecord?.technical_metadata || {},
     [defaultThreeDRecord],
   );
   const displayFilename = assetRecord?.file.filename || defaultThreeDRecord?.file.filename || detail?.title || '-';
@@ -271,7 +412,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
   }
 
   return (
-    <div style={{ maxWidth: 1240, margin: '0 auto', paddingBottom: 32 }}>
+    <div className="unified-resource-detail-page" style={{ maxWidth: 1240, margin: '0 auto', paddingBottom: 32 }}>
       <Breadcrumb
         style={{ marginBottom: 12 }}
         items={[
@@ -291,15 +432,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
         </Button>
       </Space>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(420px, 1.15fr) minmax(320px, 0.85fr)',
-          gap: 24,
-          alignItems: 'start',
-          marginBottom: 24,
-        }}
-      >
+      <div className="unified-resource-hero">
         <Card
           bordered={false}
           style={{ background: '#f5f4fb' }}
@@ -325,7 +458,7 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               minHeight: 480,
-              borderRadius: 16,
+              borderRadius: 8,
               background: 'linear-gradient(180deg, #1a1a1a 0%, #f2f2f2 100%)',
               overflow: 'hidden',
             }}
@@ -405,11 +538,12 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
             </Space>
 
             <Descriptions column={1} size="small" labelStyle={{ width: 96, color: '#8c8c8c' }}>
-              <Descriptions.Item label="文物号">
+              <Descriptions.Item label="统一 ID">
                 <Paragraph copyable style={{ marginBottom: 0 }}>
                   {detail.id}
                 </Paragraph>
               </Descriptions.Item>
+              <Descriptions.Item label="来源 ID">{detail.source_id}</Descriptions.Item>
               <Descriptions.Item label="来源">{detail.source_label}</Descriptions.Item>
               <Descriptions.Item label="分类">{getResourceTypeLabel(detail.resource_type)}</Descriptions.Item>
               <Descriptions.Item label="状态">
@@ -422,26 +556,39 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
                 {previewEnabled ? '可预览' : '不可预览'}
               </Descriptions.Item>
               <Descriptions.Item label="更新时间">{detail.updated_at}</Descriptions.Item>
+              {isVideo ? (
+                <>
+                  <Descriptions.Item label="时长">{formatDuration(sourceRecordAny?.duration_seconds as number | null)}</Descriptions.Item>
+                  <Descriptions.Item label="尺寸">
+                    {sourceRecordAny?.width != null ? `${sourceRecordAny.width} x ${sourceRecordAny.height}` : '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="格式">{sourceRecordAny?.mime_type || '-'}</Descriptions.Item>
+                </>
+              ) : null}
             </Descriptions>
 
             <Divider style={{ margin: '8px 0' }} />
 
             <Space wrap>
+              {!defaultThreeDRecord && (
+                <Button
+                  type="primary"
+                  icon={<EyeOutlined />}
+                  disabled={!previewEnabled || !manifestUrl}
+                  onClick={() => {
+                    if (manifestUrl) {
+                      onPreview?.(manifestUrl);
+                    }
+                  }}
+                >
+                  打开预览
+                </Button>
+              )}
               <Button
-                type="primary"
-                icon={<EyeOutlined />}
-                disabled={!previewEnabled || !manifestUrl}
-                onClick={() => {
-                  if (threeDRecord?.viewer?.preview_url) {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return;
-                  }
-                  if (manifestUrl) {
-                    onPreview?.(manifestUrl);
-                  }
-                }}
+                icon={<ShoppingCartOutlined />}
+                onClick={() => detail && onAddToApplication?.(detail)}
               >
-                {defaultThreeDRecord ? '查看三维预览' : '打开预览'}
+                加入申请车
               </Button>
               <Button
                 icon={<LinkOutlined />}
@@ -482,7 +629,12 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
                     onOpenSourceDetail(assetRecord.id);
                     return;
                   }
-                  window.open(detail.source_detail_url, '_blank', 'noopener,noreferrer');
+                  // 三维/三维数字对象、视频：用 Drawer 展示源详情
+                  const detailData = threeDRecord ?? threeDObjectRecord?.default_preview ?? null;
+                  if (detailData) {
+                    setSourceDetailData(detailData);
+                    setSourceDetailDrawerOpen(true);
+                  }
                 }}
               >
                 查看源详情
@@ -529,64 +681,132 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
               <List
                 bordered
                 dataSource={threeDObjectRecord.representations}
-                renderItem={(item) => (
-                  <List.Item>
-                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                      <Space wrap>
-                        <Text strong>{item.representation_label}</Text>
-                        <Tag>{item.representation_type}</Tag>
-                        <Tag>{item.version_label}</Tag>
-                        {item.id === threeDObjectRecord.default_preview_representation_id ? (
-                          <Tag color="green">默认预览</Tag>
-                        ) : null}
+                renderItem={(item) => {
+                  const isExpanded = !!expandedRepFiles[item.id];
+                  const isLoading = loadingRepFiles[item.id];
+                  const files = expandedRepFiles[item.id] || [];
+
+                  return (
+                    <List.Item>
+                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                        <Space wrap>
+                          <Text strong>{item.representation_label}</Text>
+                          <Tag>{item.representation_type}</Tag>
+                          <Tag>{item.version_label}</Tag>
+                          {item.id === threeDObjectRecord.default_preview_representation_id ? (
+                            <Tag color="green">默认预览</Tag>
+                          ) : null}
+                        </Space>
+                        <Text>表现标题：{item.title}</Text>
+                        <Text>文件数量：{item.file_count}</Text>
+                        <Space wrap>
+                          {(item.file_groups || []).map((group) => (
+                            <Tag key={`${item.id}-${group.role}`}>
+                              {group.role_label} {group.file_count}
+                            </Tag>
+                          ))}
+                        </Space>
+                        <Space wrap>
+                          <Button
+                            size="small"
+                            icon={isExpanded ? <DownOutlined /> : <RightOutlined />}
+                            onClick={() => void loadRepFiles(item.id, item.detail_url)}
+                            loading={isLoading}
+                          >
+                            {isExpanded ? '收起文件列表' : '查看文件列表'}
+                          </Button>
+                          <Button
+                            size="small"
+                            icon={<EyeOutlined />}
+                            disabled={!item.preview_enabled}
+                            onClick={() => window.open(item.detail_url || `/api/three-d/resources/${item.id}`, '_blank', 'noopener,noreferrer')}
+                          >
+                            打开表现
+                          </Button>
+                          <Button
+                            size="small"
+                            icon={<DownloadOutlined />}
+                            disabled={!item.download_url}
+                            onClick={() => {
+                              if (item.download_url) {
+                                window.location.href = item.download_url;
+                              }
+                            }}
+                          >
+                            下载资源包
+                          </Button>
+                        </Space>
+
+                        {/* Expandable file list */}
+                        {isExpanded && files.length > 0 && (
+                          <Collapse
+                            style={{ marginTop: 8, background: '#fafafa' }}
+                            defaultActiveKey={['files']}
+                            items={[{
+                              key: 'files',
+                              label: `文件列表 (${files.length} 个文件)`,
+                              children: (
+                                <List
+                                  size="small"
+                                  dataSource={files}
+                                  renderItem={(file: ThreeDFileRecord) => (
+                                    <List.Item
+                                      actions={[
+                                        <Button
+                                          key="download"
+                                          type="link"
+                                          size="small"
+                                          icon={<DownloadOutlined />}
+                                          onClick={() => {
+                                            const downloadUrl = file.download_url || `/api/three-d/resources/${item.id}/files/${file.id}`;
+                                            window.location.href = downloadUrl;
+                                          }}
+                                        >
+                                          下载
+                                        </Button>,
+                                      ]}
+                                    >
+                                      <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                                        <Space>
+                                          <FileOutlined style={{ color: '#1890ff' }} />
+                                          <Text strong>{file.filename}</Text>
+                                          {file.is_primary && <Tag color="green">主文件</Tag>}
+                                        </Space>
+                                        <Space size="large">
+                                          <Text type="secondary" style={{ fontSize: 12 }}>
+                                            类型：{file.role_label || file.role}
+                                          </Text>
+                                          <Text type="secondary" style={{ fontSize: 12 }}>
+                                            MIME：{file.mime_type || '-'}
+                                          </Text>
+                                          <Text type="secondary" style={{ fontSize: 12 }}>
+                                            大小：{formatBytes(file.file_size)}
+                                          </Text>
+                                        </Space>
+                                      </Space>
+                                    </List.Item>
+                                  )}
+                                />
+                              ),
+                            }]}
+                          />
+                        )}
                       </Space>
-                      <Text>表现标题：{item.title}</Text>
-                      <Text>文件数量：{item.file_count}</Text>
-                      <Space wrap>
-                        {(item.file_groups || []).map((group) => (
-                          <Tag key={`${item.id}-${group.role}`}>
-                            {group.role_label} {group.file_count}
-                          </Tag>
-                        ))}
-                      </Space>
-                      <Space wrap>
-                        <Button
-                          size="small"
-                          icon={<EyeOutlined />}
-                          disabled={!item.preview_enabled}
-                          onClick={() => window.open(item.detail_url || `/api/three-d/resources/${item.id}`, '_blank', 'noopener,noreferrer')}
-                        >
-                          打开表现
-                        </Button>
-                        <Button
-                          size="small"
-                          icon={<DownloadOutlined />}
-                          disabled={!item.download_url}
-                          onClick={() => {
-                            if (item.download_url) {
-                              window.location.href = item.download_url;
-                            }
-                          }}
-                        >
-                          下载资源包
-                        </Button>
-                      </Space>
-                    </Space>
-                  </List.Item>
-                )}
+                    </List.Item>
+                  );
+                }}
               />
             ) : isVideo ? (
-              <Alert
-                type="info"
-                showIcon
-                message="视频文件"
-                description={
-                  <Space direction="vertical" size={4}>
-                    <Text>文件名：{detail?.title || '-'}</Text>
-                    <Text>流媒体地址：{manifestUrl}</Text>
-                  </Space>
-                }
-              />
+              <Descriptions bordered column={1} size="small">
+                <Descriptions.Item label="主文件">{sourceRecordAny?.filename || detail?.title || '-'}</Descriptions.Item>
+                <Descriptions.Item label="播放地址">
+                  {manifestUrl ? <Paragraph copyable style={{ marginBottom: 0 }}>{manifestUrl}</Paragraph> : '-'}
+                </Descriptions.Item>
+                <Descriptions.Item label="文件大小">{formatBytes(sourceRecordAny?.file_size as number)}</Descriptions.Item>
+                <Descriptions.Item label="可申请状态">
+                  <Tag color={previewEnabled ? 'green' : 'default'}>{previewEnabled ? '可预览、可申请' : '可申请'}</Tag>
+                </Descriptions.Item>
+              </Descriptions>
             ) : (
               <List
                 bordered
@@ -628,19 +848,14 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
             ) : isVideo ? (
               <Descriptions bordered column={1} size="small">
                 <Descriptions.Item label="文件名">{detail?.title || '-'}</Descriptions.Item>
-                <Descriptions.Item label="MIME 类型">{(sourceRecord as any)?.mime_type as string || '-'}</Descriptions.Item>
-                <Descriptions.Item label="文件大小">{formatBytes((sourceRecord as any)?.file_size as number)}</Descriptions.Item>
-                <Descriptions.Item label="时长">{(sourceRecord as any)?.duration_seconds != null ? `${(sourceRecord as any).duration_seconds} 秒` : '-'}</Descriptions.Item>
-                <Descriptions.Item label="尺寸">{(sourceRecord as any)?.width != null ? `${(sourceRecord as any).width} x ${(sourceRecord as any).height}` : '-'}</Descriptions.Item>
+                <Descriptions.Item label="MIME 类型">{sourceRecordAny?.mime_type as string || '-'}</Descriptions.Item>
+                <Descriptions.Item label="文件大小">{formatBytes(sourceRecordAny?.file_size as number)}</Descriptions.Item>
+                <Descriptions.Item label="时长">{formatDuration(sourceRecordAny?.duration_seconds as number | null)}</Descriptions.Item>
+                <Descriptions.Item label="尺寸">{sourceRecordAny?.width != null ? `${sourceRecordAny.width} x ${sourceRecordAny.height}` : '-'}</Descriptions.Item>
+                <Descriptions.Item label="版权/授权">{sourceRecordAny?.rights_label || sourceRecordAny?.license_label || '待补充'}</Descriptions.Item>
               </Descriptions>
             ) : (
-              <Descriptions bordered column={1} size="small">
-                {threeDTechnicalItems.map(([key, value]) => (
-                  <Descriptions.Item key={key} label={key}>
-                    {String(value)}
-                  </Descriptions.Item>
-                ))}
-              </Descriptions>
+              <MetadataTable data={threeDTechnicalMetadata} />
             )}
           </Card>
 
@@ -791,6 +1006,198 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
           </Card>
         </Space>
       )}
+      <Drawer
+        title={sourceDetailData?.title || '三维源详情'}
+        open={sourceDetailDrawerOpen}
+        onClose={() => {
+          setSourceDetailDrawerOpen(false);
+          setSourceDetailData(null);
+        }}
+        width={1080}
+      >
+        {!sourceDetailData ? (
+          <Alert type="warning" message="暂无源详情数据，请先选择一个三维表现。" />
+        ) : (
+          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="标题">{sourceDetailData.title}</Descriptions.Item>
+              <Descriptions.Item label="资源组">{sourceDetailData.resource_group || '-'}</Descriptions.Item>
+              <Descriptions.Item label="表现版本号">{sourceDetailData.version_label || '原始版'}</Descriptions.Item>
+              <Descriptions.Item label="表现顺序">{sourceDetailData.version_order ?? 0}</Descriptions.Item>
+              <Descriptions.Item label="当前表现">{sourceDetailData.is_current ? '是' : '否'}</Descriptions.Item>
+              <Descriptions.Item label="Web 展示">{sourceDetailData.web_preview_status || 'disabled'}</Descriptions.Item>
+              <Descriptions.Item label="主文件">{sourceDetailData.file.filename}</Descriptions.Item>
+              <Descriptions.Item label="资源类型">{sourceDetailData.resource_type_label}</Descriptions.Item>
+              <Descriptions.Item label="状态">{sourceDetailData.status}</Descriptions.Item>
+              <Descriptions.Item label="关联藏品对象">
+                {sourceDetailData.collection_object ? (
+                  <Space direction="vertical" size={0}>
+                    <Text strong>#{sourceDetailData.collection_object.id}</Text>
+                    <Text type="secondary">
+                      {sourceDetailData.collection_object.object_number || '未填写藏品号'}
+                      {sourceDetailData.collection_object.object_name ? ` · ${sourceDetailData.collection_object.object_name}` : ''}
+                    </Text>
+                  </Space>
+                ) : (
+                  '-'
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="保存层级">{sourceDetailData.preservation.storage_tier || '-'}</Descriptions.Item>
+              <Descriptions.Item label="保存状态">{sourceDetailData.preservation.preservation_status || '-'}</Descriptions.Item>
+              <Descriptions.Item label="保存说明">{sourceDetailData.preservation.preservation_note || '-'}</Descriptions.Item>
+              <Descriptions.Item label="构成">{sourceDetailData.structure.summary}</Descriptions.Item>
+            </Descriptions>
+
+            <Card size="small" title="轻量旋转预览">
+              <ThreeDTurntablePreview
+                title={sourceDetailData.title}
+                previewData={sourceDetailData.metadata_layers.raw_metadata?.preview_data as any}
+                height={220}
+              />
+            </Card>
+
+            <ThreeDViewer viewer={sourceDetailData.viewer ?? undefined} title={sourceDetailData.title} />
+
+            <Card size="small" title="预览">
+              <Row gutter={[12, 12]}>
+                {sourceDetailData.structure.files.filter(
+                  (f) => f.preview_url || f.download_url,
+                ).length > 0 ? (
+                  sourceDetailData.structure.files
+                    .filter((f) => f.preview_url || f.download_url)
+                    .map((file) => {
+                      const imageUrl = file.preview_url || file.download_url;
+                      const isImage = isImageMime(file.mime_type);
+                      return (
+                        <Col key={`${file.role}-${file.actual_filename}-${file.sort_order ?? 0}`} xs={24} sm={12} md={8}>
+                          <Card size="small" bodyStyle={{ padding: 12 }}>
+                            {imageUrl && isImage ? (
+                              <Image
+                                src={imageUrl}
+                                alt={file.actual_filename}
+                                style={{ width: '100%', maxHeight: 220, objectFit: 'cover' }}
+                                fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: '100%',
+                                  height: 220,
+                                  background: '#f5f5f5',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  borderRadius: 6,
+                                  gap: 8,
+                                }}
+                              >
+                                <FileTextOutlined style={{ fontSize: 40, color: '#bfbfbf' }} />
+                                <Text type="secondary" style={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 600 }}>
+                                  {getFileExtUpper(file.actual_filename)}
+                                </Text>
+                              </div>
+                            )}
+                            <Space direction="vertical" size={0} style={{ marginTop: 8 }}>
+                              <Text strong>{file.actual_filename}</Text>
+                              <Text type="secondary">{file.role_label}</Text>
+                            </Space>
+                          </Card>
+                        </Col>
+                      );
+                    })
+                ) : (
+                  <Col span={24}>
+                    <Text type="secondary">当前资源没有可直接预览的图像。</Text>
+                  </Col>
+                )}
+              </Row>
+            </Card>
+
+            <Card size="small" title="文件构成">
+              <Table
+                rowKey={(record) => `${record.role}-${record.actual_filename}-${record.sort_order ?? 0}`}
+                pagination={false}
+                columns={[
+                  { title: '角色', dataIndex: 'role_label', key: 'role_label' },
+                  {
+                    title: '文件名',
+                    dataIndex: 'actual_filename',
+                    key: 'actual_filename',
+                    render: (value: string) => <Paragraph copyable style={{ marginBottom: 0 }}>{value}</Paragraph>,
+                  },
+                  {
+                    title: '大小',
+                    dataIndex: 'file_size',
+                    key: 'file_size',
+                    render: (value: number) => `${(value / 1024 / 1024).toFixed(2)} MB`,
+                  },
+                  {
+                    title: '主文件',
+                    dataIndex: 'is_primary',
+                    key: 'is_primary',
+                    render: (value: boolean) => (value ? <Tag color="green">是</Tag> : <Tag>否</Tag>),
+                  },
+                ]}
+                dataSource={sourceDetailData.structure.files}
+              />
+            </Card>
+
+            <Row gutter={16}>
+              <Col xs={24} lg={12}>
+                <Card size="small" title="文件分组">
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {sourceDetailData.structure.groups.map((group) => (
+                      <Space key={group.role} align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
+                        <Text>{group.role_label}</Text>
+                        <Text>
+                          {group.file_count} 个，{(group.total_file_size / 1024 / 1024).toFixed(2)} MB
+                        </Text>
+                      </Space>
+                    ))}
+                  </Space>
+                </Card>
+              </Col>
+              <Col xs={24} lg={12}>
+                <Card size="small" title="技术元数据">
+                  <MetadataTable data={sourceDetailData.technical_metadata} />
+                </Card>
+              </Col>
+            </Row>
+
+            <Card size="small" title="生产链">
+              <Table
+                rowKey="id"
+                pagination={false}
+                dataSource={sourceDetailData.production_records}
+                columns={[
+                  { title: '阶段', dataIndex: 'stage', key: 'stage' },
+                  { title: '事件', dataIndex: 'event_type', key: 'event_type' },
+                  { title: '状态', dataIndex: 'status', key: 'status' },
+                  { title: '执行人', dataIndex: 'actor', key: 'actor', render: (value: string | null | undefined) => value || '-' },
+                  { title: '时间', dataIndex: 'occurred_at', key: 'occurred_at' },
+                ]}
+              />
+            </Card>
+
+            <Card size="small" title="分层元数据">
+              <MetadataTable data={sourceDetailData.metadata_layers} />
+            </Card>
+
+            <Space>
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={() => {
+                  window.location.href = sourceDetailData.outputs.download_url;
+                }}
+              >
+                下载资源包
+              </Button>
+            </Space>
+          </Space>
+        )}
+      </Drawer>
     </div>
   );
 };
