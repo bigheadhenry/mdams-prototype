@@ -180,9 +180,11 @@ def test_three_d_resource_subsystem_and_platform_adapter(db_session, test_upload
     unified_resources = platform_router.get_resources(source_system=three_d_source.SOURCE_SYSTEM, db=db_session)
     assert len(unified_resources) == 1
     unified_resource = unified_resources[0]
-    assert unified_resource.id == f"{three_d_source.SOURCE_SYSTEM}:{uploaded.id}"
-    assert unified_resource.profile_key == "model"
-    assert unified_resource.profile_label == "三维模型"
+    assert unified_resource.id == f"{three_d_source.SOURCE_SYSTEM}:object-{uploaded.id}"
+    assert unified_resource.source_id == f"object-{uploaded.id}"
+    assert unified_resource.resource_type == "three_d_digital_object"
+    assert unified_resource.profile_key == "three_d_object"
+    assert "三维数字对象" in unified_resource.profile_label
     assert unified_resource.preview_enabled is False
     assert unified_resource.detail_url == f"/api/platform/resources/{unified_resource.source_system}/{unified_resource.source_id}"
     assert {action.key for action in unified_resource.actions} == {
@@ -199,13 +201,14 @@ def test_three_d_resource_subsystem_and_platform_adapter(db_session, test_upload
     assert unified_detail.id == unified_resource.id
     assert unified_detail.source_system == three_d_source.SOURCE_SYSTEM
     assert unified_detail.detail_url == f"/api/platform/resources/{unified_resource.source_system}/{unified_resource.source_id}"
-    assert unified_detail.source_detail_url == f"/api/three-d/resources/{uploaded.id}"
-    assert unified_detail.source_record_type == "three_d_detail"
-    assert unified_detail.source_record_schema == "three_d_detail.v1"
+    assert unified_detail.source_detail_url == f"/api/platform/resources/{unified_resource.source_system}/{unified_resource.source_id}"
+    assert unified_detail.source_record_type == "three_d_object_detail"
+    assert unified_detail.source_record_schema == "three_d_object_detail.v1"
     assert unified_detail.source_record is not None
-    assert unified_detail.source_record["id"] == uploaded.id
-    assert unified_detail.source_record["structure"]["primary_file"]["role"] == "model"
-    assert unified_detail.source_record["production_records"] == []
+    assert unified_detail.source_record["id"] == f"object-{uploaded.id}"
+    assert unified_detail.source_record["structure"]["representation_count"] == 1
+    assert unified_detail.source_record["representations"][0]["representation_type"] == "original_master"
+    assert unified_detail.source_record["representations"][0]["file_count"] == 1
     assert next(action for action in unified_detail.actions if action.key == "download").target == "source"
 
     collection_objects = three_d_router.list_three_d_collection_objects(q="古建", db=db_session)
@@ -266,7 +269,7 @@ def test_three_d_package_resource_stores_multiple_file_roles(db_session, test_up
 
     unified_resources = platform_router.get_resources(source_system=three_d_source.SOURCE_SYSTEM, db=db_session)
     assert len(unified_resources) == 1
-    assert unified_resources[0].profile_key == "package"
-    assert unified_resources[0].resource_type == "three_d_package"
+    assert unified_resources[0].profile_key == "three_d_object"
+    assert unified_resources[0].resource_type == "three_d_digital_object"
     assert unified_resources[0].preview_enabled is True
     assert next(action for action in unified_resources[0].actions if action.key == "preview").enabled is True

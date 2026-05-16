@@ -692,7 +692,18 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
       return matchesQuery && matchesStatus && matchesPreview && matchesResourceType;
     });
 
-    await route.fulfill({ json: filtered });
+    const skip = Number(url.searchParams.get('skip') || 0);
+    const limit = Number(url.searchParams.get('limit') || filtered.length || 20);
+    const pageItems = filtered.slice(skip, skip + limit);
+
+    await route.fulfill({
+      json: {
+        items: pageItems,
+        total: filtered.length,
+        page: Math.floor(skip / limit) + 1,
+        size: limit,
+      },
+    });
   });
 }
 
@@ -713,16 +724,17 @@ test.describe('Dashboard permissions', () => {
   test('system admin can open the unified resource directory', async ({ page }) => {
     await page.getByTestId('menu-5').click();
     await expect(page.getByTestId('platform-directory')).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'test_image.jpg' }).first()).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'image_2d:1' })).toBeVisible();
+    await expect(page.getByText('test_image.jpg').first()).toBeVisible();
+    await expect(page.getByTestId('platform-unified-detail-1')).toBeVisible();
   });
 
   test('system admin can search unified resources', async ({ page }) => {
     await page.getByTestId('menu-5').click();
+    await page.locator('.ant-collapse-header').click();
     await page.getByTestId('platform-search').fill('owner_scope');
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' }).first()).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'test_image.jpg' })).toHaveCount(0);
+    await expect(page.getByText('owner_scope_image.jpg').first()).toBeVisible();
+    await expect(page.getByText('test_image.jpg')).toHaveCount(0);
   });
 
   test('system admin can open unified detail page', async ({ page }) => {
@@ -740,11 +752,16 @@ test.describe('Role visibility', () => {
     await page.goto('/');
   });
 
-  test('resource user sees the dashboard but not admin menus', async ({ page }) => {
-    await expect(page.getByTestId('assets-table')).toBeVisible();
+  test('resource user only sees the unified directory and application cart menus', async ({ page }) => {
+    await expect(page.getByTestId('platform-directory')).toBeVisible();
+    await expect(page.getByTestId('menu-5')).toBeVisible();
     await expect(page.getByTestId('menu-3')).toBeVisible();
+    await expect(page.getByTestId('menu-1')).toHaveCount(0);
+    await expect(page.getByTestId('menu-2')).toHaveCount(0);
     await expect(page.getByTestId('menu-4')).toHaveCount(0);
+    await expect(page.getByTestId('menu-7')).toHaveCount(0);
     await expect(page.getByTestId('menu-8')).toHaveCount(0);
+    await expect(page.getByTestId('assets-table')).toHaveCount(0);
   });
 });
 
@@ -797,9 +814,9 @@ test.describe('Collection owner scope', () => {
   test('collection owner can open scoped unified directory items', async ({ page }) => {
     await page.getByTestId('menu-5').click();
     await expect(page.getByTestId('platform-directory')).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'test_image.jpg' }).first()).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'owner_scope_image.jpg' }).first()).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'other_owner_image.jpg' })).toHaveCount(0);
+    await expect(page.getByText('test_image.jpg').first()).toBeVisible();
+    await expect(page.getByText('owner_scope_image.jpg').first()).toBeVisible();
+    await expect(page.getByText('other_owner_image.jpg')).toHaveCount(0);
   });
 });
 

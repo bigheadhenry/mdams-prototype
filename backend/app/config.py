@@ -45,6 +45,12 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/uploads")
 API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:3000/api")
 CANTALOUPE_PUBLIC_URL = os.getenv("CANTALOUPE_PUBLIC_URL", "http://localhost:8182/iiif/2")
 CANTALOUPE_INTERNAL_URL = os.getenv("CANTALOUPE_INTERNAL_URL") or CANTALOUPE_PUBLIC_URL
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+    if origin.strip()
+]
+AUTH_DEFAULT_PASSWORD = os.getenv("AUTH_DEFAULT_PASSWORD", "mdams123")
 
 # Moonshot (Kimi) is OpenAI-compatible. Keep the OPENAI_* names for backwards
 # compatibility, but default them to Moonshot when dedicated Moonshot values are

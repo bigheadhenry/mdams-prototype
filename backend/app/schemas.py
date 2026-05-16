@@ -179,6 +179,8 @@ class UnifiedResourceSummary(BaseModel):
     preview_enabled: bool
     manifest_url: str
     detail_url: str
+    thumbnail_url: str | None = None
+    preview_data: dict[str, Any] | None = None
     updated_at: datetime
     actions: list[UnifiedResourceAction] = Field(default_factory=list)
 
@@ -188,6 +190,13 @@ class UnifiedResourceDetail(UnifiedResourceSummary):
     source_record_type: str | None = None
     source_record_schema: str | None = None
     source_record: dict[str, Any] | None = None
+
+
+class PaginatedUnifiedResourceList(BaseModel):
+    total: int
+    page: int
+    size: int
+    items: list[UnifiedResourceSummary]
 
 
 class IngestSipResponse(BaseModel):
@@ -518,6 +527,7 @@ class ThreeDAssetOut(BaseModel):
     storage_tier: str = "archive"
     preservation_status: str = "pending"
     preservation_note: str | None = None
+    preview_data: dict[str, Any] | None = None
     created_at: datetime
     process_message: str | None = None
 
@@ -626,6 +636,26 @@ class ThreeDMetadataDictionarySection(BaseModel):
     key: str
     label: str
     fields: list[ThreeDMetadataFieldDefinition] = Field(default_factory=list)
+
+
+class VideoAssetOut(BaseModel):
+    id: int
+    filename: str
+    title: str | None = None
+    file_path: str
+    file_size: int
+    mime_type: str | None = None
+    duration_seconds: int | None = None
+    width: int | None = None
+    height: int | None = None
+    status: str
+    resource_type: str
+    profile_key: str | None = None
+    profile_label: str | None = None
+    process_message: str | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ThreeDMetadataDictionaryResponse(BaseModel):

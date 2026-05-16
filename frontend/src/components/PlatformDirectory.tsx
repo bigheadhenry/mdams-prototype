@@ -1,32 +1,72 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Descriptions, Input, Select, Space, Table, Tag, Typography } from 'antd';
-import { EyeOutlined, FileTextOutlined, LinkOutlined, ReloadOutlined } from '@ant-design/icons';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Button,
+  Card,
+  Col,
+  Image,
+  Layout,
+  Pagination,
+  Row,
+  Space,
+  Table,
+  Tabs,
+  Tag,
+  Typography,
+} from 'antd';
+import {
+  EyeOutlined,
+  FileTextOutlined,
+  LinkOutlined,
+  PlayCircleOutlined,
+} from '@ant-design/icons';
 import axios from 'axios';
-import type { UnifiedResourceSourceSummary, UnifiedResourceSummary } from '../types/assets';
+import AdvancedSearchPanel from './AdvancedSearchPanel';
+import type { ViewMode } from './AdvancedSearchPanel';
+import PlatformStatsBar from './PlatformStatsBar';
+import ThreeDTurntablePreview from './ThreeDTurntablePreview';
+import type {
+  AdvancedSearchParams,
+  PaginatedUnifiedResourceList,
+  UnifiedResourceSourceSummary,
+  UnifiedResourceSummary,
+} from '../types/assets';
 
-const { Paragraph, Text } = Typography;
-const { Search } = Input;
+const { Paragraph, Text, Title } = Typography;
+const { Content, Sider } = Layout;
 
-const PROFILE_OPTIONS = [
-  { value: 'other', label: '其他' },
-  { value: 'movable_artifact', label: '文物影像' },
-  { value: 'immovable_artifact', label: '文物建筑影像' },
-  { value: 'art_photography', label: '艺术摄影影像' },
-  { value: 'business_activity', label: '业务活动影像' },
-  { value: 'panorama', label: '全景影像' },
-  { value: 'ancient_tree', label: '古树影像' },
-  { value: 'archaeology', label: '考古影像' },
-  { value: 'model', label: '三维模型' },
-  { value: 'point_cloud', label: '点云' },
-  { value: 'oblique_photo', label: '倾斜摄影' },
-  { value: 'package', label: '三维包' },
-];
+const STATUS_COLOR_MAP: Record<string, string> = {
+  ready: 'green',
+  processing: 'blue',
+  error: 'red',
+};
+
+const SOURCE_COLORS: Record<string, string> = {
+  image_2d: '#1677ff',
+  three_d: '#52c41a',
+  video: '#fa8c16',
+};
 
 interface PlatformDirectoryProps {
-  onPreview: (manifestUrl: string) => void;
+  onPreview: (resource: UnifiedResourceSummary) => void;
   onOpenAssetDetail?: (assetId: number) => void;
   onOpenUnifiedResourceDetail?: (sourceSystem: string, sourceId: string) => void;
 }
+
+const RESOURCE_TYPE_LABELS: Record<string, string> = {
+  image_2d_cultural_object: '二维影像',
+  three_d_digital_object: '三维数字对象',
+  three_d_model: '三维模型',
+  three_d_point_cloud: '点云',
+  three_d_oblique_photo: '倾斜摄影',
+  three_d_package: '三维包',
+  video_cultural_object: '文博视频',
+};
+
+const TAB_SOURCE_MAP: Record<string, string> = {
+  '2d': 'image_2d',
+  '3d': 'three_d',
+  video: 'video',
+};
 
 const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
   onPreview,
@@ -36,74 +76,133 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
   const [sources, setSources] = useState<UnifiedResourceSourceSummary[]>([]);
   const [resources, setResources] = useState<UnifiedResourceSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<string | undefined>();
-  const [previewState, setPreviewState] = useState<string | undefined>();
-  const [resourceType, setResourceType] = useState<string | undefined>();
-  const [profileKey, setProfileKey] = useState<string | undefined>();
+  const [viewMode, setViewMode] = useState<ViewMode>('card');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [advancedParams, setAdvancedParams] = useState<AdvancedSearchParams>({});
+  const [activeTab, setActiveTab] = useState<string>('2d');
 
-  const fetchDirectory = async (
-    nextQuery = query,
-    nextStatus = status,
-    nextPreview = previewState,
-    nextResourceType = resourceType,
-    nextProfileKey = profileKey,
-  ) => {
-    setLoading(true);
-    try {
-      const params: Record<string, string | boolean> = {};
-      if (nextQuery.trim()) params.q = nextQuery.trim();
-      if (nextStatus) params.status = nextStatus;
-      if (nextPreview === 'true') params.preview_enabled = true;
-      if (nextPreview === 'false') params.preview_enabled = false;
-      if (nextResourceType) params.resource_type = nextResourceType;
-      if (nextProfileKey) params.profile_key = nextProfileKey;
+  const fetchDirectory = useCallback(
+    async (params: AdvancedSearchParams = {}, page = 1, size = 20) => {
+      setLoading(true);
+      try {
+        const queryParams: Record<string, string | boolean | number> = {};
+        if (params.q) queryParams.q = params.q;
+        if (params.status) queryParams.status = params.status;
+        if (params.preview_enabled) queryParams.preview_enabled = params.preview_enabled === 'true';
+        if (params.resource_type) queryParams.resource_type = params.resource_type;
+        if (params.profile_key) queryParams.profile_key = params.profile_key;
+        queryParams.source_system = TAB_SOURCE_MAP[activeTab];
+        if (params.field && params.field_value) {
+          queryParams.q = queryParams.q
+            ? `${String(queryParams.q)} ${params.field_value}`
+            : params.field_value;
+        }
+        queryParams.skip = (page - 1) * size;
+        queryParams.limit = size;
 
-      const [sourcesRes, resourcesRes] = await Promise.all([
-        axios.get<UnifiedResourceSourceSummary[]>('/api/platform/sources'),
-        axios.get<UnifiedResourceSummary[]>('/api/platform/resources', { params }),
-      ]);
-      setSources(sourcesRes.data);
-      setResources(resourcesRes.data);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const [sourcesRes, resourcesRes] = await Promise.all([
+          axios.get<UnifiedResourceSourceSummary[]>('/api/platform/sources'),
+          axios.get<PaginatedUnifiedResourceList>('/api/platform/resources', {
+            params: queryParams,
+          }),
+        ]);
+        setSources(sourcesRes.data);
+        setResources(resourcesRes.data.items);
+        setTotal(resourcesRes.data.total);
+        setCurrentPage(resourcesRes.data.page);
+        setPageSize(resourcesRes.data.size);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeTab],
+  );
 
   useEffect(() => {
     void fetchDirectory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleSearch = useCallback(
+    (params: AdvancedSearchParams) => {
+      setAdvancedParams(params);
+      void fetchDirectory(params, 1, pageSize);
+    },
+    [fetchDirectory, pageSize],
+  );
+
+  const handleRefresh = useCallback(() => {
+    setAdvancedParams({});
+    void fetchDirectory({}, 1, pageSize);
+  }, [fetchDirectory, pageSize]);
+
+  const handlePageChange = useCallback(
+    (page: number, size: number) => {
+      setPageSize(size);
+      void fetchDirectory(advancedParams, page, size);
+    },
+    [fetchDirectory, advancedParams],
+  );
+
+  const handleTabChange = useCallback((tabKey: string) => {
+    setActiveTab(tabKey);
+  }, []);
+
+  // 标签页切换时重新加载数据（重置到第一页）
+  useEffect(() => {
+    void fetchDirectory(advancedParams, 1, pageSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   const columns = useMemo(
     () => [
       {
-        title: '统一资源 ID',
-        dataIndex: 'id',
-        key: 'id',
-        render: (value: string) => <Paragraph copyable style={{ marginBottom: 0 }}>{value}</Paragraph>,
+        title: '标题',
+        dataIndex: 'title',
+        key: 'title',
+        width: 220,
+        render: (value: string, record: UnifiedResourceSummary) => (
+          <Paragraph copyable={{ text: record.id }} style={{ marginBottom: 0 }}>
+            <Text strong>{value || '(无标题)'}</Text>
+          </Paragraph>
+        ),
       },
-      { title: '来源', dataIndex: 'source_label', key: 'source_label' },
-      { title: '标题', dataIndex: 'title', key: 'title' },
-      { title: '资源类型', dataIndex: 'resource_type', key: 'resource_type' },
       {
-        title: '模板',
-        dataIndex: 'profile_label',
-        key: 'profile_label',
-        render: (value: string | undefined, record: UnifiedResourceSummary) => (
-          <Tag>{value || record.profile_key || '其他'}</Tag>
+        title: '来源 / 类型',
+        key: 'source_type',
+        width: 160,
+        render: (_: unknown, record: UnifiedResourceSummary) => (
+          <Space direction="vertical" size={0}>
+            <Text style={{ fontSize: 12 }}>{record.source_label}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {RESOURCE_TYPE_LABELS[record.resource_type] || record.resource_type}
+            </Text>
+          </Space>
         ),
       },
       {
         title: '状态',
-        dataIndex: 'status',
         key: 'status',
-        render: (value: string, record: UnifiedResourceSummary) => (
-          <Space wrap>
-            <Tag color={record.preview_enabled ? 'green' : 'blue'}>
-              {record.preview_enabled ? '可预览' : '仅可下载'}
+        width: 150,
+        render: (_: unknown, record: UnifiedResourceSummary) => (
+          <Space wrap size={[4, 2]}>
+            <Tag
+              color={record.preview_enabled ? 'green' : 'blue'}
+              style={{ fontSize: 11, margin: 0 }}
+            >
+              {record.preview_enabled ? '可预览' : '仅下载'}
             </Tag>
-            <Tag>{value}</Tag>
+            <Tag
+              color={STATUS_COLOR_MAP[record.status] || 'default'}
+              style={{ fontSize: 11, margin: 0 }}
+            >
+              {record.status}
+            </Tag>
+            {record.profile_label && (
+              <Tag style={{ fontSize: 11, margin: 0 }}>{record.profile_label}</Tag>
+            )}
           </Space>
         ),
       },
@@ -111,39 +210,55 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
         title: '更新时间',
         dataIndex: 'updated_at',
         key: 'updated_at',
-        render: (value: string) => <Text type="secondary">{value}</Text>,
+        width: 150,
+        render: (value: string) => (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {value}
+          </Text>
+        ),
       },
       {
         title: '操作',
         key: 'action',
-        render: (_value: unknown, record: UnifiedResourceSummary) => (
-          <Space wrap>
+        width: 190,
+        render: (_: unknown, record: UnifiedResourceSummary) => (
+          <Space size={4} wrap>
             <Button
               data-testid={`platform-preview-${record.source_id}`}
+              size="small"
               icon={<EyeOutlined />}
               disabled={!record.preview_enabled}
-              onClick={() => onPreview(record.manifest_url)}
+              onClick={() => onPreview(record)}
             >
               预览
             </Button>
             <Button
               data-testid={`platform-unified-detail-${record.source_id}`}
+              size="small"
+              type="primary"
               icon={<LinkOutlined />}
-              onClick={() => onOpenUnifiedResourceDetail?.(record.source_system, record.source_id)}
+              onClick={() =>
+                onOpenUnifiedResourceDetail?.(record.source_system, record.source_id)
+              }
             >
-              统一详情
+              详情
             </Button>
             <Button
               data-testid={`platform-source-detail-${record.source_id}`}
+              size="small"
               icon={<FileTextOutlined />}
               onClick={() => {
+                if (record.source_system === 'three_d' || record.source_system === 'video') {
+                  onOpenUnifiedResourceDetail?.(record.source_system, record.source_id);
+                  return;
+                }
                 const assetId = Number(record.source_id);
                 if (!Number.isNaN(assetId) && onOpenAssetDetail) {
                   onOpenAssetDetail(assetId);
                 }
               }}
             >
-              来源详情
+              来源
             </Button>
           </Space>
         ),
@@ -153,119 +268,233 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
   );
 
   return (
-    <Space data-testid="platform-directory" direction="vertical" size="large" style={{ width: '100%' }}>
-      <Card title="统一资源目录">
+    <Layout
+      data-testid="platform-directory"
+      style={{ background: 'transparent', minHeight: 400 }}
+      hasSider
+    >
+      <Sider
+        width={240}
+        style={{ background: 'transparent', paddingRight: 16 }}
+        breakpoint="lg"
+        collapsedWidth={0}
+      >
+        <PlatformStatsBar sources={sources} totalResources={total} />
+      </Sider>
+
+      <Content style={{ minWidth: 0 }}>
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <Space wrap style={{ width: '100%' }}>
-            <Search
-              data-testid="platform-search"
-              allowClear
-              placeholder="搜索标题、文件名、MIME 或资源标识"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onSearch={(value) => void fetchDirectory(value, status, previewState, resourceType, profileKey)}
-              style={{ width: 320 }}
-            />
-            <Select
-              allowClear
-              placeholder="状态"
-              value={status}
-              onChange={(value) => {
-                setStatus(value);
-                void fetchDirectory(query, value, previewState, resourceType, profileKey);
-              }}
-              style={{ width: 160 }}
-              options={[
-                { value: 'ready', label: '就绪' },
-                { value: 'processing', label: '处理中' },
-                { value: 'error', label: '异常' },
-              ]}
-            />
-            <Select
-              allowClear
-              placeholder="预览能力"
-              value={previewState}
-              onChange={(value) => {
-                setPreviewState(value);
-                void fetchDirectory(query, status, value, resourceType, profileKey);
-              }}
-              style={{ width: 160 }}
-              options={[
-                { value: 'true', label: '可预览' },
-                { value: 'false', label: '仅可下载' },
-              ]}
-            />
-            <Select
-              allowClear
-              placeholder="资源类型"
-              value={resourceType}
-              onChange={(value) => {
-                setResourceType(value);
-                void fetchDirectory(query, status, previewState, value, profileKey);
-              }}
-              style={{ width: 240 }}
-              options={[
-                { value: 'image_2d_cultural_object', label: '二维影像' },
-                { value: 'three_d_model', label: '三维模型' },
-                { value: 'three_d_point_cloud', label: '点云' },
-                { value: 'three_d_oblique_photo', label: '倾斜摄影' },
-                { value: 'three_d_package', label: '三维包' },
-              ]}
-            />
-            <Select
-              allowClear
-              placeholder="模板"
-              value={profileKey}
-              onChange={(value) => {
-                setProfileKey(value);
-                void fetchDirectory(query, status, previewState, resourceType, value);
-              }}
-              style={{ width: 180 }}
-              options={PROFILE_OPTIONS}
-            />
-            <Button icon={<ReloadOutlined />} onClick={() => void fetchDirectory()} />
-          </Space>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Title level={4} style={{ margin: 0 }}>
+              统一资源目录
+            </Title>
+            <Text type="secondary">
+              共 {total} 条资源
+            </Text>
+          </div>
 
-          <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="来源数量">{sources.length}</Descriptions.Item>
-            <Descriptions.Item label="资源数量">{resources.length}</Descriptions.Item>
-          </Descriptions>
+          <Tabs
+            activeKey={activeTab}
+            onChange={(key) => handleTabChange(key)}
+            size="large"
+            items={[
+              { key: '2d', label: '二维' },
+              { key: '3d', label: '三维' },
+              { key: 'video', label: '视频' },
+            ]}
+          />
+
+          <AdvancedSearchPanel
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onSearch={handleSearch}
+            onRefresh={handleRefresh}
+            loading={loading}
+          />
+
+          {viewMode === 'card' ? (
+            <>
+              <Row gutter={[16, 16]}>
+                {resources.map((resource) => (
+                  <Col key={resource.id} xl={6} lg={8} md={12} sm={24}>
+                    <Card
+                      hoverable
+                      size="small"
+                      style={{ height: '100%' }}
+                      cover={
+                        resource.source_system === 'three_d' ? (
+                          <ThreeDTurntablePreview
+                            title={resource.title}
+                            previewData={resource.preview_data}
+                            fallbackUrl={resource.thumbnail_url}
+                            height={160}
+                          />
+                        ) : resource.source_system === 'video' ? (
+                          <div
+                            style={{
+                              height: 160,
+                              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexDirection: 'column',
+                              gap: 8,
+                            }}
+                          >
+                            <PlayCircleOutlined style={{ fontSize: 48, color: '#fa8c16' }} />
+                            <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>
+                              视频资源
+                            </Text>
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              height: 160,
+                              background: '#fafafa',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {resource.thumbnail_url ? (
+                            <Image
+                              src={resource.thumbnail_url}
+                              alt={resource.title}
+                              style={{
+                                maxHeight: '100%',
+                                maxWidth: '100%',
+                                objectFit: 'cover',
+                              }}
+                              fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                              preview={false}
+                            />
+                            ) : (
+                            <FileTextOutlined
+                              style={{ fontSize: 48, color: '#d9d9d9' }}
+                            />
+                            )}
+                          </div>
+                        )
+                      }
+                      actions={[
+                        <Button
+                          key="preview"
+                          data-testid={`platform-preview-${resource.source_id}`}
+                          type="link"
+                          size="small"
+                          icon={<EyeOutlined />}
+                          disabled={!resource.preview_enabled}
+                          onClick={() => onPreview(resource)}
+                        >
+                          预览
+                        </Button>,
+                        <Button
+                          key="detail"
+                          data-testid={`platform-unified-detail-${resource.source_id}`}
+                          type="link"
+                          size="small"
+                          icon={<LinkOutlined />}
+                          onClick={() =>
+                            onOpenUnifiedResourceDetail?.(
+                              resource.source_system,
+                              resource.source_id,
+                            )
+                          }
+                        >
+                          详情
+                        </Button>,
+                      ]}
+                    >
+                      <Card.Meta
+                        title={
+                          <Text
+                            ellipsis={{ tooltip: resource.title || '无标题' }}
+                            strong
+                            style={{ fontSize: 13 }}
+                          >
+                            {resource.title || '(无标题)'}
+                          </Text>
+                        }
+                        description={
+                          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                            <Space size={4} wrap>
+                              <Tag
+                                color={
+                                  SOURCE_COLORS[resource.source_system] || 'default'
+                                }
+                                style={{ fontSize: 11, margin: 0 }}
+                              >
+                                {resource.source_label}
+                              </Tag>
+                              <Tag
+                                color={
+                                  STATUS_COLOR_MAP[resource.status] || 'default'
+                                }
+                                style={{ fontSize: 11, margin: 0 }}
+                              >
+                                {resource.status}
+                              </Tag>
+                              {resource.profile_label && (
+                                <Tag style={{ fontSize: 11, margin: 0 }}>
+                                  {resource.profile_label}
+                                </Tag>
+                              )}
+                            </Space>
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                              {resource.updated_at}
+                            </Text>
+                          </Space>
+                        }
+                      />
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+              <div style={{ textAlign: 'center', marginTop: 16 }}>
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={total}
+                  showSizeChanger
+                  showQuickJumper
+                  pageSizeOptions={['10', '20', '40', '80']}
+                  showTotal={(t) => `共 ${t} 条`}
+                  onChange={handlePageChange}
+                  disabled={loading}
+                />
+              </div>
+            </>
+          ) : (
+            <Card size="small">
+              <Table
+                rowKey="id"
+                loading={loading}
+                dataSource={resources}
+                columns={columns}
+                size="small"
+                pagination={{
+                  current: currentPage,
+                  pageSize: pageSize,
+                  total: total,
+                  showSizeChanger: true,
+                  showQuickJumper: true,
+                  pageSizeOptions: ['10', '20', '40', '80'],
+                  showTotal: (t) => `共 ${t} 条`,
+                  onChange: (page, size) => handlePageChange(page, size),
+                }}
+              />
+            </Card>
+          )}
         </Space>
-
-        <Alert
-          style={{ marginTop: 16 }}
-          type="info"
-          showIcon
-          message="统一资源目录聚合了多个子系统来源，并提供统一的检索与详情入口。"
-        />
-      </Card>
-
-      <Card title="来源汇总">
-        <Descriptions bordered column={1} size="small">
-          {sources.map((source) => (
-            <Descriptions.Item key={source.source_system} label={source.source_label}>
-              <Space direction="vertical" size={0}>
-                <Text>系统标识：{source.source_system}</Text>
-                <Text>资源类型：{source.resource_type}</Text>
-                <Text>资源数量：{source.resource_count}</Text>
-                <Text>入口地址：{source.entrypoint}</Text>
-                <Text>健康状态：{source.healthy ? '正常' : '异常'}</Text>
-              </Space>
-            </Descriptions.Item>
-          ))}
-        </Descriptions>
-      </Card>
-
-      <Card title="统一资源列表">
-        <Table
-          rowKey="id"
-          loading={loading}
-          dataSource={resources}
-          columns={columns}
-          pagination={{ pageSize: 10 }}
-        />
-      </Card>
-    </Space>
+      </Content>
+    </Layout>
   );
 };
 

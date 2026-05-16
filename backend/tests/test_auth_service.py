@@ -6,11 +6,23 @@ from app.services.auth import (
     authenticate_user,
     create_user_session,
     get_user_by_session_token,
+    hash_password,
     seed_auth_data,
+    verify_password,
 )
 
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
+
+
+def test_password_hashes_use_unique_salts_and_constant_verification():
+    first_hash = hash_password(DEFAULT_PASSWORD)
+    second_hash = hash_password(DEFAULT_PASSWORD)
+
+    assert first_hash != second_hash
+    assert verify_password(DEFAULT_PASSWORD, first_hash)
+    assert verify_password(DEFAULT_PASSWORD, second_hash)
+    assert not verify_password("wrong-password", first_hash)
 
 
 def test_seed_auth_data_creates_roles_and_users(db_session):

@@ -24,6 +24,7 @@ from ..services.three_d_dictionary import build_three_d_metadata_dictionary
 from ..services.three_d_detail import build_three_d_detail_response, build_three_d_viewer_summary
 from ..services.three_d_metadata import PROFILE_DEFINITIONS, build_three_d_metadata_layers
 from ..services.three_d_production import seed_three_d_production_records
+from ..services.three_d_preview import build_three_d_preview_data
 from ..services.three_d_storage import (
     build_three_d_download_zip,
     build_three_d_package_manifest,
@@ -44,6 +45,14 @@ def _three_d_dir() -> str:
 
 def _resource_dir(resource_id: int) -> Path:
     return Path(_three_d_dir()) / str(resource_id)
+
+
+def _path_inside(parent: Path, candidate: Path) -> bool:
+    try:
+        candidate.resolve().relative_to(parent.resolve())
+        return True
+    except ValueError:
+        return False
 
 
 def _get_resource_or_404(resource_id: int, db: Session) -> ThreeDAsset:
@@ -194,6 +203,7 @@ def _serialize_three_d_asset(asset: ThreeDAsset) -> ThreeDAssetOut:
     layers = asset.metadata_info or {}
     core = layers.get("core") if isinstance(layers, dict) else {}
     technical = layers.get("technical") if isinstance(layers, dict) else {}
+    raw_metadata = layers.get("raw_metadata") if isinstance(layers, dict) else {}
     files = technical.get("files") if isinstance(technical, dict) else []
     file_roles = []
     if isinstance(files, list):
@@ -232,6 +242,7 @@ def _serialize_three_d_asset(asset: ThreeDAsset) -> ThreeDAssetOut:
         storage_tier=str(getattr(asset, "storage_tier", None) or "archive"),
         preservation_status=str(getattr(asset, "preservation_status", None) or "pending"),
         preservation_note=str(getattr(asset, "preservation_note", None) or "") or None,
+        preview_data=raw_metadata.get("preview_data") if isinstance(raw_metadata, dict) and isinstance(raw_metadata.get("preview_data"), dict) else None,
         created_at=asset.created_at,
         process_message=asset.process_message,
     )
@@ -523,6 +534,12 @@ async def upload_three_d_resource(
 
     total_file_size = sum(int(file_record.get("file_size") or 0) for file_record in saved_files)
     resource_type = resource_type if derived_profile_key != "other" else resource_type
+    preview_data = build_three_d_preview_data(
+        resource_dir,
+        asset_id=db_asset.id,
+        title=resource_title,
+        file_records=saved_files,
+    )
     metadata_layers = build_three_d_metadata_layers(
         asset_id=db_asset.id,
         asset_filename=primary_file["filename"],
@@ -569,9 +586,11 @@ async def upload_three_d_resource(
             "role_summary": ", ".join(f"{three_d_role_label(item['role'])}" for item in saved_files),
             "file_name": primary_file["filename"],
             "file_size": total_file_size,
+            "preview_data": preview_data,
         },
         source_metadata={
             "files": saved_files,
+            "preview_data": preview_data,
             "profile_key": derived_profile_key,
             "title": resource_title,
             "project_name": project_name,
@@ -699,7 +718,7 @@ def download_three_d_resource(
         raise HTTPException(status_code=404, detail="3D resource files not found")
     if len(file_records) == 1:
         file_path = Path(file_records[0].file_path)
-        if not file_path.exists():
+        if not file_path.exists() or not _path_inside(resource_dir, file_path):
             raise HTTPException(status_code=404, detail="File not found")
         return FileResponse(path=str(file_path), filename=file_records[0].filename)
 
@@ -719,13 +738,31 @@ def download_three_d_resource_file(
     if file_record is None:
         raise HTTPException(status_code=404, detail="3D file not found")
     file_path = Path(file_record.file_path)
-    if not file_path.exists():
+    if not file_path.exists() or not _path_inside(_resource_dir(asset.id), file_path):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(
         path=str(file_path),
         filename=file_record.actual_filename or file_record.filename,
         media_type=file_record.mime_type or "application/octet-stream",
     )
+
+
+@router.get("/resources/{resource_id}/previews/{preview_name}")
+def get_three_d_resource_preview(
+    resource_id: int,
+    preview_name: str,
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.view")),
+):
+    _get_resource_or_404(resource_id, db)
+    safe_name = Path(preview_name).name
+    preview_path = _resource_dir(resource_id) / "previews" / safe_name
+    if not preview_path.exists() or not preview_path.is_file():
+        raise HTTPException(status_code=404, detail="3D preview not found")
+    media_type = "image/svg+xml" if preview_path.suffix.lower() == ".svg" else "application/octet-stream"
+    if preview_path.suffix.lower() == ".json":
+        media_type = "application/json"
+    return FileResponse(path=str(preview_path), filename=safe_name, media_type=media_type)
 
 
 @router.delete("/resources/{resource_id}")

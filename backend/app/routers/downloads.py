@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Asset
+from ..permissions import CurrentUser, can_access_visibility_scope, ensure_current_user, require_permission
 from ..services.iiif_access import (
     get_asset_iiif_access_file_path,
     get_asset_original_file_path,
@@ -28,6 +29,45 @@ def _get_asset_or_404(asset_id: int, db: Session) -> Asset:
     return asset
 
 
+def _asset_visibility_scope(asset: Asset) -> str:
+    visibility_scope = getattr(asset, "visibility_scope", None)
+    if visibility_scope:
+        return str(visibility_scope)
+    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    core = metadata.get("core") if isinstance(metadata, dict) else {}
+    if isinstance(core, dict) and core.get("visibility_scope") not in (None, ""):
+        return str(core["visibility_scope"])
+    return "open"
+
+
+def _asset_collection_object_id(asset: Asset) -> int | None:
+    value = getattr(asset, "collection_object_id", None)
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    core = metadata.get("core") if isinstance(metadata, dict) else {}
+    if isinstance(core, dict):
+        core_value = core.get("collection_object_id")
+        if isinstance(core_value, int):
+            return core_value
+        if isinstance(core_value, str) and core_value.isdigit():
+            return int(core_value)
+    return None
+
+
+def _ensure_asset_visible(asset: Asset, user: CurrentUser) -> None:
+    if not can_access_visibility_scope(
+        user,
+        visibility_scope=_asset_visibility_scope(asset),
+        collection_object_id=_asset_collection_object_id(asset),
+    ):
+        raise HTTPException(status_code=403, detail="Asset is not visible to current user")
+
+
 def _calculate_sha256(filepath: str) -> str:
     sha256_hash = hashlib.sha256()
     with open(filepath, "rb") as file_handle:
@@ -37,8 +77,13 @@ def _calculate_sha256(filepath: str) -> str:
 
 
 @router.get("/assets/{asset_id}/download")
-def download_asset_file(asset_id: int, db: Session = Depends(get_db)):
+def download_asset_file(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.view")),
+):
     asset = _get_asset_or_404(asset_id, db)
+    _ensure_asset_visible(asset, ensure_current_user(user))
     download_path = get_asset_primary_file_path(asset, require_exists=True)
 
     if not download_path:
@@ -49,8 +94,14 @@ def download_asset_file(asset_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/assets/{asset_id}/download-bag")
-def download_asset_bag(asset_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def download_asset_bag(
+    asset_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.view")),
+):
     asset = _get_asset_or_404(asset_id, db)
+    _ensure_asset_visible(asset, ensure_current_user(user))
 
     original_file_path = get_asset_original_file_path(asset)
     if not original_file_path or not os.path.exists(original_file_path):
@@ -83,15 +134,15 @@ def download_asset_bag(asset_id: int, background_tasks: BackgroundTasks, db: Ses
             shutil.copy2(iiif_access_path, dest_access_path)
             manifest_entries.append(f"{_calculate_sha256(iiif_access_path)}  data/{iiif_access_basename}")
 
-        with open(os.path.join(bag_root, "manifest-sha256.txt"), "w", encoding="utf-8") as file_handle:
+        with open(os.path.join(bag_root, "manifest-sha256.txt"), "w", encoding="utf-8", newline="\n") as file_handle:
             for entry in manifest_entries:
                 file_handle.write(f"{entry}\n")
 
-        with open(os.path.join(bag_root, "bagit.txt"), "w", encoding="utf-8") as file_handle:
+        with open(os.path.join(bag_root, "bagit.txt"), "w", encoding="utf-8", newline="\n") as file_handle:
             file_handle.write("BagIt-Version: 1.0\n")
             file_handle.write("Tag-File-Character-Encoding: UTF-8\n")
 
-        with open(os.path.join(bag_root, "bag-info.txt"), "w", encoding="utf-8") as file_handle:
+        with open(os.path.join(bag_root, "bag-info.txt"), "w", encoding="utf-8", newline="\n") as file_handle:
             file_handle.write("Source-Organization: MEAM Prototype\n")
             file_handle.write(f"Bagging-Date: {datetime.now().strftime('%Y-%m-%d')}\n")
             file_handle.write(f"Payload-Oxum: {asset.file_size}.1\n")

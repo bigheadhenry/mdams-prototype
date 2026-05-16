@@ -24,6 +24,7 @@ import { DeleteOutlined, DownloadOutlined, EyeOutlined, ReloadOutlined, UploadOu
 import axios from 'axios';
 import type { ThreeDAssetSummary, ThreeDCollectionObjectSummary, ThreeDDetailResponse } from '../types/assets';
 import ThreeDViewer from './ThreeDViewer';
+import ThreeDTurntablePreview from './ThreeDTurntablePreview';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -65,6 +66,14 @@ const RECORD_STATUS_LABELS: Record<string, string> = {
   processing: '处理中',
 };
 
+const REPRESENTATION_TYPE_LABELS: Record<string, string> = {
+  original_master: '原始保存级',
+  web_display: 'Web 展示级',
+  mobile_lightweight: '移动轻量级',
+  research_detail: '高精度研究级',
+  derivative: '其他派生',
+};
+
 const getWebPreviewStatusLabel = (value?: string | null) => {
   if (!value) return '-';
   return WEB_PREVIEW_STATUS_LABELS[value] || value;
@@ -85,11 +94,32 @@ const getRecordStatusLabel = (value?: string | null) => {
   return RECORD_STATUS_LABELS[value] || value;
 };
 
+type RepresentationLike = Pick<ThreeDAssetSummary, 'version_label' | 'is_web_preview' | 'web_preview_status'>;
+
+const getRepresentationType = (record: RepresentationLike) => {
+  const version = (record.version_label || '').toLowerCase();
+  if (version.includes('original') || version.includes('master')) return 'original_master';
+  if (version.includes('mobile') || version.includes('light')) return 'mobile_lightweight';
+  if (version.includes('detail') || version.includes('research') || version.includes('high')) return 'research_detail';
+  if (version.includes('web') || (record.is_web_preview && record.web_preview_status === 'ready')) return 'web_display';
+  return 'derivative';
+};
+
+const getRepresentationLabel = (record: RepresentationLike) => {
+  const type = getRepresentationType(record);
+  return REPRESENTATION_TYPE_LABELS[type] || type;
+};
+
 const SAMPLE_MODELS = [
   { title: '示例对象原始版（glTF + BIN + PNG）', url: '/test-models/museum-vase-source.gltf' },
   { title: '示例对象 Web 展示版（GLB）', url: '/test-models/museum-vase-preview.glb' },
   { title: '示例对象高细节版（GLB）', url: '/test-models/museum-vase-detail.glb' },
+  { title: 'Khronos Box 线上样本（嵌入式 glTF）', url: '/test-models/khronos-box.gltf' },
+  { title: 'Khronos Triangle 线上样本（嵌入式 glTF）', url: '/test-models/khronos-triangle.gltf' },
+  { title: 'Horus（The British Museum / GLB）', url: '/test-models/horus.glb' },
 ];
+
+const getLocalModelMimeType = (url: string) => (url.toLowerCase().endsWith('.glb') ? 'model/gltf-binary' : 'model/gltf+json');
 
 const buildLocalViewer = (title: string, url: string): ThreeDDetailResponse['viewer'] => ({
   enabled: true,
@@ -102,7 +132,7 @@ const buildLocalViewer = (title: string, url: string): ThreeDDetailResponse['vie
     actual_filename: title,
     file_path: url,
     file_size: 0,
-    mime_type: 'model/gltf+json',
+    mime_type: getLocalModelMimeType(url),
     is_primary: true,
     sort_order: 0,
     download_url: url,
@@ -328,7 +358,7 @@ const ThreeDManagement: React.FC = () => {
     const totalFileCount = groupedItems.reduce((sum, group) => sum + group.totalFileCount, 0);
     return {
       objectCount: groupedItems.length,
-      versionCount: items.length,
+      representationCount: items.length,
       webPreviewGroupCount: webPreviewGroups.length,
       currentVersionCount: groupedItems.filter((group) => group.currentVersion).length,
       totalFileCount,
@@ -353,32 +383,48 @@ const ThreeDManagement: React.FC = () => {
       ),
     },
     {
-      title: '版本数',
+      title: '轻量预览',
+      key: 'turntable_preview',
+      width: 180,
+      render: (_: unknown, record) => {
+        const previewVersion = record.webPreviewVersion ?? record.currentVersion ?? record.latestVersion;
+        return (
+          <ThreeDTurntablePreview
+            title={record.label}
+            previewData={previewVersion?.preview_data}
+            height={96}
+          />
+        );
+      },
+    },
+    {
+      title: '表现数',
       key: 'version_count',
       render: (_, record) => record.versions.length,
     },
     {
-      title: '当前版本',
+      title: '当前表现',
       key: 'current_version',
       render: (_, record) =>
         record.currentVersion ? (
           <Space direction="vertical" size={0}>
             <Tag color={record.currentVersion.is_current ? 'blue' : 'default'}>
-              {record.currentVersion.version_label || '原始版'}
+              {getRepresentationLabel(record.currentVersion)}
             </Tag>
-            <Text type="secondary">#{record.currentVersion.version_order ?? 0}</Text>
+            <Text type="secondary">{record.currentVersion.version_label || 'v1'} · #{record.currentVersion.version_order ?? 0}</Text>
           </Space>
         ) : (
           <Tag>未设置</Tag>
         ),
     },
     {
-      title: 'Web 展示版',
+      title: 'Web 展示表现',
       key: 'web_preview_version',
       render: (_, record) =>
         record.webPreviewVersion ? (
           <Space direction="vertical" size={0}>
-            <Tag color="green">{record.webPreviewVersion.version_label || '原始版'}</Tag>
+            <Tag color="green">{getRepresentationLabel(record.webPreviewVersion)}</Tag>
+            <Text type="secondary">{record.webPreviewVersion.version_label || 'v1'}</Text>
             <Text type="secondary">{getWebPreviewStatusLabel(record.webPreviewVersion.web_preview_status)}</Text>
           </Space>
         ) : (
@@ -434,7 +480,7 @@ const ThreeDManagement: React.FC = () => {
                 }
               }}
             >
-              下载当前版
+              下载默认表现
             </Button>
           </Space>
         );
@@ -444,12 +490,13 @@ const ThreeDManagement: React.FC = () => {
 
   const versionColumns: ColumnsType<ThreeDAssetSummary> = [
     {
-      title: '版本',
+      title: '模型表现',
       key: 'version_label',
       render: (_, record) => (
         <Space direction="vertical" size={0}>
           <Space wrap>
-            <Tag color={record.is_current ? 'blue' : 'default'}>{record.version_label || 'original'}</Tag>
+            <Tag color={record.is_current ? 'blue' : 'default'}>{getRepresentationLabel(record)}</Tag>
+            <Tag>{record.version_label || 'v1'}</Tag>
             {record.is_current ? <Tag color="gold">当前</Tag> : null}
           </Space>
           <Text type="secondary">#{record.version_order ?? 0}</Text>
@@ -530,7 +577,7 @@ const ThreeDManagement: React.FC = () => {
                 三维数据管理子系统
               </Title>
               <Text type="secondary">
-                从管理角度，一个数字对象对应一组数字资源。这里默认按资源组聚合展示，版本展开后再看原始版、v1、v2 等记录。
+                从管理角度，一个藏品三维数字对象下可以包含原始保存级、Web 展示级、移动轻量级、高精度研究级等模型表现，每个表现再组织自己的模型、点云、贴图和说明文件。
               </Text>
             </Space>
           </Card>
@@ -566,17 +613,17 @@ const ThreeDManagement: React.FC = () => {
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item label="版本号" name="version_label" initialValue="original">
+              <Form.Item label="表现版本号" name="version_label" initialValue="original">
                 <Input placeholder="例如：original / v1 / v2" />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item label="版本顺序" name="version_order" initialValue={0}>
+              <Form.Item label="表现顺序" name="version_order" initialValue={0}>
                 <InputNumber style={{ width: '100%' }} min={0} />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item label="当前版本" name="is_current" valuePropName="checked" initialValue={true}>
+              <Form.Item label="当前表现" name="is_current" valuePropName="checked" initialValue={true}>
                 <Checkbox />
               </Form.Item>
             </Col>
@@ -779,7 +826,7 @@ const ThreeDManagement: React.FC = () => {
             <Statistic title="数字对象" value={overview.objectCount} />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Statistic title="版本总数" value={overview.versionCount} />
+            <Statistic title="模型表现总数" value={overview.representationCount} />
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Statistic title="可展示对象" value={overview.webPreviewGroupCount} />
@@ -799,7 +846,7 @@ const ThreeDManagement: React.FC = () => {
                       <Space direction="vertical" size={0}>
                         <Text strong>{group.label}</Text>
                         <Text type="secondary">
-                          {group.versions.length} 个版本 · {group.totalFileCount} 个文件
+                          {group.versions.length} 个表现 · {group.totalFileCount} 个文件
                         </Text>
                       </Space>
                       <Space wrap>
@@ -884,9 +931,10 @@ const ThreeDManagement: React.FC = () => {
             <Descriptions bordered column={1} size="small">
               <Descriptions.Item label="标题">{detail.title}</Descriptions.Item>
               <Descriptions.Item label="资源组">{detail.resource_group || '-'}</Descriptions.Item>
-              <Descriptions.Item label="版本">{detail.version_label || '原始版'}</Descriptions.Item>
-              <Descriptions.Item label="版本顺序">{detail.version_order ?? 0}</Descriptions.Item>
-              <Descriptions.Item label="当前版本">{detail.is_current ? '是' : '否'}</Descriptions.Item>
+              <Descriptions.Item label="模型表现">{getRepresentationLabel(detail)}</Descriptions.Item>
+              <Descriptions.Item label="表现版本号">{detail.version_label || '原始版'}</Descriptions.Item>
+              <Descriptions.Item label="表现顺序">{detail.version_order ?? 0}</Descriptions.Item>
+              <Descriptions.Item label="当前表现">{detail.is_current ? '是' : '否'}</Descriptions.Item>
               <Descriptions.Item label="Web 展示">{getWebPreviewStatusLabel(detail.web_preview_status || 'disabled')}</Descriptions.Item>
               <Descriptions.Item label="Web 展示说明">{detail.web_preview_reason || '-'}</Descriptions.Item>
               <Descriptions.Item label="主文件">{detail.file.filename}</Descriptions.Item>
@@ -913,6 +961,14 @@ const ThreeDManagement: React.FC = () => {
               <Descriptions.Item label="保存说明">{detail.preservation.preservation_note || '-'}</Descriptions.Item>
               <Descriptions.Item label="构成">{detail.structure.summary}</Descriptions.Item>
             </Descriptions>
+
+            <Card size="small" title="轻量旋转预览">
+              <ThreeDTurntablePreview
+                title={detail.title}
+                previewData={detail.metadata_layers.raw_metadata?.preview_data as any}
+                height={220}
+              />
+            </Card>
 
             <ThreeDViewer viewer={detail.viewer} title={detail.title} />
 

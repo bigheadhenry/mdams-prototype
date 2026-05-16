@@ -384,3 +384,9 @@ YYYY-MM-DD
 - 变更内容：为业务活动类影像记录接入可开关的人脸识别链路，新增本地/远程/自动 provider、运行时目录说明、pending/success/failed 元数据状态、识别结果回写 `main_person` 与前端展示；统一平台详情从复合 `resource_id` 过渡到 `source_system/source_id` 路径，补充二维与三维资源 actions、source record schema 和三维详情展示；将 Cantaloupe 调整为后端内部访问与前端代理访问分离，并补齐 `CANTALOUPE_INTERNAL_URL`；把二维 profile 必填字段集中到 `metadata_layers.py`，让影像记录校验和参考导入共用同一规则；同步补充 IIIF/BagIt 输出契约测试、研究线材料、实施边界清单、关键讨论问题、RepoWiki 生成文档和任务记忆层。
 - 验证结果：已检查 `WORK_LOG.md` 未提交 diff 与主要代码 diff，确认新增/修改主题均有日志覆盖；执行敏感信息扫描，未发现真实 token 或私钥形态，仅命中示例密码、空 API key 字段和已有测试默认密码。本轮同步前未重新运行全量测试，沿用各条日志中记录的专项验证结果。
 - 备注：本条用于把较长时间累积的本地未提交内容统一对齐到日志；`backend/runtime/face_recognition/README.md` 只提交运行时结构说明，模型、索引和识别库数据仍由 `.gitignore` 排除。
+
+### 2026-05-16 - 代码审计与安全修复
+- 修改范围：后端 CORS 与认证服务、二维/三维文件上传下载、BagIt 输出、前端依赖锁文件、后端安全契约测试、环境变量示例。
+- 变更内容：将 CORS 从通配改为 `CORS_ALLOWED_ORIGINS` 配置；将默认认证密码改为 `AUTH_DEFAULT_PASSWORD` 配置，并把口令哈希升级为带随机盐的 PBKDF2 格式，同时兼容并自动迁移旧固定盐哈希；为二维上传文件名增加 basename 归一化，防止路径穿越；为二维文件下载与 BagIt 导出补充认证与可见范围校验；为三维单文件下载、文件级下载与 ZIP 打包增加资源目录边界检查和归档文件名清洗；固定 BagIt tag files 在 Windows 下的换行输出；运行 `npm audit fix --legacy-peer-deps` 升级可安全更新的前端依赖。
+- 验证结果：`python -m py_compile backend\app\config.py backend\app\main.py backend\app\services\auth.py backend\app\routers\assets.py backend\app\routers\downloads.py backend\app\routers\three_d.py backend\app\services\three_d_storage.py` 通过；`python -m pytest backend\tests\test_auth_service.py backend\tests\test_output_contracts.py -q` 结果为 `7 passed, 2 skipped`，跳过原因是本地 PostgreSQL `localhost:5432` 未启动；`npm run build` 通过；`npm audit --audit-level=moderate` 从 17 个漏洞降到 4 个中危残留。
+- 备注：残留 npm audit 项分别来自 Mirador 3.x 间接依赖 DOMPurify 与 Vite/esbuild dev server 风险，自动修复需要 `mirador@4` 或 `vite@8` 破坏性大版本升级，本轮未使用 `--force`；后续建议单独评估 Mirador 4 迁移和 Vite 大版本升级。

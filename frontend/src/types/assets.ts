@@ -434,15 +434,48 @@ export interface UnifiedResourceSummary {
   preview_enabled: boolean;
   manifest_url: string;
   detail_url: string;
+  thumbnail_url?: string | null;
+  preview_data?: ThreeDPreviewData | null;
   updated_at: string;
   actions?: UnifiedResourceAction[];
 }
 
+export interface ThreeDPreviewData {
+  kind: string;
+  status?: string;
+  frame_count?: number;
+  poster_url?: string | null;
+  frames?: string[];
+  source?: string;
+  note?: string;
+  model_filename?: string | null;
+}
+
 export interface UnifiedResourceDetail extends UnifiedResourceSummary {
   source_detail_url: string;
-  source_record_type?: 'asset_detail' | 'three_d_detail' | string | null;
+  source_record_type?: 'asset_detail' | 'three_d_detail' | 'three_d_object_detail' | string | null;
   source_record_schema?: string | null;
-  source_record?: AssetDetailResponse | ThreeDDetailResponse | null;
+  source_record?: AssetDetailResponse | ThreeDDetailResponse | ThreeDDigitalObjectDetailResponse | null;
+}
+
+export interface PaginatedUnifiedResourceList {
+  total: number;
+  page: number;
+  size: number;
+  items: UnifiedResourceSummary[];
+}
+
+export interface AdvancedSearchParams {
+  q?: string;
+  field?: 'title' | 'filename' | 'mime';
+  field_value?: string;
+  date_from?: string;
+  date_to?: string;
+  status?: string;
+  resource_type?: string;
+  profile_key?: string;
+  preview_enabled?: string;
+  source_system?: string;
 }
 
 export interface ThreeDAssetSummary {
@@ -472,6 +505,7 @@ export interface ThreeDAssetSummary {
   storage_tier?: string;
   preservation_status?: string;
   preservation_note?: string | null;
+  preview_data?: ThreeDPreviewData | null;
   created_at: string;
   process_message?: string | null;
 }
@@ -625,6 +659,60 @@ export interface ThreeDDetailResponse {
     occurred_at: string;
     metadata_info?: Record<string, unknown>;
   }>;
+}
+
+export interface ThreeDRepresentationSummary {
+  id: number;
+  source_id: string;
+  title: string;
+  representation_type: string;
+  representation_label: string;
+  version_label: string;
+  version_order: number;
+  is_current: boolean;
+  is_web_preview: boolean;
+  web_preview_status: string;
+  preview_enabled: boolean;
+  file_count: number;
+  file_groups?: Array<{
+    role: string;
+    role_label: string;
+    file_count: number;
+    total_file_size: number;
+  }>;
+  download_url?: string | null;
+  detail_url?: string | null;
+  viewer?: ThreeDDetailResponse['viewer'] | null;
+  preservation?: {
+    storage_tier: string;
+    preservation_status: string;
+    preservation_note?: string | null;
+  };
+}
+
+export interface ThreeDDigitalObjectDetailResponse {
+  id: string;
+  title: string;
+  resource_type: string;
+  source_record_schema?: string | null;
+  collection_object?: {
+    id: number;
+    object_number?: string | null;
+    object_name?: string | null;
+    object_type?: string | null;
+    collection_unit?: string | null;
+    summary?: string | null;
+    keywords?: string | null;
+  } | null;
+  structure: {
+    summary: string;
+    representation_count: number;
+    file_count: number;
+  };
+  default_preview_representation_id?: number | null;
+  default_preview?: ThreeDDetailResponse | null;
+  preview_data?: ThreeDPreviewData | null;
+  representations: ThreeDRepresentationSummary[];
 }
 
 export interface AssetDetailTimelineItem extends TimelineEntry {

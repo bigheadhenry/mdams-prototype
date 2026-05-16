@@ -93,12 +93,24 @@ export const MENU_PERMISSION_RULES: Record<MenuKey, PermissionName[]> = {
   '9': ['image.record.list', 'image.record.view_ready_for_upload'],
 };
 
+const SINGLE_ROLE_MENU_OVERRIDES: Partial<Record<RoleName, MenuKey[]>> = {
+  resource_user: ['5', '3'],
+};
+
 export function canAccessMenu(auth: AuthContext, menuKey: MenuKey): boolean {
   return MENU_PERMISSION_RULES[menuKey].some((permission) => auth.permissions.includes(permission));
 }
 
 export function getVisibleMenuKeys(auth: AuthContext): MenuKey[] {
-  return (Object.keys(MENU_PERMISSION_RULES) as MenuKey[]).filter((key) => canAccessMenu(auth, key));
+  const accessibleMenuKeys = (Object.keys(MENU_PERMISSION_RULES) as MenuKey[]).filter((key) => canAccessMenu(auth, key));
+  const singleRole = auth.roles.length === 1 ? (auth.roles[0] as RoleName) : null;
+  const roleOverride = singleRole ? SINGLE_ROLE_MENU_OVERRIDES[singleRole] : undefined;
+
+  if (roleOverride) {
+    return roleOverride.filter((key) => accessibleMenuKeys.includes(key));
+  }
+
+  return accessibleMenuKeys;
 }
 
 export function can(auth: AuthContext, permission: PermissionName): boolean {

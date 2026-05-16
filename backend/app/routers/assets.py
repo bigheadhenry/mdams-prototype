@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -51,6 +52,13 @@ def _normalize_collection_object_id(value: object) -> int | None:
     return None
 
 
+def _safe_upload_filename(filename: str | None) -> str:
+    safe_name = Path(filename or "upload.bin").name
+    if safe_name in {"", ".", ".."}:
+        return "upload.bin"
+    return safe_name
+
+
 @router.post("/upload", response_model=AssetOut)
 async def upload_file(
     file: UploadFile = File(...),
@@ -62,7 +70,8 @@ async def upload_file(
     normalized_visibility_scope = _normalize_visibility_scope(visibility_scope)
     normalized_collection_object_id = _normalize_collection_object_id(collection_object_id)
 
-    file_location = os.path.join(config.UPLOAD_DIR, file.filename)
+    safe_filename = _safe_upload_filename(file.filename)
+    file_location = os.path.join(config.UPLOAD_DIR, safe_filename)
     os.makedirs(os.path.dirname(file_location), exist_ok=True)
 
     chunk_size = 64 * 1024
@@ -79,7 +88,7 @@ async def upload_file(
         pass
 
     db_asset = Asset(
-        filename=file.filename,
+        filename=safe_filename,
         file_path=file_location,
         file_size=file_size,
         mime_type=file.content_type,
@@ -89,7 +98,7 @@ async def upload_file(
         resource_type="image_2d_cultural_object",
         process_message="Asset upload received.",
         metadata_info=build_metadata_layers(
-            asset_filename=file.filename,
+            asset_filename=safe_filename,
             asset_file_path=file_location,
             asset_file_size=file_size,
             asset_mime_type=file.content_type,
@@ -101,7 +110,7 @@ async def upload_file(
                 "width": width,
                 "height": height,
                 "ingest_method": "upload",
-                "original_file_name": file.filename,
+                "original_file_name": safe_filename,
                 "image_file_name": os.path.basename(file_location),
                 "file_size": file_size,
                 "format_name": file.content_type,
@@ -110,7 +119,7 @@ async def upload_file(
             },
             source_metadata={
                 "ingest_method": "upload",
-                "file_name": file.filename,
+                "file_name": safe_filename,
                 "file_size": file_size,
                 "visibility_scope": normalized_visibility_scope,
                 "collection_object_id": normalized_collection_object_id,

@@ -1,0 +1,10 @@
+MDAMS demo capture report
+
+Object: Demo Museum Vase
+Capture batch: 3D-DEMO-2026-001
+Capture method: structured light scan + photogrammetry reference images
+Operator: MDAMS 3D Lab
+Device: Demo structured-light scanner
+Coordinate system: local object coordinates
+Unit: meter
+Quality note: This is a compact demo package used to exercise object metadata, file roles, versioning, web preview, and preservation fields.

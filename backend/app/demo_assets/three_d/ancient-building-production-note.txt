@@ -1,0 +1,8 @@
+MDAMS demo production note
+
+Object: Demo timber hall scene
+Capture batch: 3D-DEMO-2026-002
+Source data: model mesh, sparse point cloud, oblique reference image, and processing note
+Processing: alignment, mesh reconstruction, simplification, texture baking
+Publishing: GLB/glTF preview version registered for browser viewing
+Preservation: original package retained for archive-tier validation

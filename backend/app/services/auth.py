@@ -6,10 +6,13 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
+from .. import config
 from ..models import Role, User, UserRole, UserSession
 
-DEFAULT_PASSWORD = "mdams123"
+DEFAULT_PASSWORD = config.AUTH_DEFAULT_PASSWORD
 PASSWORD_SALT = "mdams-prototype-auth"
+PASSWORD_HASH_SCHEME = "pbkdf2_sha256"
+PASSWORD_HASH_ITERATIONS = 260_000
 SESSION_DURATION_HOURS = 12
 
 DEFAULT_ROLES: dict[str, dict[str, str]] = {
@@ -41,7 +44,7 @@ DEFAULT_USERS: list[dict[str, object]] = [
 ]
 
 
-def hash_password(password: str) -> str:
+def _legacy_hash_password(password: str) -> str:
     digest = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
@@ -51,8 +54,31 @@ def hash_password(password: str) -> str:
     return digest.hex()
 
 
+def hash_password(password: str) -> str:
+    salt = secrets.token_urlsafe(16)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt.encode("utf-8"),
+        PASSWORD_HASH_ITERATIONS,
+    )
+    return f"{PASSWORD_HASH_SCHEME}${PASSWORD_HASH_ITERATIONS}${salt}${digest.hex()}"
+
+
 def verify_password(password: str, password_hash: str) -> bool:
-    return hash_password(password) == password_hash
+    if password_hash.startswith(f"{PASSWORD_HASH_SCHEME}$"):
+        try:
+            _scheme, iterations, salt, expected_digest = password_hash.split("$", 3)
+            digest = hashlib.pbkdf2_hmac(
+                "sha256",
+                password.encode("utf-8"),
+                salt.encode("utf-8"),
+                int(iterations),
+            ).hex()
+            return secrets.compare_digest(digest, expected_digest)
+        except (TypeError, ValueError):
+            return False
+    return secrets.compare_digest(_legacy_hash_password(password), password_hash)
 
 
 def create_session_token() -> str:
@@ -90,6 +116,8 @@ def seed_auth_data(db: Session) -> None:
             user.display_name = str(user_definition["display_name"])
             user.collection_scope = list(user_definition.get("collection_scope", []))
             if not user.password_hash:
+                user.password_hash = hash_password(DEFAULT_PASSWORD)
+            elif verify_password(DEFAULT_PASSWORD, user.password_hash) and not user.password_hash.startswith(f"{PASSWORD_HASH_SCHEME}$"):
                 user.password_hash = hash_password(DEFAULT_PASSWORD)
 
         db.query(UserRole).filter(UserRole.user_id == user.id).delete()
@@ -139,4 +167,8 @@ def authenticate_user(db: Session, username: str, password: str) -> User | None:
         return None
     if not verify_password(password, user.password_hash):
         return None
+    if not user.password_hash.startswith(f"{PASSWORD_HASH_SCHEME}$"):
+        user.password_hash = hash_password(password)
+        db.commit()
+        db.refresh(user)
     return user

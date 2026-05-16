@@ -12,8 +12,11 @@ from starlette.requests import Request
 from app import config as app_config
 from app.models import Asset
 from app.permissions import build_system_user
+from app.permissions import get_current_user
+from app.routers import assets as assets_router
 from app.routers import downloads as downloads_router
 from app.routers import iiif as iiif_router
+from app.services.three_d_storage import build_three_d_download_zip
 
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
@@ -183,6 +186,58 @@ def test_download_bag_contract_includes_tag_files_and_stored_fixity(monkeypatch,
     assert f"{hashlib.sha256(access_path.read_bytes()).hexdigest()}  data/{access_path.name}" in manifest_text
     assert f"Original-File: {original_path.name}" in bag_info_text
     assert f"IIIF-Access-File: {access_path.name}" in bag_info_text
+
+
+def test_download_bag_blocks_owner_only_asset_for_public_user(monkeypatch, tmp_path):
+    original_path = tmp_path / "owner-master.tif"
+    original_path.write_bytes(b"owner-only")
+    asset = _build_asset(asset_id=10, original_path=original_path)
+    asset.visibility_scope = "owner_only"
+    asset.collection_object_id = 42
+    asset.metadata_info["core"]["visibility_scope"] = "owner_only"
+    asset.metadata_info["core"]["collection_object_id"] = 42
+
+    monkeypatch.setattr(downloads_router, "_get_asset_or_404", lambda _asset_id, _db: asset)
+    public_user = get_current_user(x_mdams_user="resource-user")
+
+    with pytest.raises(HTTPException) as exc_info:
+        downloads_router.download_asset_bag(
+            asset_id=asset.id,
+            background_tasks=BackgroundTasks(),
+            db=None,
+            user=public_user,
+        )
+
+    assert exc_info.value.status_code == 403
+
+
+def test_upload_filename_is_reduced_to_basename():
+    assert assets_router._safe_upload_filename("../secret.txt") == "secret.txt"
+    assert assets_router._safe_upload_filename("..\\secret.txt") == "secret.txt"
+    assert assets_router._safe_upload_filename("") == "upload.bin"
+
+
+def test_three_d_zip_skips_files_outside_resource_dir(tmp_path):
+    resource_dir = tmp_path / "three-d" / "1"
+    resource_dir.mkdir(parents=True)
+    stored_file = resource_dir / "model.glb"
+    stored_file.write_bytes(b"model")
+    outside_file = tmp_path / "outside.glb"
+    outside_file.write_bytes(b"outside")
+
+    zip_path = build_three_d_download_zip(
+        resource_dir,
+        "resource.zip",
+        [
+            {"role": "model", "actual_filename": "model.glb", "file_path": str(stored_file)},
+            {"role": "../escape", "actual_filename": "../outside.glb", "file_path": str(outside_file)},
+        ],
+    )
+
+    with ZipFile(zip_path) as zip_file:
+        names = set(zip_file.namelist())
+
+    assert names == {"model/model.glb"}
 
 
 def test_download_bag_returns_404_when_original_file_is_missing(monkeypatch, tmp_path):

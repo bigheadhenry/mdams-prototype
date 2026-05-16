@@ -54,7 +54,7 @@ import {
   type AuthUserSummary,
   type MenuKey,
 } from './auth/permissions';
-import type { ApplicationCartItem, ApplicationSummary, AssetSummary } from './types/assets';
+import type { ApplicationCartItem, ApplicationSummary, AssetSummary, UnifiedResourceSummary } from './types/assets';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Paragraph, Text, Title } = Typography;
@@ -415,6 +415,27 @@ const App: React.FC = () => {
       setLoginSubmitting(false);
     }
   };
+
+  const handleUnifiedResourcePreview = useCallback((resource: UnifiedResourceSummary) => {
+    const isThreeDResource = resource.source_system === 'three_d' || resource.resource_type.startsWith('three_d_');
+    const isVideoResource = resource.source_system === 'video' || resource.resource_type === 'video_cultural_object';
+
+    if (isVideoResource) {
+      // Open video in new tab or inline video player
+      window.open(resource.manifest_url, '_blank');
+      return;
+    }
+
+    if (isThreeDResource) {
+      setSelectedUnifiedResource({ sourceSystem: resource.source_system, sourceId: resource.source_id });
+      setSelectedAssetId(null);
+      setSelectedKey('6');
+      return;
+    }
+
+    setCurrentManifest(resource.manifest_url);
+    setPreviewVisible(true);
+  }, []);
 
   const assetColumns = [
     {
@@ -807,10 +828,7 @@ const App: React.FC = () => {
 
                 {selectedKey === '5' && canViewPlatform ? (
                   <PlatformDirectory
-                    onPreview={(manifestUrl) => {
-                      setCurrentManifest(manifestUrl);
-                      setPreviewVisible(true);
-                    }}
+                    onPreview={handleUnifiedResourcePreview}
                     onOpenAssetDetail={(assetId) => {
                       setSelectedAssetId(assetId);
                       setSelectedUnifiedResource(null);

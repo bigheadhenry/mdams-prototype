@@ -94,9 +94,11 @@
 - `resource_type`
 - `profile_key`
 - `preview_enabled`
-- `source_system`
+- `source_system`（由前端标签页注入，不再暴露为用户可选下拉）
 
 筛选会先由平台层分发，再由来源适配器在各自内部执行。
+
+前端交互已从「来源筛选下拉 + 侧边栏卡片」切换为「二维 / 三维 / 视频」维度标签页，用户无需感知底层子系统概念。标签页 key 与 `source_system` 的映射为：`2d → image_2d`、`3d → three_d`、`video → (预留)`。
 
 ## 9. 当前边界
 

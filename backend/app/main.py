@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 
+from . import config
 from .database import Base, engine
 from .database import SessionLocal
 from .routers.auth import router as auth_router
@@ -15,7 +16,10 @@ from .routers.ingest import router as ingest_router
 from .routers.image_records import router as image_records_router
 from .routers.platform import router as platform_router
 from .routers.three_d import router as three_d_router
+from .routers.video import router as video_router
 from .services.auth import seed_auth_data
+from .services.three_d_demo_assets import seed_demo_three_d_assets
+from .services.video_seed import seed_demo_video_asset
 
 
 def _ensure_sqlite_schema_compatibility() -> None:
@@ -60,12 +64,14 @@ Base.metadata.create_all(bind=engine)
 _ensure_sqlite_schema_compatibility()
 with SessionLocal() as session:
     seed_auth_data(session)
+    seed_demo_three_d_assets(session)
+    seed_demo_video_asset(session)
 
 app = FastAPI(title="MEAM Prototype API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=config.CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,4 +88,5 @@ app.include_router(downloads_router)
 app.include_router(ingest_router)
 app.include_router(image_records_router)
 app.include_router(three_d_router)
+app.include_router(video_router)
 app.include_router(platform_router)

@@ -193,6 +193,18 @@
 - Impact on prototype: 事件边界从文档约束推进到可 import、可测试的代码约束
 - Impact on writing: 可以更稳地把系统描述为具有 proto-event boundary 的 preservation-aware 原型
 
+## Decision 17
+- Date: 2026-05-16
+- Topic: 统一平台资源目录改用维度标签页替代子系统来源筛选
+- Chosen option: 前端使用 Tabs 组件按「二维 / 三维 / 视频」三个维度标签页组织资源，标签页 key 映射为后端 `source_system` 参数；移除高级检索中的来源下拉和侧边栏来源筛选卡片；视频标签页暂无数据时展示空状态占位
+- Alternatives considered:
+  - 保留下拉 + 侧边栏筛选，仅增加标签页作为视觉装饰
+  - 在后端新增 `tab` 参数替代 `source_system`
+  - 同步实现完整视频来源适配器
+- Rationale: 标签页作为顶层维度分类比独立下拉更符合用户的渐进探索模式；`source_system` 参数由前端标签页自动注入，后端完全不需要改动；视频标签页作为预留扩展位，为后续接入视频来源提供清晰的 UI 入口
+- Impact on prototype: 统一平台目录交互从「来源筛选」切换为「维度标签页」，用户不再感知底层子系统概念；高级检索面板简化，侧边栏仅保留统计信息
+- Impact on writing: 可将统一平台描述为「以二维 / 三维 / 视频为顶层维度的多模态聚合目录」，为后续视频模态接入预留了论文叙述空间
+
 ## Current Open Decisions
 - 是否要把 `ImageRecord`、藏品对象、3D 对象/版本正式纳入统一概念模型中的二级实体体系
 - 是否要引入最小 PREMIS 风格事件模型作为后续治理/保存层基线

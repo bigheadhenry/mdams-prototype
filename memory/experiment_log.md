@@ -235,6 +235,23 @@
   - 数据库依赖测试仍受本机 PostgreSQL 5432 未启动影响
 - Paper-usable evidence: 可用于说明 MDAMS 现在具备可追踪、可解释的 proto-event boundary，而不是一个还没收口的零散 lifecycle 叙述
 
+## Round 15
+- Date: 2026-05-16
+- Goal: 将统一平台资源目录从「子系统来源筛选」改造为「按维度标签页切换」，取消子系统来源下拉与侧边栏筛选卡片
+- Data/sample scope: `frontend/src/components/PlatformDirectory.tsx`、`frontend/src/components/AdvancedSearchPanel.tsx`、`backend/app/routers/platform.py` 的 `source_system` 参数
+- Setup: 前端新增 Tabs 组件（二维 / 三维 / 视频），默认选中二维；`TAB_SOURCE_MAP` 将标签页 key 映射为后端 `source_system` 参数；视频标签页暂无数据源时展示空状态占位；AdvancedSearchPanel 移除来源下拉；侧边栏移除「来源筛选」卡片
+- Observation: 标签页作为顶层分类比独立的下拉筛选更直观，符合「二维 → 三维 → 视频」的渐进扩展预期，且后端 API 无需改动——`source_system` 参数由标签页选择自动注入
+- Result summary: 统一平台目录从「聚合列表 + 来源筛选」交互模式切换为「三维度标签页」模式，前端不再暴露子系统概念给用户
+- Success cases:
+  - 二维标签页（image_2d）返回 14 条资源
+  - 三维标签页（three_d）返回 5 条资源
+  - 视频标签页显示「即将上线」空状态占位
+  - `npm run build` + `docker compose up -d --build frontend` 通过
+  - 来源下拉与侧边栏筛选卡片已移除，无编译错误
+- Failure cases:
+  - 视频来源适配器尚未实现，当前视频标签页无实际数据
+- Paper-usable evidence: 可用于说明 MDAMS 统一平台在交互层采用了「维度标签页」而非「子系统筛选」的用户模型，降低了用户对底层来源系统的认知负担
+
 ## Cross-Round Assessment
 - 当前最强证据仍是二维主链路、统一平台、三维对象链路、权限范围控制和测试可验证性
 - 当前已经开始把研究边界推进到共享规则与 contract tests，但跨子系统事件边界仍是下一步最关键缺口

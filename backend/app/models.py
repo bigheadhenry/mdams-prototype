@@ -304,3 +304,23 @@ class ThreeDProductionRecord(Base):
     occurred_at = Column(DateTime(timezone=True), server_default=func.now())
 
     asset = relationship("ThreeDAsset", back_populates="production_records")
+
+
+class VideoAsset(Base):
+    __tablename__ = "video_assets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String, index=True)
+    file_path = Column(String)
+    file_size = Column(Integer)
+    mime_type = Column(String)
+    metadata_info = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    resource_type = Column(String, default="video_cultural_object")
+    process_message = Column(String, nullable=True)
+    duration_seconds = Column(Integer, nullable=True)
+    width = Column(Integer, nullable=True)
+    height = Column(Integer, nullable=True)
+
+    # Status: processing, ready, error
+    status = Column(String, default="processing")

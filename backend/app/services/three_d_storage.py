@@ -67,6 +67,14 @@ def _safe_filename(filename: str, *, fallback_prefix: str) -> str:
     return clean_name
 
 
+def _path_inside(parent: Path, candidate: Path) -> bool:
+    try:
+        candidate.resolve().relative_to(parent.resolve())
+        return True
+    except ValueError:
+        return False
+
+
 async def save_three_d_uploads(
     resource_dir: Path,
     uploads_by_role: Mapping[str, Sequence[UploadFile]],
@@ -214,9 +222,11 @@ def build_three_d_download_zip(resource_dir: Path, zip_name: str, file_records: 
     with zipfile.ZipFile(zip_path, mode='w', compression=zipfile.ZIP_DEFLATED) as archive:
         for file_record in file_records:
             file_path = Path(str(file_record.get('file_path') or ''))
-            if not file_path.exists():
+            if not file_path.exists() or not _path_inside(resource_dir, file_path):
                 continue
-            archive.write(file_path, arcname=f"{file_record.get('role')}/{file_record.get('actual_filename')}")
+            role = normalize_three_d_role(str(file_record.get('role') or 'other'))
+            archive_name = _safe_filename(str(file_record.get('actual_filename') or file_path.name), fallback_prefix='file')
+            archive.write(file_path, arcname=f"{role}/{archive_name}")
     return zip_path
 
 
