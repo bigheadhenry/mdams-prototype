@@ -26,6 +26,7 @@ from ..services.three_d_metadata import PROFILE_DEFINITIONS, build_three_d_metad
 from ..services.three_d_production import seed_three_d_production_records
 from ..services.three_d_preview import build_three_d_preview_data
 from ..services.three_d_storage import (
+    ThreeDUploadValidationError,
     build_three_d_download_zip,
     build_three_d_package_manifest,
     infer_three_d_role_from_filename,
@@ -34,6 +35,7 @@ from ..services.three_d_storage import (
     remove_resource_tree,
     save_three_d_uploads,
     three_d_role_label,
+    validate_three_d_uploads,
 )
 
 router = APIRouter(prefix="/three-d", tags=["three-d"])
@@ -161,7 +163,8 @@ def _collect_uploads(
         "oblique_photo": _coerce_upload_list(oblique_files),
     }
     if isinstance(file, UploadFile):
-        uploads_by_role.setdefault("model", []).append(file)
+        role = normalize_three_d_role(infer_three_d_role_from_filename(_upload_filename(file)))
+        uploads_by_role.setdefault(role, []).append(file)
     return {role: uploads for role, uploads in uploads_by_role.items() if uploads}
 
 
@@ -423,6 +426,10 @@ async def upload_three_d_resource(
     uploads_by_role = _collect_uploads(file, mesh_uploads, point_cloud_uploads, oblique_uploads)
     if not uploads_by_role:
         raise HTTPException(status_code=400, detail="At least one 3D file is required")
+    try:
+        await validate_three_d_uploads(uploads_by_role)
+    except ThreeDUploadValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     derived_profile_key, resource_type = _determine_profile_and_resource_type(
         requested_profile_key=profile_key,

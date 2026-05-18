@@ -11,6 +11,23 @@ from typing import Any, Mapping, Sequence
 from fastapi import UploadFile
 
 
+class ThreeDUploadValidationError(ValueError):
+    """Raised when a 3D upload cannot pass the ingest boundary checks."""
+
+
+MAX_THREE_D_UPLOAD_FILE_SIZE = 10 * 1024 * 1024 * 1024
+MAX_THREE_D_UPLOAD_BATCH_SIZE = 100 * 1024 * 1024 * 1024
+
+THREE_D_ROLE_EXTENSIONS = {
+    'model': {'glb', 'gltf', 'obj', 'fbx', 'stl', 'usdz'},
+    'point_cloud': {'ply', 'las', 'laz', 'xyz', 'pts'},
+    'oblique_photo': {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'bmp'},
+    'texture': {'jpg', 'jpeg', 'png', 'tif', 'tiff', 'bmp'},
+    'support': {'bin', 'mtl', 'json', 'xml', 'txt', 'md', 'csv', 'zip'},
+    'other': set(),
+}
+
+
 THREE_D_FILE_ROLE_LABELS = {
     'model': '三维模型',
     'point_cloud': '点云',
@@ -58,6 +75,122 @@ def infer_three_d_role_from_filename(filename: str | None) -> str:
     if extension in {'zip'}:
         return 'support'
     return 'other'
+
+
+def _filename_extension(filename: str | None) -> str:
+    clean_name = Path(filename or '').name.lower()
+    if '.' not in clean_name:
+        return ''
+    return clean_name.rsplit('.', 1)[-1]
+
+
+def _is_text_like(header: bytes) -> bool:
+    if not header:
+        return False
+    sample = header[:512]
+    printable = sum(1 for byte in sample if byte in b'\t\r\n' or 32 <= byte <= 126)
+    return printable / max(len(sample), 1) > 0.85
+
+
+def _has_expected_signature(extension: str, header: bytes) -> bool:
+    stripped = header.lstrip()
+    if extension == 'glb':
+        return header.startswith(b'glTF')
+    if extension == 'gltf':
+        return stripped.startswith(b'{') or stripped.startswith(b'glTF')
+    if extension == 'ply':
+        return header.startswith(b'ply')
+    if extension in {'las', 'laz'}:
+        return header.startswith(b'LASF')
+    if extension in {'jpg', 'jpeg'}:
+        return header.startswith(b'\xff\xd8\xff')
+    if extension == 'png':
+        return header.startswith(b'\x89PNG\r\n\x1a\n')
+    if extension in {'tif', 'tiff'}:
+        return header.startswith(b'II*\x00') or header.startswith(b'MM\x00*')
+    if extension == 'bmp':
+        return header.startswith(b'BM')
+    if extension == 'usdz':
+        return header.startswith(b'PK\x03\x04')
+    if extension == 'fbx':
+        return header.startswith(b'Kaydara FBX Binary') or b'FBX' in header[:128]
+    if extension == 'stl':
+        return stripped.lower().startswith(b'solid') or len(header) >= 84
+    if extension in {'obj', 'xyz', 'pts', 'mtl', 'json', 'xml', 'txt', 'md', 'csv'}:
+        return _is_text_like(header)
+    if extension in {'bin', 'zip'}:
+        return True
+    return False
+
+
+def _upload_size(upload: UploadFile) -> int | None:
+    stream = upload.file
+    try:
+        position = stream.tell()
+        stream.seek(0, 2)
+        size = stream.tell()
+        stream.seek(position)
+        return int(size)
+    except Exception:
+        return None
+
+
+async def _upload_header(upload: UploadFile, size: int = 4096) -> bytes:
+    stream = upload.file
+    try:
+        position = stream.tell()
+    except Exception:
+        position = None
+    try:
+        await upload.seek(0)
+        return await upload.read(size)
+    finally:
+        if position is not None:
+            await upload.seek(position)
+
+
+async def validate_three_d_uploads(
+    uploads_by_role: Mapping[str, Sequence[UploadFile]],
+    *,
+    max_file_size: int = MAX_THREE_D_UPLOAD_FILE_SIZE,
+    max_batch_size: int = MAX_THREE_D_UPLOAD_BATCH_SIZE,
+) -> None:
+    total_size = 0
+    for raw_role, uploads in uploads_by_role.items():
+        role = normalize_three_d_role(raw_role)
+        allowed_extensions = THREE_D_ROLE_EXTENSIONS.get(role, set())
+        for upload in uploads:
+            filename = Path(upload.filename or '').name
+            if not filename:
+                raise ThreeDUploadValidationError('Upload filename is required')
+
+            extension = _filename_extension(filename)
+            if not extension:
+                raise ThreeDUploadValidationError(f'3D upload file "{filename}" must include an extension')
+            if allowed_extensions and extension not in allowed_extensions:
+                expected = ', '.join(f'.{item}' for item in sorted(allowed_extensions))
+                raise ThreeDUploadValidationError(
+                    f'File "{filename}" is not valid for role "{role}". Expected: {expected}'
+                )
+
+            file_size = _upload_size(upload)
+            if file_size is not None:
+                if file_size <= 0:
+                    raise ThreeDUploadValidationError(f'File "{filename}" is empty')
+                if file_size > max_file_size:
+                    raise ThreeDUploadValidationError(f'File "{filename}" exceeds the per-file upload limit')
+                total_size += file_size
+
+            header = await _upload_header(upload)
+            if not _has_expected_signature(extension, header):
+                raise ThreeDUploadValidationError(
+                    f'File "{filename}" does not match the expected .{extension} file signature'
+                )
+
+            await upload.seek(0)
+
+    if total_size > max_batch_size:
+        raise ThreeDUploadValidationError('3D upload batch exceeds the total upload limit')
 
 
 def _safe_filename(filename: str, *, fallback_prefix: str) -> str:

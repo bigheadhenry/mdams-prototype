@@ -29,6 +29,54 @@ import type { ThreeDCollectionObjectSummary } from '../types/assets';
 
 const { Text, Title } = Typography;
 
+type ThreeDUploadRole = 'model' | 'point_cloud' | 'oblique_photo';
+
+const MAX_THREE_D_UPLOAD_FILE_SIZE = 10 * 1024 * 1024 * 1024;
+
+const ALLOWED_UPLOAD_EXTENSIONS: Record<ThreeDUploadRole, string[]> = {
+  model: ['glb', 'gltf', 'obj', 'fbx', 'stl', 'usdz'],
+  point_cloud: ['ply', 'las', 'laz', 'xyz', 'pts'],
+  oblique_photo: ['jpg', 'jpeg', 'png', 'tif', 'tiff', 'bmp'],
+};
+
+const getFileExtension = (filename: string) => {
+  const index = filename.lastIndexOf('.');
+  return index >= 0 ? filename.slice(index + 1).toLowerCase() : '';
+};
+
+const pickValidUploadFiles = (files: File[], role: ThreeDUploadRole) => {
+  const allowed = new Set(ALLOWED_UPLOAD_EXTENSIONS[role]);
+  const accepted: File[] = [];
+  const rejected: string[] = [];
+
+  files.forEach((file) => {
+    const extension = getFileExtension(file.name);
+    if (!extension || !allowed.has(extension)) {
+      rejected.push(`${file.name}: unsupported extension`);
+      return;
+    }
+    if (file.size <= 0) {
+      rejected.push(`${file.name}: empty file`);
+      return;
+    }
+    if (file.size > MAX_THREE_D_UPLOAD_FILE_SIZE) {
+      rejected.push(`${file.name}: exceeds 10GB`);
+      return;
+    }
+    accepted.push(file);
+  });
+
+  return { accepted, rejected };
+};
+
+const getUploadErrorMessage = (error: unknown) => {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail === 'string' && detail.trim()) return detail;
+  }
+  return '3D ingest failed. Please check the selected files and try again.';
+};
+
 /* ─── 选项常量 ─── */
 const PROFILE_OPTIONS = [
   { value: 'model', label: '模型' },
@@ -99,8 +147,29 @@ const ThreeDIngestWizard: React.FC<ThreeDIngestWizardProps> = ({
     selectedPointCloudFiles.length > 0 ||
     selectedObliqueFiles.length > 0;
 
+  const handleFileSelection = (
+    files: FileList | null,
+    role: ThreeDUploadRole,
+    setFiles: React.Dispatch<React.SetStateAction<File[]>>,
+  ) => {
+    const { accepted, rejected } = pickValidUploadFiles(Array.from(files || []), role);
+    setFiles(accepted);
+    if (rejected.length > 0) {
+      message.warning(`Skipped ${rejected.length} invalid file(s): ${rejected.slice(0, 3).join('; ')}`);
+    }
+  };
+
   const handleUpload = async () => {
     const values = form.getFieldsValue();
+    const invalidFiles = [
+      ...pickValidUploadFiles(selectedModelFiles, 'model').rejected,
+      ...pickValidUploadFiles(selectedPointCloudFiles, 'point_cloud').rejected,
+      ...pickValidUploadFiles(selectedObliqueFiles, 'oblique_photo').rejected,
+    ];
+    if (invalidFiles.length > 0) {
+      message.error(`Please remove invalid file(s): ${invalidFiles.slice(0, 3).join('; ')}`);
+      return;
+    }
     if (!hasAnyFile) {
       message.warning('请至少选择一种三维文件');
       return;
@@ -126,8 +195,8 @@ const ThreeDIngestWizard: React.FC<ThreeDIngestWizardProps> = ({
       setSelectedPointCloudFiles([]);
       setSelectedObliqueFiles([]);
       onSuccess();
-    } catch {
-      message.error('入库失败，请检查文件格式或稍后重试');
+    } catch (error) {
+      message.error(getUploadErrorMessage(error));
     } finally {
       setUploading(false);
     }
@@ -166,7 +235,7 @@ const ThreeDIngestWizard: React.FC<ThreeDIngestWizardProps> = ({
             {isModel && (
               <Card size="small" title="模型文件" extra={<Tag color="blue">{selectedModelFiles.length} 个</Tag>}>
                 <input type="file" accept=".glb,.gltf,.obj,.fbx,.stl,.usdz" multiple
-                  onChange={(e) => setSelectedModelFiles(Array.from(e.target.files || []))} />
+                  onChange={(e) => handleFileSelection(e.target.files, 'model', setSelectedModelFiles)} />
                 {selectedModelFiles.length > 0 && (
                   <Space direction="vertical" size={4} style={{ marginTop: 8 }}>
                     {selectedModelFiles.map((f, i) => (
@@ -179,7 +248,7 @@ const ThreeDIngestWizard: React.FC<ThreeDIngestWizardProps> = ({
             {isPointCloud && (
               <Card size="small" title="点云文件" extra={<Tag color="cyan">{selectedPointCloudFiles.length} 个</Tag>}>
                 <input type="file" accept=".ply,.las,.laz,.xyz,.pts" multiple
-                  onChange={(e) => setSelectedPointCloudFiles(Array.from(e.target.files || []))} />
+                  onChange={(e) => handleFileSelection(e.target.files, 'point_cloud', setSelectedPointCloudFiles)} />
                 {selectedPointCloudFiles.length > 0 && (
                   <Space direction="vertical" size={4} style={{ marginTop: 8 }}>
                     {selectedPointCloudFiles.map((f, i) => (
@@ -192,7 +261,7 @@ const ThreeDIngestWizard: React.FC<ThreeDIngestWizardProps> = ({
             {isOblique && (
               <Card size="small" title="倾斜摄影图像" extra={<Tag color="orange">{selectedObliqueFiles.length} 个</Tag>}>
                 <input type="file" accept=".jpg,.jpeg,.png,.tif,.tiff,.bmp" multiple
-                  onChange={(e) => setSelectedObliqueFiles(Array.from(e.target.files || []))} />
+                  onChange={(e) => handleFileSelection(e.target.files, 'oblique_photo', setSelectedObliqueFiles)} />
                 {selectedObliqueFiles.length > 0 && (
                   <Space direction="vertical" size={4} style={{ marginTop: 8 }}>
                     {selectedObliqueFiles.map((f, i) => (

@@ -3,6 +3,7 @@ from io import BytesIO
 from pathlib import Path
 
 import pytest
+from fastapi import HTTPException
 from fastapi import UploadFile
 
 from app import config as app_config
@@ -273,3 +274,79 @@ def test_three_d_package_resource_stores_multiple_file_roles(db_session, test_up
     assert unified_resources[0].resource_type == "three_d_digital_object"
     assert unified_resources[0].preview_enabled is True
     assert next(action for action in unified_resources[0].actions if action.key == "preview").enabled is True
+
+
+def test_three_d_upload_rejects_invalid_role_extension(db_session, test_upload_dir, monkeypatch):
+    monkeypatch.setattr(app_config, "UPLOAD_DIR", str(test_upload_dir))
+
+    file = UploadFile(file=_make_file_bytes(b"MZ"), filename="not-a-model.exe")
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            three_d_router.upload_three_d_resource(
+                mesh_uploads=[file],
+                title="Invalid upload",
+                profile_key="model",
+                db=db_session,
+            )
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "not valid for role" in str(exc_info.value.detail)
+    assert db_session.query(three_d_router.ThreeDAsset).count() == 0
+
+
+def test_three_d_upload_rejects_signature_mismatch(db_session, test_upload_dir, monkeypatch):
+    monkeypatch.setattr(app_config, "UPLOAD_DIR", str(test_upload_dir))
+
+    file = UploadFile(file=_make_file_bytes(b"not really a glb"), filename="fake.glb")
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            three_d_router.upload_three_d_resource(
+                mesh_uploads=[file],
+                title="Fake GLB",
+                profile_key="model",
+                db=db_session,
+            )
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "file signature" in str(exc_info.value.detail)
+    assert db_session.query(three_d_router.ThreeDAsset).count() == 0
+
+
+def test_three_d_upload_rejects_empty_file(db_session, test_upload_dir, monkeypatch):
+    monkeypatch.setattr(app_config, "UPLOAD_DIR", str(test_upload_dir))
+
+    file = UploadFile(file=_make_file_bytes(b""), filename="empty.glb")
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            three_d_router.upload_three_d_resource(
+                mesh_uploads=[file],
+                title="Empty GLB",
+                profile_key="model",
+                db=db_session,
+            )
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "empty" in str(exc_info.value.detail)
+    assert db_session.query(three_d_router.ThreeDAsset).count() == 0
+
+
+def test_three_d_legacy_single_file_upload_infers_point_cloud_role(db_session, test_upload_dir, monkeypatch):
+    monkeypatch.setattr(app_config, "UPLOAD_DIR", str(test_upload_dir))
+
+    file = UploadFile(file=_make_ply_bytes(), filename="single-point-cloud.ply")
+    uploaded = asyncio.run(
+        three_d_router.upload_three_d_resource(
+            file=file,
+            title="Single point cloud",
+            profile_key=None,
+            db=db_session,
+        )
+    )
+
+    detail = three_d_router.get_three_d_resource(resource_id=uploaded.id, db=db_session)
+    assert detail.profile_key == "point_cloud"
+    assert detail.resource_type == "three_d_point_cloud"
+    assert detail.structure.primary_file.role == "point_cloud"
