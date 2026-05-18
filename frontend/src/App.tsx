@@ -106,6 +106,7 @@ const App: React.FC = () => {
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [selectedUnifiedResource, setSelectedUnifiedResource] = useState<{ sourceSystem: string; sourceId: string } | null>(null);
   const [applicationCart, setApplicationCart] = useState<ApplicationCartItem[]>([]);
+    const [siderCollapsed, setSiderCollapsed] = useState(true);
   const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [applicationsSubmitting, setApplicationsSubmitting] = useState(false);
   const [authContext, setAuthContext] = useState<AuthContext | null>(null);
@@ -709,7 +710,7 @@ const App: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0" collapsible>
+      <Sider breakpoint="lg" collapsedWidth="0" collapsible collapsed={siderCollapsed} onCollapse={setSiderCollapsed}>
         <div style={{ padding: 16, color: '#fff' }}>
           <Space direction="vertical" size={4} style={{ width: '100%' }}>
             <Text style={{ color: '#fff', fontWeight: 700 }}>MDAMS 原型系统</Text>

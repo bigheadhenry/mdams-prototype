@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Sequence
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -659,11 +659,43 @@ async def upload_three_d_resource(
 def list_three_d_resources(
     skip: int = 0,
     limit: int = 100,
+    q: str | None = None,
+    status: str | None = None,
+    resource_type: str | None = None,
+    profile_key: str | None = None,
+    storage_tier: str | None = None,
+    web_preview_status: str | None = None,
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(require_permission("three_d.view")),
 ):
     user = ensure_current_user(user)
-    assets = db.query(ThreeDAsset).order_by(ThreeDAsset.created_at.desc(), ThreeDAsset.id.desc()).offset(skip).limit(limit).all()
+    query = db.query(ThreeDAsset)
+
+    normalized_q = _normalize_optional_text(q)
+    if normalized_q:
+        like_pattern = f"%{normalized_q}%"
+        query = query.filter(
+            ThreeDAsset.filename.ilike(like_pattern)
+            | ThreeDAsset.resource_group.ilike(like_pattern)
+        )
+
+    normalized_status = _normalize_optional_text(status)
+    if normalized_status:
+        query = query.filter(ThreeDAsset.status == normalized_status)
+
+    normalized_resource_type = _normalize_optional_text(resource_type)
+    if normalized_resource_type:
+        query = query.filter(ThreeDAsset.resource_type == normalized_resource_type)
+
+    normalized_storage_tier = _normalize_optional_text(storage_tier)
+    if normalized_storage_tier:
+        query = query.filter(ThreeDAsset.storage_tier == normalized_storage_tier)
+
+    normalized_web_preview_status = _normalize_optional_text(web_preview_status)
+    if normalized_web_preview_status:
+        query = query.filter(ThreeDAsset.web_preview_status == normalized_web_preview_status)
+
+    assets = query.order_by(ThreeDAsset.created_at.desc(), ThreeDAsset.id.desc()).offset(skip).limit(limit).all()
     visible_assets = []
     for asset in assets:
         visibility_scope = None
@@ -776,3 +808,170 @@ def delete_three_d_resource(
     db.delete(asset)
     db.commit()
     return {"status": "success", "message": f"3D resource {resource_id} deleted"}
+
+
+@router.patch("/resources/{resource_id}", response_model=ThreeDAssetOut)
+def patch_three_d_resource(
+    resource_id: int,
+    title: str | None = Body(None),
+    resource_group: str | None = Body(None),
+    version_label: str | None = Body(None),
+    is_current: bool | None = Body(None),
+    is_web_preview: bool | None = Body(None),
+    web_preview_status: str | None = Body(None),
+    web_preview_reason: str | None = Body(None),
+    storage_tier: str | None = Body(None),
+    preservation_status: str | None = Body(None),
+    preservation_note: str | None = Body(None),
+    status: str | None = Body(None),
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.edit")),
+):
+    asset = _get_resource_or_404(resource_id, db)
+
+    if title is not None:
+        metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+        core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
+        if not isinstance(core, dict):
+            core = {}
+        core["title"] = title
+        metadata_info["core"] = core
+        raw = metadata_info.get("raw_metadata") if isinstance(metadata_info, dict) else {}
+        if not isinstance(raw, dict):
+            raw = {}
+        raw["title"] = title
+        metadata_info["raw_metadata"] = raw
+        asset.metadata_info = metadata_info
+
+    if resource_group is not None:
+        normalized_rg = resource_group.strip() or None
+        asset.resource_group = normalized_rg
+
+    if version_label is not None:
+        normalized_vl = version_label.strip() or "original"
+        asset.version_label = normalized_vl
+        metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+        core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
+        if not isinstance(core, dict):
+            core = {}
+        core["version_label"] = normalized_vl
+        metadata_info["core"] = core
+        asset.metadata_info = metadata_info
+
+    if is_current is not None:
+        asset.is_current = is_current
+        metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+        core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
+        if not isinstance(core, dict):
+            core = {}
+        core["is_current"] = is_current
+        metadata_info["core"] = core
+        asset.metadata_info = metadata_info
+
+    if is_web_preview is not None:
+        asset.is_web_preview = is_web_preview
+        metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+        core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
+        if not isinstance(core, dict):
+            core = {}
+        core["is_web_preview"] = is_web_preview
+        metadata_info["core"] = core
+        asset.metadata_info = metadata_info
+
+    if web_preview_status is not None:
+        normalized_wps = web_preview_status.strip() or "disabled"
+        asset.web_preview_status = normalized_wps
+        metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+        core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
+        if not isinstance(core, dict):
+            core = {}
+        core["web_preview_status"] = normalized_wps
+        metadata_info["core"] = core
+        asset.metadata_info = metadata_info
+
+    if web_preview_reason is not None:
+        asset.web_preview_reason = web_preview_reason.strip() or None
+        metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+        core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
+        if not isinstance(core, dict):
+            core = {}
+        core["web_preview_reason"] = asset.web_preview_reason
+        metadata_info["core"] = core
+        asset.metadata_info = metadata_info
+
+    if storage_tier is not None:
+        normalized_st = storage_tier.strip().lower() or "archive"
+        asset.storage_tier = normalized_st
+
+    if preservation_status is not None:
+        normalized_ps = preservation_status.strip().lower() or "pending"
+        asset.preservation_status = normalized_ps
+
+    if preservation_note is not None:
+        asset.preservation_note = preservation_note.strip() or None
+
+    if status is not None:
+        normalized_s = status.strip() or "ready"
+        asset.status = normalized_s
+
+    db.commit()
+    db.refresh(asset)
+    return _serialize_three_d_asset(asset)
+
+
+@router.post("/resources/{resource_id}/regenerate-preview", response_model=ThreeDAssetOut)
+def regenerate_three_d_preview(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_permission("three_d.edit")),
+):
+    from pathlib import Path as _Path
+
+    asset = _get_resource_or_404(resource_id, db)
+    resource_dir = _resource_dir(asset.id)
+    if not resource_dir.exists():
+        raise HTTPException(status_code=404, detail="Resource directory not found")
+
+    file_records = []
+    for f in asset.files or []:
+        file_records.append({
+            "role": f.role or "other",
+            "role_label": f.role_label or f.role or "其他",
+            "filename": f.filename,
+            "actual_filename": f.actual_filename or f.filename,
+            "file_path": str(f.file_path),
+            "file_size": f.file_size or 0,
+            "mime_type": f.mime_type or "application/octet-stream",
+            "sort_order": f.sort_order or 0,
+            "is_primary": bool(f.is_primary),
+        })
+
+    if not file_records:
+        raise HTTPException(status_code=400, detail="No file records found for this resource")
+
+    title = str(asset.filename)
+    metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
+    if isinstance(core, dict) and core.get("title"):
+        title = str(core["title"])
+
+    from ..services.three_d_preview import build_three_d_preview_data
+    preview_data = build_three_d_preview_data(
+        resource_dir,
+        asset_id=asset.id,
+        title=title,
+        file_records=file_records,
+    )
+
+    if not isinstance(asset.metadata_info, dict):
+        asset.metadata_info = {}
+    raw = asset.metadata_info.get("raw_metadata") if isinstance(asset.metadata_info, dict) else {}
+    if not isinstance(raw, dict):
+        raw = {}
+        asset.metadata_info["raw_metadata"] = raw
+    raw["preview_data"] = preview_data
+    asset.metadata_info = dict(asset.metadata_info)
+
+    db.commit()
+    db.refresh(asset)
+    return _serialize_three_d_asset(asset)

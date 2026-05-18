@@ -40,42 +40,44 @@ type ThreeDViewerProps = {
 
 const ThreeDViewer: React.FC<ThreeDViewerProps> = ({ viewer, title, onOpenPreview }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const [modelSrc, setModelSrc] = useState<string | null>(null);
-  const [modelLoadError, setModelLoadError] = useState<string | null>(null);
-  const [renderError, setRenderError] = useState<string | null>(null);
+  const [modelState, setModelState] = useState<{ previewUrl: string; src: string } | null>(null);
+  const [modelLoadError, setModelLoadError] = useState<{ previewUrl: string; message: string } | null>(null);
+  const [renderError, setRenderError] = useState<{ previewUrl: string; message: string } | null>(null);
   const previewFile = viewer?.preview_file;
   const previewUrl = viewer?.preview_url || previewFile?.preview_url || previewFile?.download_url || null;
   const previewExtension = getFilenameExtension(previewFile?.actual_filename || previewFile?.filename);
   const isPreviewFormatSupported = !previewExtension || WEB_PREVIEW_FORMATS.includes(previewExtension);
   const canRenderPreview = Boolean(viewer?.enabled && previewUrl && isPreviewFormatSupported);
+  const modelSrc = modelState?.previewUrl === previewUrl ? modelState.src : null;
+  const currentModelLoadError = modelLoadError?.previewUrl === previewUrl ? modelLoadError.message : null;
+  const currentRenderError = renderError?.previewUrl === previewUrl ? renderError.message : null;
 
   useEffect(() => {
     if (!canRenderPreview) {
-      setModelSrc(null);
-      setModelLoadError(null);
       return undefined;
     }
 
     let cancelled = false;
     let objectUrl: string | null = null;
-    setModelSrc(null);
-    setModelLoadError(null);
 
     const loadModel = async () => {
       try {
         if (!previewUrl.startsWith('/api/')) {
-          setModelSrc(previewUrl);
+          setModelState({ previewUrl, src: previewUrl });
           return;
         }
 
         const res = await axios.get<Blob>(previewUrl, { responseType: 'blob' });
         if (cancelled) return;
         objectUrl = URL.createObjectURL(res.data);
-        setModelSrc(objectUrl);
+        setModelState({ previewUrl, src: objectUrl });
       } catch (error) {
         console.error(error);
         if (!cancelled) {
-          setModelLoadError('三维模型文件加载失败，请确认当前用户有三维查看权限。');
+          setModelLoadError({
+            previewUrl,
+            message: '三维模型文件加载失败，请确认当前用户有三维查看权限。',
+          });
         }
       }
     };
@@ -98,7 +100,6 @@ const ThreeDViewer: React.FC<ThreeDViewerProps> = ({ viewer, title, onOpenPrevie
 
     let disposed = false;
     let animationFrame = 0;
-    setRenderError(null);
 
     const width = mount.clientWidth || 720;
     const height = mount.clientHeight || 480;
@@ -179,7 +180,10 @@ const ThreeDViewer: React.FC<ThreeDViewerProps> = ({ viewer, title, onOpenPrevie
       (error) => {
         console.error(error);
         if (!disposed) {
-          setRenderError('三维模型解析或渲染失败。');
+          setRenderError({
+            previewUrl: previewUrl || '',
+            message: '三维模型解析或渲染失败。',
+          });
         }
       },
     );
@@ -207,7 +211,7 @@ const ThreeDViewer: React.FC<ThreeDViewerProps> = ({ viewer, title, onOpenPrevie
       renderer.dispose();
       mount.replaceChildren();
     };
-  }, [modelSrc]);
+  }, [modelSrc, previewUrl]);
 
   if (!viewer) {
     return null;
@@ -254,10 +258,10 @@ const ThreeDViewer: React.FC<ThreeDViewerProps> = ({ viewer, title, onOpenPrevie
       {canRenderPreview ? (
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <div style={{ borderRadius: 12, overflow: 'hidden', background: '#eef2f7', minHeight: 480 }}>
-            {modelLoadError ? (
-              <Alert type="error" showIcon message={modelLoadError} style={{ margin: 16 }} />
-            ) : renderError ? (
-              <Alert type="error" showIcon message={renderError} style={{ margin: 16 }} />
+            {currentModelLoadError ? (
+              <Alert type="error" showIcon message={currentModelLoadError} style={{ margin: 16 }} />
+            ) : currentRenderError ? (
+              <Alert type="error" showIcon message={currentRenderError} style={{ margin: 16 }} />
             ) : modelSrc ? (
               <div
                 ref={mountRef}

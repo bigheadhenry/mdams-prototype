@@ -741,3 +741,21 @@ export interface AssetDetailTimelineItem extends TimelineEntry {
 export interface AssetDetailFileRecord extends FileRecord {
   actual_filename?: string;
 }
+
+export interface ThreeDObjectGroup {
+  key: string;
+  label: string;
+  versions: ThreeDAssetSummary[];
+  resourceType: string;
+  profileLabel: string | null;
+  objectNumber: string | null;
+  objectName: string | null;
+  currentVersion: ThreeDAssetSummary | null;
+  webPreviewVersion: ThreeDAssetSummary | null;
+  latestVersion: ThreeDAssetSummary | null;
+  storageTier: string | null;
+  preservationStatus: string | null;
+  updatedAt: string | null;
+  readyCount: number;
+  totalFileCount: number;
+}

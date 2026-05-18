@@ -223,7 +223,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
         /* ignore */
       }
     }
-    return false;
+    return true;
   });
 
   const toggleStatsBarCollapsed = useCallback(() => {
@@ -453,15 +453,17 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
             >
               详情
             </Button>
-            <Tooltip title={record.preview_enabled ? '预览' : '该资源不支持预览'}>
-              <Button
-                data-testid={`platform-preview-${record.source_id}`}
-                size="small"
-                icon={<EyeOutlined />}
-                disabled={!record.preview_enabled}
-                onClick={() => onPreview(record)}
-              />
-            </Tooltip>
+            {record.source_system !== 'three_d' && (
+              <Tooltip title={record.preview_enabled ? '预览' : '该资源不支持预览'}>
+                <Button
+                  data-testid={`platform-preview-${record.source_id}`}
+                  size="small"
+                  icon={<EyeOutlined />}
+                  disabled={!record.preview_enabled}
+                  onClick={() => onPreview(record)}
+                />
+              </Tooltip>
+            )}
             <Tooltip title="加入申请车">
               <Button
                 data-testid={`platform-apply-${record.source_id}`}
@@ -738,17 +740,19 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                         >
                           详情
                         </Button>,
-                        <Button
-                          key="preview"
-                          data-testid={`platform-preview-${resource.source_id}`}
-                          type="link"
-                          size="small"
-                          icon={<EyeOutlined />}
-                          disabled={!resource.preview_enabled}
-                          onClick={() => onPreview(resource)}
-                        >
-                          预览
-                        </Button>,
+                        resource.source_system !== 'three_d' && (
+                          <Button
+                            key="preview"
+                            data-testid={`platform-preview-${resource.source_id}`}
+                            type="link"
+                            size="small"
+                            icon={<EyeOutlined />}
+                            disabled={!resource.preview_enabled}
+                            onClick={() => onPreview(resource)}
+                          >
+                            预览
+                          </Button>
+                        ),
                         <Button
                           key="apply"
                           data-testid={`platform-apply-${resource.source_id}`}
@@ -759,7 +763,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                         >
                           申请
                         </Button>,
-                      ]}
+                      ].filter(Boolean)}
                     >
                       <Card.Meta
                         title={
