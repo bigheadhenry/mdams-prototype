@@ -1,6 +1,7 @@
 # 环境变量说明
 
-- 最后核对日期：2026-04-06
+- 最后核对日期：2026-05-17
+- 核对口径：仅以已提交代码中的稳定实现为准，不纳入当前工作区未提交改动
 - 核对范围：`.env.example`、`backend/app/config.py`、`docker-compose.yml`
 
 ## 1. 目标
@@ -28,7 +29,10 @@
 | 变量 | 说明 | 本地建议值 |
 | :--- | :--- | :--- |
 | `API_PUBLIC_URL` | 后端生成公开 API 链接时使用 | `http://localhost:3000/api` |
-| `CANTALOUPE_PUBLIC_URL` | IIIF 服务地址 | `http://localhost:3000/iiif/2` |
+| `CANTALOUPE_PUBLIC_URL` | 兼容默认值 / 本地调试用 IIIF 上游地址 | `http://localhost:8182/iiif/2` |
+| `CANTALOUPE_INTERNAL_URL` | 后端访问 Cantaloupe 的内部地址；未设置时回退到 `CANTALOUPE_PUBLIC_URL` | 宿主机调试 `http://localhost:8182/iiif/2`；compose 内部建议 `http://cantaloupe:8182/iiif/2` |
+| `CORS_ALLOWED_ORIGINS` | CORS 允许来源，逗号分隔 | `http://localhost:3000,http://127.0.0.1:3000` |
+| `AUTH_DEFAULT_PASSWORD` | 自动播种测试用户的默认密码 | `mdams123` |
 
 ## 5. AI 相关
 
@@ -47,14 +51,35 @@
 - 当前后端把 Moonshot 视为 OpenAI 兼容提供方
 - 如果没有显式设置 `OPENAI_*`，会优先回退到 `MOONSHOT_*`
 
-## 6. 文件路径
+## 6. 人脸识别
+
+| 变量 | 说明 | 默认示例 |
+| :--- | :--- | :--- |
+| `FACE_RECOGNITION_ENABLED` | 是否启用人脸识别链路，`1` 为启用 | `0` |
+| `FACE_RECOGNITION_PROVIDER` | provider，可取 `local`、`remote`、`auto` | `local` |
+| `FACE_RECOGNITION_BASE_URL` | 远程识别服务地址 | `http://host.docker.internal:8010` |
+| `FACE_RECOGNITION_TIMEOUT_SECONDS` | 识别请求超时秒数 | `30` |
+| `FACE_RECOGNITION_THRESHOLD` | 人脸识别阈值 | `0.5` |
+| `FACE_RECOGNITION_MODEL_ROOT` | 本地识别模型根目录 | `/app/runtime/face_recognition` |
+| `FACE_RECOGNITION_MODEL_NAME` | 本地识别模型名 | `buffalo_l` |
+| `FACE_RECOGNITION_INDEX_DIR` | 本地识别索引目录 | `/app/runtime/face_recognition/index` |
+| `FACE_RECOGNITION_STRICT_LOCAL_MODELS` | 本地模型缺失时是否严格失败 | `1` |
+
+说明：
+
+- 默认关闭人脸识别，避免部署环境缺少模型或索引时影响主链路
+- `local` 模式依赖容器内运行时目录和模型文件
+- `remote` 模式依赖外部识别服务
+- `auto` 模式可先尝试本地能力，再按实现逻辑回退
+
+## 7. 文件路径
 
 | 变量 | 说明 | 默认示例 |
 | :--- | :--- | :--- |
 | `HOST_MUSEUM_PATH` | 宿主机目录 | `./uploads` |
 | `UPLOAD_DIR` | 容器内上传目录 | `/app/uploads` |
 
-## 7. 图像处理
+## 8. 图像处理
 
 | 变量 | 说明 | 默认示例 |
 | :--- | :--- | :--- |
@@ -62,7 +87,7 @@
 | `VIPS_CONCURRENCY` | libvips 并发数 | `2` |
 | `JAVA_OPTS` | JVM 参数 | `-Xmx4g -Djava.security.egd=file:/dev/./urandom` |
 
-## 8. 端口
+## 9. 端口
 
 | 变量 | 默认值 |
 | :--- | :--- |
@@ -72,14 +97,17 @@
 | `REDIS_PORT` | `6379` |
 | `CANTALOUPE_PORT` | `8182` |
 
-## 9. 使用建议
+## 10. 使用建议
 
 - 本地开发优先只改 `.env`
-- 浏览器访问地址优先以 `3000` 代理口径为准
+- 浏览器侧应通过 Manifest 中的 `/api/iiif/{asset_id}/service/...` 访问图像服务代理
+- 后端访问 Cantaloupe 时优先使用 `CANTALOUPE_INTERNAL_URL`
+- 生产环境避免把 Cantaloupe 作为公共入口暴露给浏览器
 - 不要把容器内路径改成宿主机绝对路径
 - 容器内服务继续使用 `DATABASE_URL`，主机侧 `pytest` 建议单独设置 `TEST_DATABASE_URL`
+- 人脸识别默认关闭，需要模型、索引或远程服务准备好后再启用
 
-## 10. 关联文档
+## 11. 关联文档
 
 - `SETUP_AND_DEPLOYMENT.md`
 - `TROUBLESHOOTING.md`

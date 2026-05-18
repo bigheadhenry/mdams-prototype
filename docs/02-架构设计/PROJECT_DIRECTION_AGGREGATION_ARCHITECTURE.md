@@ -1,5 +1,8 @@
 # MDAMS 项目方向说明：顶层聚合检索服务 + 独立模态资源系统
 
+- 最后核对日期：2026-05-17
+- 当前契约说明：统一平台当前以 `source_system` + `source_id` 作为显式来源定位；早期“来源对象 ID”字段语义应迁移为 `source_id`。
+
 ## 1. 文档目的
 
 本文档用于明确 MDAMS 的中长期项目方向，作为后续：
@@ -353,7 +356,7 @@ MDAMS 的推荐总体架构可分为四层。
 
 - `global_resource_id`：聚合平台内部的全局资源标识
 - `source_system`：来源系统标识
-- `source_object_id`：来源系统中的对象标识
+- `source_id`：来源系统中的对象标识
 - `resource_type`：资源类型，如 image / video / document / audio / 3d
 - `title`：标题
 - `summary`：摘要
@@ -467,7 +470,7 @@ MDAMS 推荐采用“统一资源 ID + 分层元数据存储”的方式组织�
 - 底层模态子系统维护同一资源 ID 和各自的专有元数据；
 - 不要求各系统完整复制一套全量公共元数据；
 - 对于共享字段，必须明确谁是主数据源、谁是同步副本；
-- 通过 `global_resource_id`、`source_system`、`source_object_id` 建立稳定映射。
+- 通过 `global_resource_id`、`source_system`、`source_id` 建立稳定映射。
 
 ### 12.2 顶层系统保存什么
 
@@ -475,7 +478,7 @@ MDAMS 推荐采用“统一资源 ID + 分层元数据存储”的方式组织�
 
 - `global_resource_id`
 - `source_system`
-- `source_object_id`
+- `source_id`
 - `resource_type`
 - `title`
 - `summary`

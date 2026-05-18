@@ -1,7 +1,8 @@
 # API 路由总览
 
-- 最后核对日期：2026-04-06
-- 核对范围：`backend/app/main.py`、`backend/app/routers/`
+- 最后核对日期：2026-05-17
+- 核对口径：仅以已提交代码中的稳定实现为准，不纳入当前工作区未提交改动
+- 核对范围：`backend/app/main.py`、`backend/app/routers/`、`backend/app/platform/`
 
 ## 1. 目标
 
@@ -23,6 +24,7 @@
 | `ingest` | `/ingest` | SIP 风格入库流程 |
 | `image_records` | `/image-records` | 图像记录工作流 |
 | `three_d` | `/three-d` | 三维对象、版本、文件与查看 |
+| `video` | `/video` | 视频资源列表、详情与在线播放 |
 | `platform` | `/platform` | 统一来源、统一目录、统一详情 |
 
 ## 3. 模块说明
@@ -106,31 +108,79 @@
 
 负责三维子系统：
 
+- 三维元数据字典
+- 藏品 / 采集对象线索
 - 对象与版本
 - 资源包上传
 - 文件角色识别
 - 查看摘要
 - 明细与下载
+- Web 预览摘要与预览资源访问
 
-### 3.9 `platform`
+典型接口：
+
+- `GET /api/three-d/dictionary`
+- `GET /api/three-d/collection-objects`
+- `POST /api/three-d/upload`
+- `GET /api/three-d/resources`
+- `GET /api/three-d/resources/{resource_id}`
+- `GET /api/three-d/resources/{resource_id}/viewer`
+- `GET /api/three-d/resources/{resource_id}/download`
+- `GET /api/three-d/resources/{resource_id}/files/{file_id}`
+- `GET /api/three-d/resources/{resource_id}/previews/{preview_name}`
+
+### 3.9 `video`
+
+负责视频资源的最小来源接口：
+
+- 视频资源列表
+- 视频资源详情
+- 视频文件 inline stream
+- 视频资源删除
+
+典型接口：
+
+- `GET /api/video/resources`
+- `GET /api/video/resources/{asset_id}`
+- `GET /api/video/resources/{asset_id}/stream`
+- `DELETE /api/video/resources/{asset_id}`
+
+当前视频接口主要服务统一平台多模态来源接入和演示预览，不等同于完整视频生产管理子系统。
+
+### 3.10 `platform`
 
 负责统一平台聚合：
 
 - `GET /api/platform/sources`
 - `GET /api/platform/resources`
 - `GET /api/platform/resources/{source_system}/{source_id}`
+- `GET /api/platform/resources/{resource_id}`（兼容旧复合 ID 路径，已标记 deprecated）
 
-### 3.10 `ai_mirador`
+其中 `{source_system}/{source_id}` 是当前统一详情主路径。已提交代码中的稳定来源包括：
+
+- `image_2d`
+- `three_d`
+- `video`
+
+### 3.11 `ai_mirador`
 
 负责 Mirador AI 辅助功能，服务于前端 AI 面板。
+
+典型接口：
+
+- `POST /api/ai/mirador/interpret`
+- `GET /api/ai/assets/search`
+
+当前响应中已包含工具调用兼容结构，前端仍主要按解释出的查看器动作执行。
 
 ## 4. 当前接口边界
 
 当前接口设计已经形成三层边界：
 
-- 资源来源接口：`assets`、`three_d`
+- 资源来源接口：`assets`、`three_d`、`video`
 - 平台聚合接口：`platform`
 - 工作流接口：`auth`、`applications`、`image_records`
+- 辅助体验接口：`ai_mirador`
 
 这意味着当前系统已经不是单一 CRUD，而是开始形成子系统 + 聚合层 + 工作流层的结构。
 

@@ -1,6 +1,6 @@
 # 认证与 IIIF 访问控制
 
-- 最后核对日期：2026-04-06
+- 最后核对日期：2026-05-17
 - 核对范围：`backend/app/routers/auth.py`、`backend/app/permissions.py`、`backend/app/routers/iiif.py`、`backend/app/routers/assets.py`、`frontend/src/MiradorViewer.tsx`、`frontend/nginx.conf`
 
 ## 1. 目标
@@ -60,43 +60,55 @@
 
 ### 4.2 当前图像服务地址
 
-当前 Manifest 中写入的图像服务地址，不是后端受控代理地址，而是基于 `CANTALOUPE_PUBLIC_URL` 生成的公开 IIIF 地址。
+当前 Manifest 中写入的图像服务地址已经是后端受控代理地址：
+
+- `/api/iiif/{asset_id}/service/{image_path}`
+
+后端代理会先复用资产可见性判断，再转发到 Cantaloupe 上游服务。`CANTALOUPE_INTERNAL_URL` 用于后端访问上游；`CANTALOUPE_PUBLIC_URL` 仍作为兼容配置和本地默认值存在。
 
 本地推荐值通常是：
 
 ```text
-http://localhost:3000/iiif/2
+API_PUBLIC_URL=http://localhost:3000/api
+CANTALOUPE_PUBLIC_URL=http://localhost:8182/iiif/2
+CANTALOUPE_INTERNAL_URL=http://localhost:8182/iiif/2
 ```
 
-前端 Nginx 会把它代理到 Cantaloupe。
+Manifest 的 `body.service.id` 应由 `API_PUBLIC_URL` 生成，而不是直接暴露为前端 Nginx 下的 `/iiif/2` 路径。
 
-### 4.3 当前尚未完全收口的部分
+### 4.3 当前已经收口的部分
 
-后端虽然已经提供了：
+后端已经提供并使用：
 
 - `/api/iiif/{asset_id}/service/{image_path:path}`
 
-这样的代理接口，并且它也会做权限检查，但当前 Manifest 默认并没有把图像服务 `id` 指向这个受控代理路径。
+该接口会：
 
-这意味着当前状态是：
+- 校验当前用户是否具备 `image.view`
+- 校验资源是否对当前用户可见
+- 解析允许访问的 IIIF 源文件
+- 代理 Cantaloupe 的 `info.json` 与切片请求
+- 对未 ready 的资源返回 `no-store` 缓存策略
 
-- Manifest 入口已经受控
-- 资产详情和列表入口已经受控
-- 但 IIIF 切片 / `info.json` 访问还没有完全统一到应用认证入口
+因此，当前稳定状态是：
+
+- Manifest 入口已受控
+- 资产详情和列表入口已受控
+- IIIF `info.json` 和切片访问已通过后端代理进入同一套可见性判断
 
 ## 5. 当前风险判断
 
-当前风险不在“页面能否登录”，而在“图像服务是否和业务权限完全一致”。
+当前主要风险不再是“Manifest 受控但切片绕过”，而是“部署时上游 Cantaloupe 是否仍被不必要地暴露给外部网络”。
 
 如果不进一步收口，理论上会存在以下风险：
 
-1. 页面本身受权限控制，但图像服务地址仍然过于公开
-2. `owner_only` 资源的 Manifest 已受控，但后续切片访问没有完全沿用同一套鉴权入口
-3. 应用权限和 IIIF 图像服务权限之间仍存在分层差距
+1. Cantaloupe 端口如果在生产网络直接暴露，仍可能形成旁路访问面
+2. `.env` 中的 `CANTALOUPE_INTERNAL_URL` 如果配置到错误地址，后端代理会失败
+3. 部署文档、反向代理和 Manifest 样例必须保持与 `/api/iiif/.../service/...` 契约一致
 
-因此，当前最准确的表述不是“认证与 IIIF 已完全统一”，而是：
+因此，当前最准确的表述是：
 
-> 当前已经完成 Manifest 级别的认证收口，但还没有完全完成图像切片级别的统一鉴权。
+> 当前已经完成 Manifest 与图像服务代理级别的应用鉴权收口；生产部署仍应避免把 Cantaloupe 作为公共访问入口。
 
 ## 6. 当前推荐配置
 
@@ -104,22 +116,23 @@ http://localhost:3000/iiif/2
 
 ```text
 API_PUBLIC_URL=http://localhost:3000/api
-CANTALOUPE_PUBLIC_URL=http://localhost:3000/iiif/2
+CANTALOUPE_PUBLIC_URL=http://localhost:8182/iiif/2
+CANTALOUPE_INTERNAL_URL=http://localhost:8182/iiif/2
 ```
 
 这样至少可以保证：
 
 - 前端统一走代理
-- Manifest 与 IIIF 服务地址在浏览器视角下是稳定的
+- Manifest 与 IIIF 服务地址在浏览器视角下统一进入 `/api/iiif/...`
 
 ## 7. 推荐的下一步收口方向
 
 建议下一步按以下顺序推进：
 
-1. 保持应用认证与资源可见范围判断继续由 MDAMS 负责
-2. 把 Manifest 中的图像服务 `id` 切换为后端受控代理路径
-3. 让 IIIF 切片和 `info.json` 也统一经过应用权限入口
-4. 再评估是否需要单独的 IIIF auth proxy / gateway
+1. 生产环境不直接向公网暴露 Cantaloupe
+2. 保持 Manifest 样例、部署配置和前端查看器都以 `/api/iiif/...` 为主入口
+3. 补充代理层性能和缓存策略测试
+4. 再评估是否需要单独的 IIIF auth gateway 或边缘缓存
 
 ## 8. 当前结论
 
@@ -128,11 +141,11 @@ CANTALOUPE_PUBLIC_URL=http://localhost:3000/iiif/2
 - MDAMS 已经负责登录、会话和资源可见性判断
 - Manifest 访问已经进入应用权限控制
 - 资源列表和详情也已经进入权限控制
-- IIIF 图像切片访问尚未完全统一到应用认证入口
+- IIIF 图像切片访问已经通过后端代理进入应用权限控制
 
 一句话总结：
 
-> 当前是“Manifest 受控、图像服务未完全收口”的阶段，而不是“认证与 IIIF 已完全统一”的阶段。
+> 当前是“Manifest 与图像服务代理均受控，生产部署需避免 Cantaloupe 旁路暴露”的阶段。
 
 ## 9. 关联文档
 

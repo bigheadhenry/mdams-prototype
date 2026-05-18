@@ -11,6 +11,9 @@
 
 ## Done
 - [x] 为统一平台层补共享字段/动作契约说明和 contract tests
+- [x] 统一资源目录与详情可视化优化（信息效率导向）：卡片分层、操作主次、Timeline、Drawer Tabs、锚点导航、可折叠边栏、目录上下文持久化
+- [x] 三维预览动画批量重生成脚本（`regenerate_three_d_previews.py`）
+- [x] 移除三维重复预览按钮
 
 ## Blocked
 - [ ] 更完整的长期保存/审计/迁移能力 formalization

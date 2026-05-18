@@ -1,7 +1,8 @@
 # 三维子系统架构说明
 
-- 最后核对日期：2026-04-06
-- 核对范围：`backend/app/routers/three_d.py`、`backend/app/services/three_d_*`、`frontend/src/components/ThreeDManagement.tsx`、`frontend/src/components/ThreeDViewer.tsx`
+- 最后核对日期：2026-05-17
+- 核对口径：仅以已提交代码中的稳定实现为准，不纳入当前工作区未提交改动
+- 核对范围：`backend/app/routers/three_d.py`、`backend/app/services/three_d_*`、`backend/app/platform/three_d_source.py`、`frontend/src/components/ThreeDManagement.tsx`、`frontend/src/components/ThreeDViewer.tsx`
 
 ## 1. 目标
 
@@ -20,7 +21,7 @@
           -> 文件包 Files
 ```
 
-也就是说，同一件藏品下的原始保存级模型、Web 展示级模型、移动端轻量模型、高精度研究模型，不应作为彼此孤立的三维对象出现在管理页和统一检索中，而应作为同一个三维数字对象下的不同表现。
+截至当前稳定实现，同一件藏品下的原始保存级模型、Web 展示级模型、移动端轻量模型、高精度研究模型，已经在前端管理页和统一平台来源适配器中按对象级分组展示；但数据库层仍主要复用 `ThreeDAsset` 等现有结构，并未新增独立 `ThreeDDigitalObject` 表。
 
 ## 3. 当前核心概念
 
@@ -36,7 +37,7 @@
 - 关联藏品或对象信息
 - 预览状态
 
-后续规范中，“三维数字对象”应成为对象级管理单元；当前 `ThreeDAsset` 更适合被过渡理解为某个三维数字对象下的“模型表现/资源包”。完整规范见 `../03-产品与流程/THREE_D_OBJECT_MODEL_AND_PLATFORM_VIEW.md`。
+当前前端与统一平台已经把“三维数字对象”作为对象级展示单元；当前 `ThreeDAsset` 更适合被过渡理解为某个三维数字对象下的“模型表现/资源包”。完整规范见 `../03-产品与流程/THREE_D_OBJECT_MODEL_AND_PLATFORM_VIEW.md`。
 
 ### 3.2 多文件资源包
 
@@ -96,12 +97,17 @@
 
 - `ThreeDManagement.tsx`
 - `ThreeDViewer.tsx`
+- `ThreeDTurntablePreview.tsx`
 
 它们当前承担：
 
 - 三维资源管理
-- 对象详情展示
+- 数字对象概览
+- 对象分组与模型表现展开
+- 资源包上传
+- 对象详情抽屉
 - Web 预览入口
+- 轻量旋转预览
 
 ## 6. 当前统一平台接入
 
@@ -113,7 +119,17 @@
 - 被统一详情接口聚合
 - 与二维资源一同参与平台筛选
 
-统一平台的目标展示粒度应为“三维数字对象”，而不是每一个模型表现或每一个文件。默认检索结果应显示对象级摘要，并在详情中展开原始保存级、Web 展示级、轻量级、高精度研究级等表现。
+统一平台当前默认展示粒度已经是“三维数字对象”，而不是每一个模型表现或每一个文件。平台来源适配器会按 `collection_object_id + resource_group` 聚合 `ThreeDAsset` 记录，并输出：
+
+- `resource_type = three_d_digital_object`
+- `source_id = object-{anchor_asset_id}`
+- 对象级 `preview_enabled`
+- 默认预览表现
+- 表现列表
+- 文件数与表现数摘要
+- 对象级 actions
+
+旧的数字 `source_id` 仍可被适配器兼容解析。
 
 ## 7. 当前已实现范围
 
@@ -124,7 +140,10 @@
 - 版本标签与排序信息
 - 预览状态判断
 - 元数据层输出
+- 轻量预览数据输出
+- 生产链记录
 - 平台来源适配
+- 平台侧三维数字对象级聚合
 
 ## 8. 当前边界
 
@@ -133,7 +152,8 @@
 - Web 预览格式兼容性还可继续增强
 - 更复杂的生产过程和长期保存语义仍可继续细化
 - 三维对象与二维对象之间的统一模型仍在平台层逐步收敛
-- 当前资源记录与三维数字对象之间还缺少稳定的中间组织层，同一藏品下不同等级模型仍主要依赖 `resource_group` 临时聚合
+- 当前资源记录与三维数字对象之间还缺少独立数据库实体，同一藏品下不同等级模型仍主要依赖 `collection_object_id + resource_group` 聚合
+- `representation_type` 主要从元数据或 `version_label` 推断，尚未成为稳定表字段
 
 ## 9. 关联文档
 

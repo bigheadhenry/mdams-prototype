@@ -4,7 +4,7 @@
 
 本文档用于说明 MDAMS Prototype 当前 IIIF Manifest 输出层的实际定位、实现锚点、稳定能力、边界和后续 formalization 方向。
 
-截至 **2026-04-08**，它优先回答：
+截至 **2026-05-17**，它优先回答：
 - 当前 IIIF 支持在哪些代码和工作流里真实存在；
 - 当前 Manifest 输出最适合被理解为哪一种最小 profile；
 - 哪些字段/结构可以稳定宣称；
@@ -32,8 +32,8 @@
 
 根据当前实现，可以稳定确认系统已经具备：
 - 动态 IIIF Manifest 生成；
-- 基于 `API_PUBLIC_URL` 和 `CANTALOUPE_PUBLIC_URL` 的公共 URL 结构；
-- 基于 Cantaloupe 的图像服务链；
+- 基于 `API_PUBLIC_URL` 的 Manifest 与后端图像服务代理 URL 结构；
+- 基于后端代理 + Cantaloupe 上游的图像服务链；
 - 与 Mirador 的稳定消费路径；
 - 对隐藏资源的可见性控制；
 - 原始文件与 IIIF access 副本之间的区分。
@@ -86,7 +86,7 @@ IIIF 在当前项目中的主要职责不是保存建模，而是：
 - `summary`、`homepage` 已输出；
 - `metadata` 已包含基础系统字段与 layered metadata 映射；
 - `items` 中包含 Canvas、AnnotationPage、Annotation；
-- `body.service` 指向 Cantaloupe 图像服务；
+- `body.service` 指向后端 `/api/iiif/{asset_id}/service/{image_path}` 图像服务代理；
 - 图像尺寸可从 layered metadata 推导，缺失时有兜底值。
 
 ## 五、当前可稳定宣称的能力
@@ -101,7 +101,7 @@ Manifest 并不直接假定一定使用原始文件，而是通过 `iiif_access.
 - 尚未准备完成时的 `409` 状态。
 
 ### 3. 与图像服务协同
-Manifest 中的 `body.service` 当前直接指向 Cantaloupe 图像服务 URL，而不是抽象占位符。
+Manifest 中的图像服务入口当前指向后端受控代理 URL。后端代理负责资源可见性判断，并把请求转发到 Cantaloupe 上游。
 
 ### 4. 与 Mirador 的真实消费路径
 前端 `MiradorViewer.tsx` 当前直接加载 Manifest URL 并读取 metadata/title 等信息，说明当前输出已经进入真实 viewer 路径。
@@ -124,7 +124,7 @@ Manifest 中的 `body.service` 当前直接指向 Cantaloupe 图像服务 URL，
 | `AnnotationPage` | 稳定支持 | viewer 兼容结构 |
 | `Annotation` | 稳定支持 | painting annotation |
 | `body` | 稳定支持 | 图像资源与访问 URL |
-| `service` | 稳定支持 | Cantaloupe 图像服务 |
+| `service` | 稳定支持 | 后端 IIIF service 代理，后端再访问 Cantaloupe 上游 |
 
 ## 七、当前不宜贸然宣称已支持的能力
 
@@ -159,7 +159,8 @@ flowchart LR
     Asset["Asset\n二维数字资产"] --> Layers["Layered Metadata\ncore/management/technical/profile"]
     Asset --> Access["IIIF Access Resolution\n原始文件 / 访问副本"]
     Access --> Manifest["Manifest Assembly\nbackend/app/routers/iiif.py"]
-    Manifest --> Service["Cantaloupe Image Service"]
+    Manifest --> Proxy["Backend IIIF Service Proxy\n/api/iiif/{asset_id}/service/..."]
+    Proxy --> Service["Cantaloupe Image Service\n上游图像服务"]
     Manifest --> Viewer["MiradorViewer"]
 ```
 
@@ -170,8 +171,8 @@ flowchart LR
 
 ## 九、当前缺口
 
-### 1. Manifest 输出字段仍未逐项样本化
-虽然代码路径清晰，但还没有配一份真实 Manifest 样本逐字段说明。
+### 1. Manifest 输出样本仍需继续从代表性样本推进到运行时样本
+当前已经有 `IIIF清单样本（IIIF_MANIFEST_SAMPLE）.md` 提供代表性样本，但还没有纳入一次真实运行时导出的冻结 JSON。
 
 ### 2. 当前 profile 仍是“事实归纳”，还不是正式 capability matrix
 后续仍应把“稳定支持字段”“条件存在字段”“暂不支持能力”做成更明确表格。
@@ -181,7 +182,7 @@ flowchart LR
 
 ## 十、对项目推进的建议
 
-1. 补一个真实 Manifest 样本并逐字段注释
+1. 在代表性样本之外补一份真实运行时导出的 Manifest
 2. 增加一张 capability matrix，区分 stable / conditional / unsupported
 3. 在研究写作中持续把 IIIF 写成访问表示层，而不是总对象模型
 4. 把 IIIF 与图像 access 副本策略、权限控制和 Mirador 路径一起叙述，而不是只写“支持 IIIF”

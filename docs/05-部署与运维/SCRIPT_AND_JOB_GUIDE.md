@@ -1,6 +1,6 @@
 # 脚本与批处理说明
 
-- 最后核对日期：2026-04-06
+- 最后核对日期：2026-05-17
 - 核对范围：`backend/scripts/`
 
 ## 1. 目标
@@ -18,6 +18,8 @@
 | `import_reference_manifests.py` | 将参考资源包导入当前二维入库链路 |
 | `report_reference_completeness.py` | 输出参考资源完整性报告 |
 | `validate_reference_imports.py` | 校验导入后的 Manifest、下载和 BagIt 能力 |
+
+当前稳定提交中的脚本仍主要围绕二维参考资源导入、回填和校验；三维、视频、AI 和人脸识别暂无独立批处理脚本入口。
 
 ## 3. 当前主要用途分类
 

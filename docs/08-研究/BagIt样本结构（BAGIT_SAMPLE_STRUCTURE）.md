@@ -7,14 +7,14 @@
 它的用途是：
 - 作为论文中的样本级证据；
 - 作为演示时的结构说明；
-- 与 [长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md) 配套。
+- 与 [长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md](长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md) 配套。
 
 ## 样本来源
 
 本样本根据以下实现锚点整理：
-- [downloads.py](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/backend/app/routers/downloads.py)
-- [AssetDetail.tsx](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/frontend/src/components/AssetDetail.tsx)
-- [UnifiedResourceDetail.tsx](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/frontend/src/components/UnifiedResourceDetail.tsx)
+- [downloads.py](../../backend/app/routers/downloads.py)
+- [AssetDetail.tsx](../../frontend/src/components/AssetDetail.tsx)
+- [UnifiedResourceDetail.tsx](../../frontend/src/components/UnifiedResourceDetail.tsx)
 
 ## 代表性 Bag 目录样本
 
@@ -46,8 +46,8 @@ Tag-File-Character-Encoding: UTF-8
 ### 2. `bag-info.txt`
 
 ```text
-Source-Organization: MEAM Prototype
-Bagging-Date: 2026-04-08
+Source-Organization: MDAMS Prototype
+Bagging-Date: 2026-05-17
 Payload-Oxum: 128.1
 Original-File: hidden.jpg
 IIIF-Access-File: iiif-access.pyramidal.tiff

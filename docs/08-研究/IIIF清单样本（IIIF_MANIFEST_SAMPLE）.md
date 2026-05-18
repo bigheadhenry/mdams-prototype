@@ -7,14 +7,14 @@
 它的用途是：
 - 作为论文中的样本级证据；
 - 作为演示时的结构说明；
-- 与 [IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md) 配套。
+- 与 [IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md](IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md) 配套。
 
 ## 样本来源
 
 本样本根据以下实现锚点整理：
-- [iiif.py](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/backend/app/routers/iiif.py)
-- [iiif_access.py](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/backend/app/services/iiif_access.py)
-- [test_asset_visibility.py](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/backend/tests/test_asset_visibility.py)
+- [iiif.py](../../backend/app/routers/iiif.py)
+- [iiif_access.py](../../backend/app/services/iiif_access.py)
+- [test_asset_visibility.py](../../backend/tests/test_asset_visibility.py)
 
 ## 代表性 Manifest 样本
 
@@ -65,7 +65,7 @@
     },
     {
       "label": {"en": ["Uploaded At"]},
-      "value": {"en": ["2026-04-08T10:00:00Z"]}
+      "value": {"en": ["2026-05-17T10:00:00Z"]}
     }
   ],
   "items": [
@@ -86,12 +86,12 @@
               "motivation": "painting",
               "target": "http://localhost:3000/api/iiif/2001/canvas/1",
               "body": {
-                "id": "http://localhost:8182/iiif/2/hidden.jpg/full/max/0/default.jpg",
+                "id": "http://localhost:3000/api/iiif/2001/service/hidden.jpg/full/max/0/default.jpg",
                 "type": "Image",
                 "format": "image/jpeg",
                 "service": [
                   {
-                    "id": "http://localhost:8182/iiif/2/hidden.jpg",
+                    "id": "http://localhost:3000/api/iiif/2001/service/hidden.jpg",
                     "type": "ImageService2",
                     "profile": "level2"
                   }
@@ -120,14 +120,14 @@
 | `Canvas` | 单页图像访问容器 | `iiif.py` |
 | `AnnotationPage` | viewer 兼容结构 | `iiif.py` |
 | `Annotation` | painting annotation | `iiif.py` |
-| `body.id` | 实际图像请求地址 | Cantaloupe IIIF path |
-| `body.service` | 图像服务入口 | `CANTALOUPE_PUBLIC_URL` / 请求上下文 |
+| `body.id` | 实际图像请求地址 | 后端 IIIF service 代理路径 |
+| `body.service` | 图像服务入口 | `/api/iiif/{asset_id}/service/{image_path}` |
 
 ## 当前可以从样本直接看出的事实
 
 - Manifest 是动态组装的，而不是静态文件
 - 当前输出是单资产、单 Canvas 导向
-- 图像服务地址与查看器路径已真实连通
+- 图像服务地址通过后端代理与查看器路径连通
 - metadata 当前已承载基础对象识别信息
 
 ## 当前边界

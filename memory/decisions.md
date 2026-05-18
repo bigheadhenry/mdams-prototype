@@ -205,6 +205,47 @@
 - Impact on prototype: 统一平台目录交互从「来源筛选」切换为「维度标签页」，用户不再感知底层子系统概念；高级检索面板简化，侧边栏仅保留统计信息
 - Impact on writing: 可将统一平台描述为「以二维 / 三维 / 视频为顶层维度的多模态聚合目录」，为后续视频模态接入预留了论文叙述空间
 
+## Decision 18
+- Date: 2026-05-17
+- Topic: 统一资源目录与详情可视化优化方向——信息效率导向
+- Chosen option: 可视化优化以信息层级化、操作主次化、维度联动、数据可视化为目标，保留现有 Ant Design 体系，不引入额外品牌氛围色与大面积渐变背景
+- Alternatives considered:
+  - 汇报演示视觉冲击力导向（强化品牌色、Hero 区视觉重量、动效与排版节奏）
+  - 两者兼顾但主要场景仍以信息效率优先
+- Rationale: 项目定位于「博物馆方汇报为主、原型辅助」，实际评审场景中管理者需要快速定位资源数量、状态分布和操作入口，而非沉浸式视觉体验；信息效率优先能在有限屏幕空间内提高可读性
+- Impact on prototype: 完成 PlatformDirectory、PlatformStatsBar、UnifiedResourceDetail、ThreeDSourceDetailDrawer 四个组件的可视化重构；新增目录上下文持久化（进入详情后返回还原 Tab/页码/排序/筛选）；主导航 Sider 和检索概览栏均支持可伸缩折叠
+- Impact on writing: 可将 MDAMS 的 UI 策略描述为「以信息效率为优先的原型可视化」，而非追求视觉表现力；三维预览自动生成能力可作为系统工程化水平的辅助佐证
+
+## Decision 19
+- Date: 2026-05-17
+- Topic: 三维数据管理子系统功能分离——上传与管理拆分为独立模块
+- Chosen option: 将原单一页面 ThreeDManagement 重构为基于 Ant Design Tabs 的四标签页工作台（总览看板 / 数字对象目录 / 资源入库 / 运维与处置），上传功能通过 5 步入库向导实现，管理功能通过增强型目录（搜索/筛选/分页/批量操作/行内开关/字段化元数据抽屉）承载
+- Alternatives considered:
+  - 保留单页面但折叠上传区
+  - 仅增加筛选不做标签页拆分
+  - 使用第三方路由实现独立页面（需改 App.tsx 菜单结构）
+- Rationale: 三维数据管理员的日常职责天然分为"看板巡检→目录检索→入库→运维"四个独立场景；上传与管理混在同一页面导致操作认知负担过高、检索能力为零、管理动作缺失；Tabs 拆分在保持单一菜单位置的同时实现了功能解耦，无需改动路由和菜单结构
+- Impact on prototype:
+  - 前端新增四个子组件：ThreeDDashboard（总览看板）、ThreeDCatalog（数字对象目录，含搜索/筛选/分页/批量操作/增强详情 Drawer）、ThreeDIngestWizard（5 步入库向导）、ThreeDOperations（运维与处置，预览再生/异常复位）
+  - ThreeDManagement 重构为 Tabs 容器，移除测试模型展示区
+  - 详情 Drawer 技术元数据/分层元数据从只读 JSON 升级为字段化表格渲染
+  - 数字对象列表新增：搜索框、状态/模板/保存层/Web 展示多维筛选、分页、行选择批量操作、行内快捷菜单（设为当前表现/设为 Web 展示/重生成预览/删除）
+  - 入库向导按资源类型动态显示相关字段子集，分步降低单次认知负担
+  - 类型 ThreeDObjectGroup 提取到 assets.ts 供多个组件共享
+- Impact on writing: 三维子系统现在可以描述为"以职责分离为原则的模块化管理工作台"，入库向导可作为渐进式元数据收集的研究案例
+
+## Decision 20
+- Date: 2026-05-17
+- Topic: 三维资源后端增加编辑、预览再生与列表检索能力
+- Chosen option: 在现有 GET/POST/DELETE 基础上新增三个端点：PATCH /resources/{id}（编辑元数据/切换状态）、POST /resources/{id}/regenerate-preview（单资源预览再生）、增强 GET /resources（增加 q/status/resource_type/storage_tier/web_preview_status 查询参数）
+- Alternatives considered:
+  - 继续仅依赖重传实现编辑
+  - 只保留批量脚本不提供单资源 API
+  - 为检索创建专用 search 端点
+- Rationale: 管理员的日常编辑、预览修复和列表检索是最高频操作，必须提供 API 支持；在现有 RESTful 路径上扩展参数比新建端点更一致
+- Impact on prototype: 前端目录页面可直接通过 PATCH 实现行内开关和元数据编辑；运维页面可通过单资源 regenerate-preview 替代脚本手动执行；列表可按多个维度过滤
+- Impact on writing: 可将三维后端 API 表述为"CRUD + 运维操作 + 多维度检索"的完整管理接口集
+
 ## Current Open Decisions
 - 是否要把 `ImageRecord`、藏品对象、3D 对象/版本正式纳入统一概念模型中的二级实体体系
 - 是否要引入最小 PREMIS 风格事件模型作为后续治理/保存层基线

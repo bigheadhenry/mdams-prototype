@@ -1,6 +1,6 @@
 # 测试策略
 
-- 最后核对日期：2026-04-06
+- 最后核对日期：2026-05-17
 - 核对范围：`backend/tests/`、`frontend/tests/`、`frontend/package.json`、`pytest.ini`
 
 ## 1. 目标
@@ -54,14 +54,18 @@ Playwright 当前重点覆盖：
 - `test_permissions.py`
 - `test_asset_visibility.py`
 - `test_derivative_policy.py`
+- `test_event_boundary.py`
+- `test_face_recognition_client.py`
 - `test_metadata_layers.py`
 - `test_ingest.py`
 - `test_image_records.py`
+- `test_image_records-AuroraX.py`
 - `test_applications.py`
 - `test_platform_directory.py`
 - `test_reference_import.py`
 - `test_preview_images.py`
 - `test_iiif_access_phase1.py`
+- `test_output_contracts.py`
 - `test_routes_smoke.py`
 - `test_three_d_dictionary.py`
 - `test_three_d_production.py`
@@ -74,6 +78,7 @@ Playwright 当前重点覆盖：
 
 - `dashboard.spec.ts`
 - `mirador-ai.spec.ts`
+- `mirador-ai-live.spec.ts`
 
 ## 4. 推荐执行顺序
 
@@ -142,6 +147,7 @@ npx playwright test tests/dashboard.spec.ts
 - 统一平台资源聚合
 - 三维资源对象与生产链路
 - Mirador / AI 面板相关基础行为
+- 输出层契约、跨子系统事件边界和人脸识别客户端边界
 
 ## 7. 新增测试的建议规则
 
@@ -179,6 +185,8 @@ npx playwright test tests/dashboard.spec.ts
 - 统一平台多来源适配器测试
 - 申请审批与导出异常路径测试
 - 更多三维上传类型覆盖
+- 视频来源与统一平台多模态预览边界测试
+- AI / 人脸识别等辅助能力的权限、失败模式和审计边界测试
 - 文档与测试命令同步校验
 
 ## 9. 完成标准
@@ -187,5 +195,5 @@ npx playwright test tests/dashboard.spec.ts
 
 - 关键后端模块均有 pytest 覆盖
 - 关键前端入口至少有基础 Playwright 回归
-- 角色、菜单、统一平台、图像记录、三维链路均有对应测试
+- 角色、菜单、统一平台、图像记录、三维链路、输出契约和辅助增强链路均有对应测试或明确测试入口
 - 文档中列出的命令可以直接执行

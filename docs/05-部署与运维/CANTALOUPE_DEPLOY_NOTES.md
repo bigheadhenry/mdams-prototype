@@ -1,6 +1,16 @@
 # Cantaloupe IIIF Server 部署与调试记录
 
+- 最后核对日期：2026-05-17
+
 本文档记录了在 Docker 环境下部署 Cantaloupe IIIF 图像服务器时遇到的关键问题及其解决方案，特别是关于路径配置、反向代理和构建缓存的陷阱。
+
+当前稳定实现中，浏览器侧 IIIF 访问主路径已经改为后端代理：
+
+```text
+/api/iiif/{asset_id}/service/{image_path}
+```
+
+因此，下文关于前端 Nginx 代理 `/iiif/2/` 的内容主要保留为历史排障记录。除非重新引入浏览器直连 Cantaloupe 的部署策略，否则不应把它当作当前默认配置。
 
 ## 1. Cantaloupe 启动卡死问题
 
@@ -27,9 +37,12 @@ Cantaloupe（及 Java 应用）在启动时需要初始化随机数生成器。�
 
 ---
 
-## 2. Nginx 反向代理与路径重写问题 (502 & 404)
+## 2. 历史记录：Nginx 直连 Cantaloupe 的路径重写问题 (502 & 404)
 
 ### 现象
+
+以下现象适用于旧版“前端 Nginx 直接代理 `/iiif/2/` 到 Cantaloupe”的配置：
+
 - 访问 `http://host:3000/iiif/2/` 返回 502 Bad Gateway。
 - 访问后被重定向到 `http://host:3000/iiif/2/iiif/2/` (路径重复)。
 - 图片信息 JSON 中的 `@id` 包含重复路径。
@@ -71,8 +84,10 @@ base_uri = http://192.168.5.13:3000
 ```
 或者，如果不想硬编码 IP，可以注释掉 `base_uri`，让 Cantaloupe 根据 `Host` 头自动检测。但必须确保 Nginx 传递了正确的 `Host`（包含端口）。
 
-**最终采用的方案**：
+**历史方案**：
 在 `cantaloupe.properties` 中显式设置 `base_uri` 为根域名（含端口），配合 Nginx 的原样转发。
+
+当前稳定方案优先通过后端 `/api/iiif/{asset_id}/service/...` 代理访问 Cantaloupe。后端会负责权限检查、资源可见性判断和上游转发。
 
 ---
 
@@ -102,6 +117,7 @@ Dockerfile 中的 `COPY cantaloupe.properties ...` 指令被 Docker 缓存了。
 ## 总结最佳实践
 
 1.  **Java 容器**：务必挂载 `/dev/urandom`。
-2.  **Nginx 反代**：`proxy_pass` 尽量不带 URI 后缀（原样转发），并传递 `$http_host`。
-3.  **Cantaloupe**：小心设置 `base_uri`，避免与 Nginx 的路径重写叠加。
-4.  **调试**：使用 `curl -v` 在服务器内部直接测试容器端口，隔离防火墙和浏览器缓存干扰。
+2.  **当前主路径**：浏览器侧优先访问后端 `/api/iiif/{asset_id}/service/...` 代理，不默认依赖前端 Nginx 的 `/iiif/2/` 代理。
+3.  **如果重新启用 Nginx 直连 Cantaloupe**：`proxy_pass` 尽量不带 URI 后缀（原样转发），并传递 `$http_host`。
+4.  **Cantaloupe**：小心设置 `base_uri`，避免与路径重写叠加。
+5.  **调试**：使用 `curl -v` 在服务器内部直接测试容器端口，隔离防火墙和浏览器缓存干扰。

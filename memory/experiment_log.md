@@ -252,6 +252,50 @@
   - 视频来源适配器尚未实现，当前视频标签页无实际数据
 - Paper-usable evidence: 可用于说明 MDAMS 统一平台在交互层采用了「维度标签页」而非「子系统筛选」的用户模型，降低了用户对底层来源系统的认知负担
 
-## Cross-Round Assessment
+## Round 16
+- Date: 2026-05-17
+- Goal: 面向博物馆方信息部门与业务管理岗的信息效率需求，对统一资源目录与统一资源详情进行可视化重构
+- Data/sample scope: `PlatformDirectory.tsx`、`PlatformStatsBar.tsx`、`UnifiedResourceDetail.tsx`、`ThreeDSourceDetailDrawer.tsx`（新增）、`three_d_preview.py`、`regenerate_three_d_previews.py`（新增）
+- Setup: 以 Ant Design 为基底、不引入额外品牌色，重点改善信息层级、操作主次、维度联动与数据可视化；同时补齐后端三维预览动画批量重生成脚本
+- Observation: 博物馆方汇报场景下，信息效率比视觉冲击力更优先；两轮用户确认后采用「信息效率导向」
+- Result summary: 前端完成四个组件的可视化重构，后端新增批量预览重生成工具，三维预览帧全部刷新
+- Success cases:
+  - 目录页卡片 Meta 三层化（标题 → 单一主状态徽标 → 来源·profile·时间），移除冗余 Tag
+  - 目录页支持排序下拉、已选筛选 chips 行可关闭、表格批量加入申请车
+  - 检索概览栏重组为三段（资源数+可预览占比 / 可点击切换 Tab 的维度分布 / 健康度）且可折叠为竖排迷你条
+  - 主导航 Sider 改为 collapsible，默认收起
+  - 详情页面包屑增加维度层（点击回带 Tab 参数）、操作按钮分为 1 主操作 + 2 次 + 更多下拉
+  - 生命周期段落从 List 改为 Timeline 倒序展示，三维生命周期语义纠正
+  - 嵌套元数据 depth≥2 改为可点击展开按钮
+  - 三维源详情 Drawer 拆为独立组件并改为 Tabs（概览/预览/文件/元数据/生产链）+ 固定底部操作栏
+  - 目录上下文持久化：进入详情页后返回时还原 Tab/页码/排序/筛选
+  - 新增 `regenerate_three_d_previews.py` 脚本，7 个三维资源全部重新生成 24 帧预览动画
+- Failure cases:
+  - `AdvancedSearchPanel` 内部 state 与外部筛选 chips 仍为单向通信，双向同步暂未实现
+- Paper-usable evidence: 可说明 MDAMS 在原型阶段的 UI 策略是以信息效率为优先，而非追求视觉表现力；同时系统具备自动化预览生成能力，可作为工程化水平的佐证
+
+## Round 17
+- Date: 2026-05-17
+- Goal: 将三维数据管理子系统按管理员职责拆分为独立的功能模块（上传与管理分离），并补齐编辑、预览再生与多维度检索能力
+- Data/sample scope: `ThreeDManagement.tsx`（重构）、`ThreeDDashboard.tsx`（新增）、`ThreeDCatalog.tsx`（新增）、`ThreeDIngestWizard.tsx`（新增）、`ThreeDOperations.tsx`（新增）、`three_d.py`（后端扩展）、`assets.ts`（类型提取）
+- Setup: 前端基于 Ant Design Tabs 实现四标签页工作台；后端新增 PATCH /resources/{id}、POST /resources/{id}/regenerate-preview、增强 GET /resources 查询参数
+- Observation: 原单一页面将上传/浏览/详情/测试/统计揉在一起，管理员认知负担过高、检索能力为零、管理动作缺失；按职责拆分为看板/目录/入库/运维后每个标签页职责清晰，交互自然
+- Result summary: 前端新增 4 个子组件（总览看板/数字对象目录/入库向导/运维处置），后端新增 2 个端点并增强 1 个端点；详情 Drawer 技术元数据从只读 JSON 升级为字段化表格；移除测试模型展示区
+- Success cases:
+  - 上传与管理完全分离：上传通过 5 步入库向导（资源类型→文件上传→藏品关联→元数据→确认入库），按资源类型动态显示相关字段子集
+  - 数字对象目录增强：新增搜索框、多维筛选（状态/模板/保存层/Web 展示）、分页、行选择批量操作（批量启用/停用 Web 展示）、行内快捷菜单（设为当前表现/设为 Web 展示/重生成预览/删除）
+  - 详情 Drawer 升级：技术元数据与分层元数据从 `<pre>JSON</pre>` 改为字段化表格渲染；增加快捷动作区（重生成预览/编辑标题/删除/下载）；Web 展示状态通过 Switch 和 Select 直接切换
+  - 运维页面：自动聚合异常/处理中/缺预览帧三类问题，支持单资源或批量触发预览再生和状态复位
+  - 总览看板：统计卡片 + 状态分布 + 保存层分布 + Web 展示就绪率 + 最近对象
+  - 后端 PATCH 端点支持编辑 title/resource_group/version_label/is_current/is_web_preview/web_preview_status/web_preview_reason/storage_tier/preservation_status/preservation_note/status
+  - 后端 regenerate-preview 端点封装单资源预览再生逻辑，前端运维页面可直接调用
+  - GET /resources 新增 q/status/resource_type/storage_tier/web_preview_status 查询参数
+  - 类型 ThreeDObjectGroup 从组件内部提取到 assets.ts 供多个组件共享
+  - 编译零新增错误
+- Failure cases:
+  - profile_key 筛选暂未实现（该字段存储在 metadata_info JSON 中，SQLite 环境下 LIKE 查询效率受限）
+  - 保存层迁移的批量操作 UI 已预留但后端端点（POST /representations/{id}/move-tier）尚未实现
+- Paper-usable evidence: 三维子系统现在可描述为"以职责分离为原则的模块化管理工作台"；入库向导作为渐进式元数据收集案例；前后端协同的 PATCH+操作端点可作为 RESTful 管理接口设计的工程案例
+
 - 当前最强证据仍是二维主链路、统一平台、三维对象链路、权限范围控制和测试可验证性
 - 当前已经开始把研究边界推进到共享规则与 contract tests，但跨子系统事件边界仍是下一步最关键缺口

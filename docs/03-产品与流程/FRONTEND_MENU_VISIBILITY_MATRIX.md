@@ -1,6 +1,7 @@
 # 前端菜单可见矩阵
 
-- 最后核对日期：2026-04-06
+- 最后核对日期：2026-05-17
+- 核对口径：仅以已提交代码中的稳定实现为准，不纳入当前工作区未提交改动
 - 核对范围：`frontend/src/App.tsx`、`frontend/src/auth/permissions.ts`、`backend/app/permissions.py`
 
 ## 1. 目标
@@ -11,19 +12,19 @@
 
 ## 2. 当前菜单清单
 
-前端主菜单当前包含 9 个入口：
+前端菜单 key 当前定义了 9 个入口状态，但左侧导航实际渲染 8 个菜单项。`6` 是统一详情的内部状态，不直接出现在左侧导航中。
 
 | 菜单 key | 菜单名称 | 说明 |
 | :--- | :--- | :--- |
-| `1` | 仪表盘 | 登录后的首页与统计概览 |
+| `1` | 总览 | 登录后的首页与统计概览 |
 | `2` | 二维资源 | 二维资产列表与资产详情入口 |
 | `3` | 申请车 | 当前用户提交利用申请的入口 |
 | `4` | 入库处理 | 二维上传、入库处理与相关操作入口 |
 | `5` | 统一资源目录 | 聚合平台目录入口 |
-| `6` | 统一资源详情 | 从统一目录进入的详情视图 |
+| `6` | 统一资源详情 | 从统一目录进入的详情视图，不直接显示为左侧菜单 |
 | `7` | 三维管理 | 三维资源列表、详情与查看入口 |
 | `8` | 申请管理 | 审批、拒绝与交付导出入口 |
-| `9` | 图像记录工作台 | 图像记录录入与待上传池入口 |
+| `9` | 影像信息录入 | 图像记录录入与待上传池入口 |
 
 ## 3. 当前菜单显示规则
 
@@ -36,28 +37,30 @@
 | `3` | `application.create` |
 | `4` | `image.upload` 或 `image.ingest_review` 或 `image.edit` |
 | `5` | `platform.view` |
-| `6` | `platform.view` |
+| `6` | 无直接菜单权限；由统一目录内部选择资源后进入 |
 | `7` | `three_d.view` |
 | `8` | `application.view_all` 或 `application.review` 或 `application.export` |
 | `9` | `image.record.list` 或 `image.record.view_ready_for_upload` |
+
+此外，`resource_user` 存在单角色菜单覆盖：即使它拥有 `dashboard.view`、`image.view`、`three_d.view` 和 `platform.view`，左侧导航也只显示 `5` 统一资源目录和 `3` 申请车。这是为了让普通资源使用者优先从统一平台发起浏览和申请。
 
 ## 4. 角色到菜单矩阵
 
 按当前角色权限映射，菜单可见性如下：
 
-| 角色 | `1` 仪表盘 | `2` 二维资源 | `3` 申请车 | `4` 入库处理 | `5` 统一目录 | `6` 统一详情 | `7` 三维管理 | `8` 申请管理 | `9` 图像记录 |
+| 角色 | `1` 总览 | `2` 二维资源 | `3` 申请车 | `4` 入库处理 | `5` 统一目录 | `6` 统一详情状态 | `7` 三维管理 | `8` 申请管理 | `9` 影像信息录入 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `image_structured_editor` | 是 | 是 | 否 | 是 | 是 | 是 | 否 | 否 | 否 |
-| `image_ingest_operator` | 是 | 是 | 否 | 是 | 是 | 是 | 否 | 否 | 否 |
-| `image_ingest_reviewer` | 是 | 是 | 否 | 是 | 是 | 是 | 否 | 否 | 否 |
-| `image_resource_manager` | 是 | 是 | 否 | 是 | 是 | 是 | 否 | 否 | 否 |
-| `image_metadata_entry` | 是 | 是 | 否 | 否 | 是 | 是 | 否 | 否 | 是 |
-| `image_photographer_upload` | 是 | 是 | 否 | 否 | 是 | 是 | 否 | 否 | 是 |
-| `three_d_operator` | 是 | 否 | 否 | 否 | 是 | 是 | 是 | 否 | 否 |
-| `application_reviewer` | 是 | 是 | 否 | 否 | 是 | 是 | 否 | 是 | 否 |
-| `collection_owner` | 是 | 是 | 否 | 否 | 是 | 是 | 是 | 否 | 否 |
-| `resource_user` | 是 | 是 | 是 | 否 | 是 | 是 | 是 | 否 | 否 |
-| `system_admin` | 是 | 是 | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
+| `image_structured_editor` | 是 | 是 | 否 | 是 | 是 | 内部状态 | 否 | 否 | 否 |
+| `image_ingest_operator` | 是 | 是 | 否 | 是 | 是 | 内部状态 | 否 | 否 | 否 |
+| `image_ingest_reviewer` | 是 | 是 | 否 | 是 | 是 | 内部状态 | 否 | 否 | 否 |
+| `image_resource_manager` | 是 | 是 | 否 | 是 | 是 | 内部状态 | 否 | 否 | 否 |
+| `image_metadata_entry` | 是 | 是 | 否 | 否 | 是 | 内部状态 | 否 | 否 | 是 |
+| `image_photographer_upload` | 是 | 是 | 否 | 否 | 是 | 内部状态 | 否 | 否 | 是 |
+| `three_d_operator` | 是 | 否 | 否 | 否 | 是 | 内部状态 | 是 | 否 | 否 |
+| `application_reviewer` | 是 | 是 | 否 | 否 | 是 | 内部状态 | 否 | 是 | 否 |
+| `collection_owner` | 是 | 是 | 否 | 否 | 是 | 内部状态 | 是 | 否 | 否 |
+| `resource_user` | 否 | 否 | 是 | 否 | 是 | 内部状态 | 否 | 否 | 否 |
+| `system_admin` | 是 | 是 | 是 | 是 | 是 | 内部状态 | 是 | 是 | 是 |
 
 ## 5. 需要特别说明的菜单
 
@@ -67,8 +70,9 @@
 
 因此：
 
-- 只要用户具备 `platform.view`，这个菜单 key 就会被视为可用
-- 真正能不能看到详情，还取决于是否已经选中了统一资源
+- `6` 不在左侧 `menuItems` 中渲染
+- 真正能不能看到详情，取决于是否已经从统一目录选中了统一资源
+- 二维、三维、视频资源都会通过 `source_system/source_id` 进入统一详情
 
 ### 5.2 `4` 入库处理
 
@@ -80,7 +84,7 @@
 
 这意味着图像记录录入人员 `image_metadata_entry` 当前不会看到该入口，因为它的工作台已经独立放到菜单 `9`。
 
-### 5.3 `9` 图像记录工作台
+### 5.3 `9` 影像信息录入
 
 当前这个入口服务两类角色：
 
@@ -88,6 +92,15 @@
 - `image_photographer_upload`
 
 两者进入同一工作台组件，但实际能看到的列表、操作按钮和业务入口不同。
+
+### 5.4 `resource_user` 菜单覆盖
+
+`resource_user` 虽然拥有 `dashboard.view`、`image.view`、`three_d.view`、`platform.view`、`application.create` 和 `application.view_own` 等权限，但前端对单角色 `resource_user` 做了菜单覆盖：
+
+- 只显示 `5` 统一资源目录
+- 只显示 `3` 申请车
+
+这意味着普通资源使用者默认从统一平台浏览跨来源资源，而不是直接进入二维或三维管理页面。
 
 ## 6. 当前实现原则
 

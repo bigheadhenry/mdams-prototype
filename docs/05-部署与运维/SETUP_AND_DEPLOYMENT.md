@@ -1,6 +1,7 @@
 # 部署与配置
 
-- 最后核对日期：2026-04-06
+- 最后核对日期：2026-05-17
+- 核对口径：仅以已提交代码中的稳定实现为准，不纳入当前工作区未提交改动
 - 核对范围：`.env.example`、`docker-compose.yml`、`frontend/nginx.conf`、`backend/app/config.py`
 
 ## 1. 目标
@@ -12,7 +13,7 @@
 - 优先改 `.env`
 - 尽量不改 `docker-compose.yml`
 - 保持容器内路径稳定
-- 让浏览器统一访问前端代理出来的 API 和 IIIF 地址
+- 区分浏览器可访问地址和容器内部服务地址
 
 ## 2. 当前容器组成
 
@@ -39,15 +40,23 @@
 - 就绪检查：`http://localhost:8000/ready`
 - Cantaloupe 直连调试：`http://localhost:8182`
 
-但浏览器正常使用时，推荐统一走前端代理：
+浏览器正常使用时，推荐统一进入 API：
 
 - API 基址：`http://localhost:3000/api`
-- IIIF 基址：`http://localhost:3000/iiif/2`
+- Manifest：`http://localhost:3000/api/iiif/{asset_id}/manifest`
+- 图像服务代理：`http://localhost:3000/api/iiif/{asset_id}/service/...`
 
-这是因为前端 `nginx.conf` 已经代理了：
+这是因为当前前端 `nginx.conf` 代理的是：
 
 - `/api/` -> `backend:8000`
-- `/iiif/2/` -> `meam-cantaloupe:8182/iiif/2/`
+
+当前稳定代码会把 Manifest 图像服务入口写成后端 `/api/iiif/{asset_id}/service/...` 代理路径。`CANTALOUPE_INTERNAL_URL` 用于后端访问 Cantaloupe 上游；`CANTALOUPE_PUBLIC_URL` 主要作为兼容默认值和本地调试地址。
+
+部署到服务器时，应根据运行方式调整：
+
+- 宿主机直跑后端或调试 Cantaloupe：可使用 `http://localhost:8182/iiif/2`
+- 后端在 compose 容器内访问 Cantaloupe：优先使用 `http://cantaloupe:8182/iiif/2`
+- 生产网络：避免把 Cantaloupe 作为公共入口暴露给浏览器
 
 ## 4. 环境变量
 
@@ -71,14 +80,46 @@
 | 变量 | 作用 | 本地建议值 |
 | :--- | :--- | :--- |
 | `API_PUBLIC_URL` | 后端生成公开 API 链接时使用 | `http://localhost:3000/api` |
-| `CANTALOUPE_PUBLIC_URL` | IIIF / Mirador 使用的图像服务地址 | `http://localhost:3000/iiif/2` |
+| `CANTALOUPE_PUBLIC_URL` | 兼容默认值 / 本地调试用 IIIF 上游地址 | `http://localhost:8182/iiif/2` |
+| `CANTALOUPE_INTERNAL_URL` | 后端访问 Cantaloupe 的内部地址 | 宿主机调试 `http://localhost:8182/iiif/2`；compose 内部建议 `http://cantaloupe:8182/iiif/2` |
+| `CORS_ALLOWED_ORIGINS` | 允许访问后端的前端来源 | `http://localhost:3000,http://127.0.0.1:3000` |
+| `AUTH_DEFAULT_PASSWORD` | 自动播种测试用户的默认密码 | `mdams123` |
 
 注意：
 
-- 这里的值应从浏览器视角出发，而不是容器内部视角
-- 如果把 `CANTALOUPE_PUBLIC_URL` 写成 `http://localhost:8182/iiif/2`，浏览器直连调试可以工作，但在统一代理策略下不推荐
+- `API_PUBLIC_URL` 应从浏览器视角出发
+- `CANTALOUPE_PUBLIC_URL` 当前主要作为兼容默认值和本地调试地址
+- `CANTALOUPE_INTERNAL_URL` 影响后端到 Cantaloupe 的服务端访问
 
-### 4.4 文件路径
+### 4.4 AI 与人脸识别
+
+当前后端 AI 配置以 Moonshot / Kimi 为默认 OpenAI 兼容提供方：
+
+| 变量 | 作用 | 默认示例 |
+| :--- | :--- | :--- |
+| `MOONSHOT_API_KEY` | Moonshot API Key | 空 |
+| `MOONSHOT_BASE_URL` | Moonshot OpenAI 兼容地址 | `https://api.moonshot.cn/v1` |
+| `MOONSHOT_MODEL` | 默认模型 | `kimi-k2.5` |
+| `OPENAI_API_KEY` | OpenAI 兼容覆盖变量 | 空 |
+| `OPENAI_BASE_URL` | OpenAI 兼容覆盖变量 | 空 |
+| `OPENAI_MODEL` | OpenAI 兼容覆盖变量 | 空 |
+| `OPENAI_TIMEOUT_SECONDS` | AI 请求超时秒数 | `30` |
+
+当前人脸识别链路是可开关能力：
+
+| 变量 | 作用 | 默认示例 |
+| :--- | :--- | :--- |
+| `FACE_RECOGNITION_ENABLED` | 是否启用人脸识别 | `0` |
+| `FACE_RECOGNITION_PROVIDER` | provider：`local`、`remote` 或 `auto` | `local` |
+| `FACE_RECOGNITION_BASE_URL` | 远程识别服务地址 | `http://host.docker.internal:8010` |
+| `FACE_RECOGNITION_TIMEOUT_SECONDS` | 识别请求超时秒数 | `30` |
+| `FACE_RECOGNITION_THRESHOLD` | 识别阈值 | `0.5` |
+| `FACE_RECOGNITION_MODEL_ROOT` | 本地模型运行时目录 | `/app/runtime/face_recognition` |
+| `FACE_RECOGNITION_MODEL_NAME` | 本地模型名 | `buffalo_l` |
+| `FACE_RECOGNITION_INDEX_DIR` | 本地索引目录 | `/app/runtime/face_recognition/index` |
+| `FACE_RECOGNITION_STRICT_LOCAL_MODELS` | 本地模型缺失时是否严格失败 | `1` |
+
+### 4.5 文件路径
 
 | 变量 | 作用 | 默认示例 |
 | :--- | :--- | :--- |
@@ -90,7 +131,7 @@
 - 宿主机 `HOST_MUSEUM_PATH` -> 后端容器 `/app/uploads`
 - 宿主机 `HOST_MUSEUM_PATH` -> Cantaloupe `/var/lib/cantaloupe/images`
 
-### 4.5 图像处理
+### 4.6 图像处理
 
 | 变量 | 作用 | 默认示例 |
 | :--- | :--- | :--- |
@@ -98,7 +139,7 @@
 | `VIPS_CONCURRENCY` | libvips 并发数 | `2` |
 | `JAVA_OPTS` | Cantaloupe JVM 参数 | `-Xmx4g -Djava.security.egd=file:/dev/./urandom` |
 
-### 4.6 端口
+### 4.7 端口
 
 | 变量 | 默认值 |
 | :--- | :--- |
@@ -125,12 +166,15 @@ Copy-Item .env.example .env
 - `REDIS_URL`
 - `API_PUBLIC_URL`
 - `CANTALOUPE_PUBLIC_URL`
+- `CANTALOUPE_INTERNAL_URL`
+- `CORS_ALLOWED_ORIGINS`
 
 推荐本地保持：
 
 ```text
 API_PUBLIC_URL=http://localhost:3000/api
-CANTALOUPE_PUBLIC_URL=http://localhost:3000/iiif/2
+CANTALOUPE_PUBLIC_URL=http://localhost:8182/iiif/2
+CANTALOUPE_INTERNAL_URL=http://cantaloupe:8182/iiif/2
 HOST_MUSEUM_PATH=./uploads
 ```
 
@@ -161,7 +205,9 @@ TEST_DATABASE_URL=postgresql://meam:meam_secret@localhost:5432/meam_db_test
 5. 登录测试账号
 6. 打开二维列表
 7. 打开统一平台目录
-8. 验证 Mirador 预览
+8. 检查 `/api/platform/sources` 是否返回二维、三维、视频三个来源
+9. 验证 Mirador 预览
+10. 打开三维或视频资源的统一详情，确认多模态来源可进入详情页
 
 ## 6. 默认测试账号
 
@@ -186,11 +232,14 @@ mdams123
 
 - `HOST_MUSEUM_PATH` 指向宿主机真实挂载目录
 - `API_PUBLIC_URL` 能从浏览器访问到
-- `CANTALOUPE_PUBLIC_URL` 能从浏览器访问到
+- Manifest 中的图像服务入口是 `/api/iiif/{asset_id}/service/...`
+- `CANTALOUPE_INTERNAL_URL` 能从后端运行环境访问到
+- `FACE_RECOGNITION_*` 仅在确实需要识别能力时启用和配置
 
 不要改这些容器内固定路径：
 
 - `/app/uploads`
+- `/app/runtime/face_recognition`
 - `/api`
 - `/iiif/2`
 
@@ -201,7 +250,8 @@ mdams123
 优先检查：
 
 - `CANTALOUPE_PUBLIC_URL`
-- `frontend/nginx.conf` 的 `/iiif/2/` 代理
+- `CANTALOUPE_INTERNAL_URL`
+- Manifest 中的 `/api/iiif/{asset_id}/service/...` 代理入口
 - Cantaloupe 是否已正常启动
 
 ### 8.2 Manifest 地址不对
@@ -235,14 +285,36 @@ mdams123
 - 图像目录是否可读
 - 熵源映射 `/dev/urandom:/dev/random:ro`
 
+### 8.6 AI / Mirador 没有调用外部模型
+
+优先检查：
+
+- `MOONSHOT_API_KEY` 或 `OPENAI_API_KEY`
+- `MOONSHOT_BASE_URL` / `OPENAI_BASE_URL`
+- `MOONSHOT_MODEL` / `OPENAI_MODEL`
+- 后端日志中的超时或鉴权错误
+
+如果没有配置 API Key，后端仍可走启发式计划逻辑，但不会调用外部模型。
+
+### 8.7 人脸识别没有结果
+
+优先检查：
+
+- `FACE_RECOGNITION_ENABLED` 是否为 `1`
+- `FACE_RECOGNITION_PROVIDER` 是否符合预期
+- 本地模型和索引目录是否存在
+- 远程识别服务是否可从容器访问
+
 ## 9. 不建议随意修改的内容
 
 当前不建议随意改动：
 
 - `docker-compose.yml` 中的服务名
-- `frontend/nginx.conf` 中的 `/api/` 与 `/iiif/2/` 代理前缀
+- `frontend/nginx.conf` 中的 `/api/` 代理前缀
+- 后端 `/api/iiif/{asset_id}/service/...` 图像服务代理约定
 - 后端对外生成链接时使用的 URL 约定
 - 容器内上传路径 `/app/uploads`
+- 人脸识别运行时目录中的模型与索引文件结构
 
 ## 10. 关联文档
 

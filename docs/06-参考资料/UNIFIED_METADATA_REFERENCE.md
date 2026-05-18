@@ -1,5 +1,8 @@
 # MDAMS 统一元数据参考
 
+- 最后核对日期：2026-05-17
+- 当前契约说明：统一平台当前以 `source_system` + `source_id` 作为显式来源定位；早期“来源对象 ID”字段语义应迁移为 `source_id`。
+
 ## 1. 文档目的
 
 本文档用于规范 MDAMS 项目中的统一元数据思路，作为后续研究、开发、接入外部系统、设计数据库结构和接口返回结构的参考基线。
@@ -116,7 +119,7 @@ MDAMS 建议将元数据分成四层。
 
 - `global_resource_id`
 - `source_system`
-- `source_object_id`
+- `source_id`
 - `resource_type`
 - `title`
 - `summary`
@@ -199,13 +202,13 @@ MDAMS 建议使用统一资源 ID 作为跨系统组织的主线。
 
 - `global_resource_id`：平台全局资源 ID
 - `source_system`：来源系统标识
-- `source_object_id`：来源系统对象 ID
+- `source_id`：来源系统对象 ID
 - `local_object_id`：子系统本地对象 ID（如有）
 
 ### 5.3 设计原则
 
 - `global_resource_id` 是跨系统唯一主键；
-- `source_system + source_object_id` 用于回源定位；
+- `source_system + source_id` 用于回源定位；
 - 子系统可保留本地 ID，但不能替代全局 ID；
 - 如存在共享字段，必须明确谁是主数据源。
 

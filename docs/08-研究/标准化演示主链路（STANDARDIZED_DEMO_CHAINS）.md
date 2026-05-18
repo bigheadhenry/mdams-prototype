@@ -74,11 +74,11 @@
 | BagIt 是否可导出 | `download-bag` 路由返回 ZIP |
 
 ### 8. 与研究材料的对应
-- 对象模型：[统一对象模型（UNIFIED_OBJECT_MODEL）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/统一对象模型（UNIFIED_OBJECT_MODEL）.md)
-- 事件模型：[PREMIS事件映射（PREMIS_EVENT_MAPPING）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/PREMIS事件映射（PREMIS_EVENT_MAPPING）.md)
-- IIIF 支撑：[IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md)
-- BagIt 支撑：[长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md)
-- OAIS 边界：[OAIS范围对照（OAIS_SCOPE_MAP）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/OAIS范围对照（OAIS_SCOPE_MAP）.md)
+- 对象模型：[统一对象模型（UNIFIED_OBJECT_MODEL）.md](统一对象模型（UNIFIED_OBJECT_MODEL）.md)
+- 事件模型：[PREMIS事件映射（PREMIS_EVENT_MAPPING）.md](PREMIS事件映射（PREMIS_EVENT_MAPPING）.md)
+- IIIF 支撑：[IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md](IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md)
+- BagIt 支撑：[长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md](长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md)
+- OAIS 边界：[OAIS范围对照（OAIS_SCOPE_MAP）.md](OAIS范围对照（OAIS_SCOPE_MAP）.md)
 
 ### 9. 论文复用价值
 这是最强的“系统主链路”案例，可直接用作：
@@ -135,9 +135,9 @@
 | 绑定后是否进入后续处理语义 | 详情中可见 validation / pending upload / binding state |
 
 ### 8. 与研究材料的对应
-- 对象模型：[统一对象模型（UNIFIED_OBJECT_MODEL）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/统一对象模型（UNIFIED_OBJECT_MODEL）.md)
-- 事件模型：[PREMIS事件映射（PREMIS_EVENT_MAPPING）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/PREMIS事件映射（PREMIS_EVENT_MAPPING）.md)
-- 工作台说明：[IMAGE_RECORD_WORKBENCH_GUIDE.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/03-产品与流程/IMAGE_RECORD_WORKBENCH_GUIDE.md)
+- 对象模型：[统一对象模型（UNIFIED_OBJECT_MODEL）.md](统一对象模型（UNIFIED_OBJECT_MODEL）.md)
+- 事件模型：[PREMIS事件映射（PREMIS_EVENT_MAPPING）.md](PREMIS事件映射（PREMIS_EVENT_MAPPING）.md)
+- 工作台说明：[IMAGE_RECORD_WORKBENCH_GUIDE.md](../03-产品与流程/IMAGE_RECORD_WORKBENCH_GUIDE.md)
 
 ### 9. 论文复用价值
 这条链路能直接说明：
@@ -193,9 +193,9 @@
 | 三维不是独立 demo | 可从平台层进入统一视图 |
 
 ### 8. 与研究材料的对应
-- 对象模型：[统一对象模型（UNIFIED_OBJECT_MODEL）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/统一对象模型（UNIFIED_OBJECT_MODEL）.md)
-- 三维 profile：[三维元数据最小配置说明（THREE_D_METADATA_MINIMUM_PROFILE）.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/08-研究/三维元数据最小配置说明（THREE_D_METADATA_MINIMUM_PROFILE）.md)
-- 工作流指南：[WORKFLOW_GUIDE.md](/Users/sunjing/Library/CloudStorage/OneDrive-Personal/AI/Codex/mdams-prototype/docs/03-产品与流程/WORKFLOW_GUIDE.md)
+- 对象模型：[统一对象模型（UNIFIED_OBJECT_MODEL）.md](统一对象模型（UNIFIED_OBJECT_MODEL）.md)
+- 三维 profile：[三维元数据最小配置说明（THREE_D_METADATA_MINIMUM_PROFILE）.md](三维元数据最小配置说明（THREE_D_METADATA_MINIMUM_PROFILE）.md)
+- 工作流指南：[WORKFLOW_GUIDE.md](../03-产品与流程/WORKFLOW_GUIDE.md)
 
 ### 9. 论文复用价值
 这条链路可直接支撑：
@@ -230,7 +230,7 @@
 
 ## 当前工作结论
 
-截至 **2026-04-08**，这 3 条链路已经足够构成 MDAMS 当前最稳定的演示骨架：
+截至 **2026-05-17**，这 3 条链路已经足够构成 MDAMS 当前最稳定的演示骨架：
 - 链路 A 负责证明系统主链路和标准支撑
 - 链路 B 负责证明系统具备真实协作语义
 - 链路 C 负责证明系统已具有多来源资源底座与平台化趋势

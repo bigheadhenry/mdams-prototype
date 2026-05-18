@@ -1,5 +1,9 @@
 ﻿# MDAMS 架构说明
 
+- 文档状态：快速概览。
+- 当前完整系统架构事实入口：`SYSTEM_ARCHITECTURE.md`。
+- API、平台来源和 IIIF 细节分别以 `API_ROUTE_MAP.md`、`PLATFORM_SOURCE_ADAPTERS.md`、`AUTH_AND_IIIF_INTEGRATION_PLAN.md` 为准。
+
 ## 1. 总体结构
 
 MDAMS Prototype 当前已经形成了四层主结构：

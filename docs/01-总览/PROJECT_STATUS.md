@@ -1,7 +1,8 @@
 # MDAMS 项目状态
 
-- 最后核对日期：2026-04-06
-- 核对范围：`README.md`、`docker-compose.yml`、`backend/app/main.py`、`backend/app/routers/`、`frontend/src/App.tsx`、`backend/tests/`、`frontend/tests/`
+- 最后核对日期：2026-05-17
+- 核对口径：仅以已提交代码中的稳定实现为准，不纳入当前工作区未提交改动
+- 核对范围：`docker-compose.yml`、`.env.example`、`backend/app/main.py`、`backend/app/routers/`、`backend/app/platform/`、`backend/app/permissions.py`、`frontend/src/App.tsx`、`frontend/src/auth/permissions.ts`、`backend/tests/`、`frontend/tests/`
 - 当前阶段：可持续开发与演示阶段
 
 ## 1. 当前定位
@@ -14,8 +15,10 @@ MDAMS Prototype 当前最准确的定位不是“二维影像上传 PoC”，而
 - 图像记录 `ImageRecord` 工作流
 - 三维资源对象与多文件资源包管理
 - 统一平台目录与统一详情
+- 视频资源作为统一平台来源接入
 - 登录、角色、权限与责任范围控制
 - 资源申请、审批与交付导出
+- Mirador AI 辅助接口与前端执行链路
 - 基础测试体系与工作日志
 
 ## 2. 当前已实现范围
@@ -64,8 +67,21 @@ MDAMS Prototype 当前最准确的定位不是“二维影像上传 PoC”，而
 - 对象详情与查看摘要
 - Web 展示链路
 - 三维详情构造与字典服务
+- 统一平台侧按三维数字对象聚合展示，而不是简单平铺全部文件或表现
 
-### 2.5 统一平台
+### 2.5 视频资源
+
+当前已提交代码中，视频资源作为统一平台的多模态来源之一存在，已经覆盖：
+
+- `video` 后端路由注册
+- 视频资源列表、详情与 stream 接口
+- 视频样例资源播种逻辑
+- 统一平台 `video` 来源适配器
+- 前端统一详情中的视频预览入口
+
+当前视频能力更适合作为多模态平台来源示例，而不是完整视频生产管理子系统。
+
+### 2.6 统一平台
 
 当前统一平台相关实现已经覆盖：
 
@@ -74,10 +90,22 @@ MDAMS Prototype 当前最准确的定位不是“二维影像上传 PoC”，而
 - 统一资源目录
 - 统一资源详情
 - 按关键条件筛选资源
+- 统一资源 actions
+- 统一详情中的 source record 类型与 schema 标识
 
-当前已知来源至少包括二维与三维两类适配器。
+当前已知来源包括：
 
-### 2.6 认证、权限与范围
+- `image_2d`：二维影像子系统
+- `three_d`：三维资源子系统，平台默认输出三维数字对象级结果
+- `video`：视频资源子系统
+
+当前详情主路径是 `source_system/source_id` 形式，例如：
+
+```text
+/api/platform/resources/{source_system}/{source_id}
+```
+
+### 2.7 认证、权限与范围
 
 当前权限框架已经不是占位实现，而是实际参与前后端行为控制：
 
@@ -88,21 +116,32 @@ MDAMS Prototype 当前最准确的定位不是“二维影像上传 PoC”，而
 - `collection_owner` 支持基于 `collection_scope` 的责任范围过滤
 - `owner_only` 可见范围已进入后端访问判断
 
-### 2.7 测试
+### 2.8 AI / Mirador 辅助能力
+
+当前 AI 相关能力已经不是空白占位：
+
+- 后端存在 `ai_mirador` 路由
+- 前端存在 Mirador AI 面板
+- 当前链路以“后端解释计划 + 前端执行查看器动作”为主
+- 文档中仍应把它视为演示和辅助控制能力，而不是完整智能代理系统
+
+### 2.9 测试
 
 当前测试体系已经覆盖：
 
 - 后端单元 / 契约 / 集成 / smoke / subsystem 测试
 - 前端 Playwright 菜单、统一平台、图像记录相关回归
-- 健康检查、配置、权限、平台目录、三维链路等关键模块
+- 健康检查、配置、权限、平台目录、三维链路、输出契约等关键模块
 
 ## 3. 当前真实边界
 
 虽然当前功能已经明显超出早期 PoC，但项目仍然属于原型阶段，主要边界包括：
 
 - 权限模型已可用，但还不是生产级身份治理
-- 平台聚合已成立，但统一检索与更多来源接入仍需继续扩展
+- 平台聚合已成立，但统一检索仍以适配器内筛选为主，还不是独立全文检索系统
 - 三维链路已打通，但规范化和兼容性仍需继续加强
+- 视频来源已接入统一平台，但还不是完整的视频资产管理子系统
+- AI / Mirador 链路可演示，但还不是完整的自动化任务编排或审计系统
 - 长期保存、治理、审计、迁移与监控能力还不完整
 - 文档体系仍在更新中，部分历史文档尚未完全替换
 
@@ -110,7 +149,8 @@ MDAMS Prototype 当前最准确的定位不是“二维影像上传 PoC”，而
 
 根据当前代码结构，项目主能力已经比较清晰：
 
-- 后端主路由包含 `auth`、`assets`、`applications`、`downloads`、`health`、`iiif`、`ingest`、`image-records`、`platform`、`three-d`、`ai`
+- 后端主路由包含 `auth`、`assets`、`applications`、`downloads`、`health`、`iiif`、`ingest`、`image-records`、`platform`、`three-d`、`video`、`ai`
+- 统一平台适配器包含 `image_2d`、`three_d`、`video`
 - 前端主页面包含仪表盘、二维资源、申请车、入库处理、统一平台、三维管理、申请管理、图像记录工作台
 - 部分历史文档仍在描述旧的 `MEAM` 阶段命名或旧部署方式，不应再作为当前事实来源
 
@@ -139,14 +179,16 @@ MDAMS Prototype 当前最准确的定位不是“二维影像上传 PoC”，而
 建议后续优先继续推进以下方向：
 
 1. 收敛正式文档入口，消除历史重复文档
-2. 补齐权限、平台、图像记录、三维子系统专题文档
+2. 让 API、平台来源、三维对象、视频来源等文档与已提交代码重新对齐
 3. 继续稳定统一平台与跨来源聚合能力
 4. 继续完善角色范围、审批规则与治理能力
 5. 扩展测试矩阵和回归覆盖面
+6. 将研究文档中的项目事实更新到新的稳定基线
 
 ## 7. 关联文档
 
-- 文档更新方案：`DOCUMENTATION_UPDATE_PLAN.md`
 - 下一阶段计划：`NEXT_PHASE_PLAN.md`
 - 测试策略：`TESTING_STRATEGY.md`
 - 工作日志：`WORK_LOG.md`
+- API 路由总览：`../02-架构设计/API_ROUTE_MAP.md`
+- 平台来源适配器：`../02-架构设计/PLATFORM_SOURCE_ADAPTERS.md`

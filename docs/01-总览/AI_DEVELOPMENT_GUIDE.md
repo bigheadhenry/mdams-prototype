@@ -1,5 +1,8 @@
 # AI 辅助开发与部署指南 (AI Development & Deployment Guide)
 
+- 文档状态：AI / 新开发者辅助入口。
+- 当前项目事实以 `PROJECT_STATUS.md`、`../02-架构设计/SYSTEM_ARCHITECTURE.md`、`../02-架构设计/API_ROUTE_MAP.md` 和 `../05-部署与运维/SETUP_AND_DEPLOYMENT.md` 为准。
+
 本指南旨在帮助 AI 编码助手（如 Vibe Coding IDE）或新加入的开发者快速理解项目的技术栈、依赖关系及部署要求。
 
 ## 1. 项目概览 (Project Overview)

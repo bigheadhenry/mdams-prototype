@@ -1,6 +1,6 @@
 # 用户角色与权限矩阵
 
-- 最后核对日期：2026-04-06
+- 最后核对日期：2026-05-17
 - 核对范围：`backend/app/permissions.py`、`backend/app/services/auth.py`、`frontend/src/auth/permissions.ts`、`frontend/src/App.tsx`
 
 ## 1. 目标
@@ -36,6 +36,8 @@
 - `dashboard.view`
 - `platform.view`
 - `system.manage`
+
+当前视频资源没有单独的 `video.*` 权限命名空间；视频作为统一平台来源，通过 `platform.view` 进入统一目录和统一详情。
 
 ### 3.2 二维资源
 
@@ -106,12 +108,14 @@
 | `3` | 申请车 | `application.create` |
 | `4` | 入库处理 | `image.upload` 或 `image.ingest_review` 或 `image.edit` |
 | `5` | 统一资源目录 | `platform.view` |
-| `6` | 统一资源详情 | `platform.view` |
+| `6` | 统一资源详情 | 内部详情状态，不在左侧菜单中直接渲染 |
 | `7` | 三维管理 | `three_d.view` |
 | `8` | 申请管理 | `application.view_all` 或 `application.review` 或 `application.export` |
 | `9` | 图像记录工作台 | `image.record.list` 或 `image.record.view_ready_for_upload` |
 
 ## 6. 可见范围规则
+
+补充说明：当前 `resource_user` 单角色用户在前端有菜单覆盖规则，左侧菜单只显示统一资源目录和申请车，即使其后端权限还包含 `dashboard.view`、`image.view`、`three_d.view` 等。
 
 当前代码中已经落地两级可见范围：
 

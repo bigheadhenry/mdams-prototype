@@ -1,6 +1,6 @@
 # 常见问题与排障
 
-- 最后核对日期：2026-04-06
+- 最后核对日期：2026-05-17
 - 核对范围：`docker-compose.yml`、`.env.example`、`frontend/nginx.conf`、`backend/app/config.py`
 
 ## 1. 建议排查顺序
@@ -115,19 +115,24 @@ docker compose logs celery_worker
 
 ### 4.1 Manifest 能打开，但 Mirador 图像加载失败
 
-这通常优先指向 IIIF 服务地址或代理配置问题。
+这通常优先指向后端 IIIF 代理、Cantaloupe 上游地址或文件可访问性问题。
 
 先检查：
 
-- `CANTALOUPE_PUBLIC_URL`
-- `frontend/nginx.conf` 中 `/iiif/2/` 代理
+- `CANTALOUPE_INTERNAL_URL`
+- `CANTALOUPE_PUBLIC_URL` 是否仍与 `.env.example` / 当前 `.env` 一致
+- Manifest 中的 `body.service.id` 是否是 `/api/iiif/{asset_id}/service/...`
 - `cantaloupe` 容器状态
+- Cantaloupe 是否能读取 `/var/lib/cantaloupe/images` 中的源文件
 
 建议本地保持：
 
 ```text
-CANTALOUPE_PUBLIC_URL=http://localhost:3000/iiif/2
+CANTALOUPE_PUBLIC_URL=http://localhost:8182/iiif/2
+CANTALOUPE_INTERNAL_URL=http://localhost:8182/iiif/2
 ```
+
+当前稳定实现中，浏览器侧图像切片应优先经过后端 `/api/iiif/{asset_id}/service/...` 代理；Cantaloupe 地址主要用于后端访问上游图像服务。
 
 ### 4.2 Mirador 完全打不开
 

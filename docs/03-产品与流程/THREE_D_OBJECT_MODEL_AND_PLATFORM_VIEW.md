@@ -1,12 +1,16 @@
 # 三维对象模型与统一平台展示规范
 
+- 最后核对日期：2026-05-17
+- 核对口径：仅以已提交代码中的稳定实现为准，不纳入当前工作区未提交改动
+- 核对范围：`backend/app/routers/three_d.py`、`backend/app/platform/three_d_source.py`、`frontend/src/components/ThreeDManagement.tsx`
+
 ## 1. 背景
 
 当前三维子系统已经支持三维资源上传、多文件资源包、版本字段、Web 预览状态和统一平台接入。但在业务语义上，现有 `ThreeDAsset` 同时承担了“完整三维对象”“某个模型等级”“某个版本”“一组具体文件包”等多重含义。
 
-这种结构在测试和原型阶段可用，但在真实藏品管理场景中会带来一个明显问题：同一件藏品下的原始模型、展示级模型、轻量模型、高精度研究模型会在列表和统一检索中被拆成多个平级资源，用户无法直接看到它们属于同一个藏品三维数字对象。
+这种结构在测试和原型阶段可用，但在真实藏品管理场景中会带来一个明显问题：同一件藏品下的原始模型、展示级模型、轻量模型、高精度研究模型如果被拆成多个平级资源，用户就无法直接看到它们属于同一个藏品三维数字对象。
 
-因此，后续三维模块需要从“资源记录列表”升级为“藏品三维数字对象管理”。
+当前已提交代码已经在前端管理页和统一平台适配器中完成了阶段性语义收敛：默认按对象级聚合展示，而底层仍复用 `ThreeDAsset` 表结构。
 
 ## 2. 目标对象层级
 
@@ -93,7 +97,7 @@ research_detail / 2026-05
 
 ## 3. 当前实现到目标模型的映射
 
-当前代码中可按以下方式过渡理解：
+当前已提交代码中可按以下方式过渡理解：
 
 | 当前结构 | 过渡语义 | 目标结构 |
 |---|---|---|
@@ -105,6 +109,14 @@ research_detail / 2026-05
 | `ThreeDAssetFile` | 文件记录 | 文件包明细 |
 
 短期内可以继续复用 `ThreeDAsset`，但在文档和界面语义上应把它称为“模型表现”或“资源包”，避免继续把它称为完整的三维对象。
+
+当前稳定实现已经具备：
+
+- 前端 `ThreeDManagement` 按 `resource_group` 形成数字对象视图
+- 统一平台 `three_d_source` 按 `collection_object_id + resource_group` 形成对象级摘要
+- `source_id` 使用 `object-{anchor_asset_id}` 表达对象级定位
+- 统一详情内嵌 `representations` 列表
+- 默认预览表现优先选择 Web 展示就绪且更符合 `web_display` 的表现
 
 中期建议新增实体：
 
@@ -140,7 +152,7 @@ ThreeDRepresentation
 
 ## 4. 三维管理页展示规则
 
-三维管理页默认不应展示平铺的资源记录列表，而应采用对象树或分组视图。
+三维管理页当前已经不是单纯平铺的资源记录列表，而是采用“数字对象视图 + 展开模型表现”的分组视图。
 
 推荐层级：
 
@@ -161,6 +173,17 @@ ThreeDRepresentation
 - 当前 Web 展示级
 - 保存状态
 - 最近更新时间
+
+当前已提交前端已经展示：
+
+- 数字对象统计
+- 模型表现总数
+- 可展示对象数量
+- 文件总数
+- 最近对象
+- 对象级状态
+- 数字对象列表
+- 展开后的模型表现列表
 
 展开后展示模型表现：
 
@@ -186,7 +209,7 @@ ThreeDRepresentation
 
 ## 5. 统一平台展示规则
 
-统一检索平台默认显示粒度应为“三维数字对象”，而不是每一个模型表现或每一个文件。
+统一检索平台当前默认显示粒度已经是“三维数字对象”，而不是每一个模型表现或每一个文件。
 
 ### 5.1 默认检索结果
 
@@ -211,7 +234,7 @@ ThreeDRepresentation
 
 ### 5.2 统一详情页
 
-统一详情页应在对象级详情中嵌入表现层：
+统一详情页当前在对象级详情中嵌入表现层：
 
 ```text
 三维表现
@@ -241,21 +264,21 @@ ThreeDRepresentation
 
 默认粒度必须是“数字对象”，避免同一藏品在检索结果中被拆散。
 
-## 6. API 与适配器建议
+## 6. API 与适配器现状
 
-统一平台适配器应从当前的：
+统一平台适配器已经从简单的：
 
 ```text
 ThreeDAsset -> UnifiedResourceSummary
 ```
 
-逐步调整为：
+调整为平台层的对象级转换：
 
 ```text
-ThreeDDigitalObject -> UnifiedResourceSummary
+Grouped ThreeDAsset -> three_d_digital_object -> UnifiedResourceSummary
 ```
 
-推荐对象级摘要结构：
+当前对象级摘要结构的关键字段包括：
 
 ```json
 {
@@ -287,17 +310,19 @@ ThreeDDigitalObject -> UnifiedResourceSummary
 }
 ```
 
+需要注意：这里的 `ThreeDDigitalObject` 目前是平台和展示语义，并不是独立数据库实体。
+
 ## 7. 实施规划
 
 ### 阶段一：不改表的语义收敛
 
 目标是在现有表结构上先修正展示与文档语义。
 
-- 将管理页首屏改为按 `collection_object_id + resource_group` 聚合。
-- 在前端把 `ThreeDAsset` 展示为“模型表现/资源包”，而不是完整三维对象。
-- 在 seed 示例数据中继续保留同一 `resource_group` 下多表现样本。
-- 在统一平台适配器中先按 `resource_group` 聚合为对象级结果。
-- 在详情中列出同组下全部表现。
+- 已完成：前端管理页按分组展示数字对象和模型表现。
+- 已完成：统一平台适配器按 `collection_object_id + resource_group` 聚合为对象级结果。
+- 已完成：统一详情中列出同组下全部表现。
+- 已完成：对象级 `preview_enabled` 由默认可预览表现决定。
+- 仍需继续：前端和文档中的所有命名继续收敛，避免把表现级记录称为完整三维对象。
 
 ### 阶段二：补充表现类型字段
 
@@ -308,6 +333,8 @@ ThreeDDigitalObject -> UnifiedResourceSummary
 - 将现有 `original`、`v1-web`、`v2-detail` 等示例迁移为 `representation_type + version_label`。
 - 统一 Web 展示选择规则：优先 `web_display`，其次允许人工指定默认展示表现。
 
+当前状态：平台适配器和前端已经能从元数据或 `version_label` 推断 `representation_type`，但它尚未成为稳定表字段。
+
 ### 阶段三：新增三维数字对象实体
 
 目标是形成稳定的数据模型。
@@ -317,6 +344,8 @@ ThreeDDigitalObject -> UnifiedResourceSummary
 - 将对象级元数据从表现记录中上移到 `ThreeDDigitalObject`。
 - 统一平台 `source_id` 指向三维数字对象，而不是具体表现。
 - 三维管理页、统一详情页、下载和预览动作都基于对象级聚合重构。
+
+当前状态：对象级聚合已在平台和前端成立，但数据库层仍未新增该实体。
 
 ### 阶段四：治理与长期保存完善
 

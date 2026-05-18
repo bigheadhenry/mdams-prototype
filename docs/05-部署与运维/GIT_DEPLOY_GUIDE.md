@@ -1,5 +1,8 @@
 # Git Push-to-Deploy Guide
 
+- Document status: environment-specific deployment note.
+- For general setup and runtime configuration, use `SETUP_AND_DEPLOYMENT.md` first.
+
 This project uses a **Git Push-to-Deploy** workflow to synchronize code between the local development machine, GitHub, and the local laboratory server.
 
 ## 1. Environment Overview

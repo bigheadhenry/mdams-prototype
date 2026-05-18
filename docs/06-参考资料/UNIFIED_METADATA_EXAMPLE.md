@@ -1,5 +1,8 @@
 # MDAMS 统一元数据示例
 
+- 最后核对日期：2026-05-17
+- 契约基准：统一平台当前采用 `source_system` + `source_id` 显式来源定位；稳定来源为 `image_2d`、`three_d`、`video`。
+
 ## 1. 文档目的
 
 本文档用于给 MDAMS 的统一元数据体系提供可直接参考的示例，便于后续：
@@ -24,8 +27,8 @@
 | 字段名 | 含义 | 建议层级 | 示例 |
 |---|---|---|---|
 | `global_resource_id` | 平台全局资源 ID | 顶层主键 | `mdams:res:00001234` |
-| `source_system` | 来源系统标识 | 顶层 | `mdams-image` |
-| `source_object_id` | 来源系统对象 ID | 顶层 | `asset_44` |
+| `source_system` | 来源系统标识 | 顶层 | `image_2d` |
+| `source_id` | 来源系统对象 ID | 顶层 | `44` |
 | `local_object_id` | 子系统本地对象 ID | 子系统 | `44` |
 | `resource_type` | 资源类型 | 顶层/子系统均可保留副本 | `image_2d_cultural_object` |
 | `title` | 资源标题 | 顶层主字段 | `清代山水图` |
@@ -36,7 +39,7 @@
 | `access_level` | 访问级别 | 顶层主字段 | `internal` |
 | `status` | 统一状态 | 顶层主字段 | `ready` |
 | `preview_url` | 预览地址 | 顶层主字段 | `/api/iiif/44/manifest` |
-| `detail_url` | 统一详情页地址 | 顶层主字段 | `/assets/44` |
+| `detail_url` | 统一详情页地址 | 顶层主字段 | `/api/platform/resources/image_2d/44` |
 | `updated_at` | 最近更新时间 | 顶层主字段 | `2026-03-24T12:00:00Z` |
 
 ---
@@ -48,8 +51,8 @@
 ```json
 {
   "global_resource_id": "mdams:res:00001234",
-  "source_system": "mdams-image",
-  "source_object_id": "asset_44",
+  "source_system": "image_2d",
+  "source_id": "44",
   "resource_type": "image_2d_cultural_object",
   "title": "清代山水图",
   "summary": "一幅清代山水图像资源，已完成基础处理并可预览。",
@@ -59,7 +62,7 @@
   "access_level": "internal",
   "status": "ready",
   "preview_url": "/api/iiif/44/manifest",
-  "detail_url": "/assets/44",
+  "detail_url": "/api/platform/resources/image_2d/44",
   "updated_at": "2026-03-24T12:00:00Z"
 }
 ```
@@ -80,8 +83,8 @@
 {
   "global_resource_id": "mdams:res:00001234",
   "local_object_id": "44",
-  "source_system": "mdams-image",
-  "source_object_id": "asset_44",
+  "source_system": "image_2d",
+  "source_id": "44",
   "title": "清代山水图",
   "resource_type": "image_2d_cultural_object",
   "status": "ready",
@@ -117,8 +120,8 @@
 ```json
 {
   "global_resource_id": "mdams:res:00001234",
-  "source_system": "mdams-image",
-  "source_object_id": "asset_44",
+  "source_system": "image_2d",
+  "source_id": "44",
   "local_object_id": "44",
   "resource_type": "image_2d_cultural_object",
   "title": "清代山水图",
@@ -129,7 +132,7 @@
   "access_level": "internal",
   "status": "ready",
   "preview_url": "/api/iiif/44/manifest",
-  "detail_url": "/assets/44",
+  "detail_url": "/api/platform/resources/image_2d/44",
   "updated_at": "2026-03-24T12:00:00Z",
   "technical_metadata": {
     "width": 12000,
@@ -218,7 +221,7 @@
       "summary": "已完成基础处理并可预览",
       "status": "ready",
       "preview_url": "/api/iiif/44/manifest",
-      "detail_url": "/assets/44"
+      "detail_url": "/api/platform/resources/image_2d/44"
     }
   ],
   "total": 1
@@ -244,6 +247,11 @@
   },
   "access": {
     "preview_url": "/api/iiif/44/manifest"
+  },
+  "source": {
+    "source_system": "image_2d",
+    "source_id": "44",
+    "detail_url": "/api/platform/resources/image_2d/44"
   }
 }
 ```

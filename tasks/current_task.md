@@ -1,37 +1,41 @@
 # Current Task
 
 ## Goal
-- 完成统一平台来源定位契约冻结与跨子系统最小事件边界的基础落地，确认 `source_system/source_id` 为主标准，`resource_id` 仅保留兼容入口。
+- 对统一资源目录与统一资源详情进行可视化优化（信息效率导向），提升博物馆方汇报场景下的信息可读性。
 
 ## Why Now
-- 统一目录、统一详情、Mirador AI 和申请车已经完成显式定位收口，现在需要用单独契约页把标准固定下来，避免后续实现漂移。
-- 冻结后，`resource_id` 会退到兼容/历史层，后续新增来源可以直接遵循同一标准。
-- 跨子系统事件边界已经有 detail / production record / output 层的实现锚点，现在适合用最小词表和 contract tests 把它钉牢。
+- 项目面向博物馆方信息部门与业务管理岗汇报，管理者需要在有限屏幕空间中快速定位资源数量、状态分布和操作入口，而非沉浸式视觉体验。
+- 统一资源目录和详情是汇报频次最高的页面，其信息层级和操作效率直接影响演示效果。
 
 ## Expected Outputs
-1. 新增统一平台来源定位契约页
-2. 主参考文档指向统一契约页
-3. 相关验证和写作记忆同步更新
-4. 第二阶段事件边界形成具体推进计划
+1. 目录页卡片 Meta 三层化、排序下拉、筛选 chips、批量操作
+2. 检索概览栏三段重组 + 可点击切换 Tab + 可折叠
+3. 详情页 Hero 真双栏、操作分主次、面包屑增维度层、生命周期 Timeline、锚点导航
+4. 三维源详情 Drawer 拆独立组件 + Tabs + 固定底部栏
+5. 主导航 Sider 和检索概览栏默认收起
+6. 目录上下文持久化（进详情后返回还原 Tab/页码/排序/筛选）
+7. 三维预览动画批量重生成脚本
 
 ## Completion Standard
-- 统一平台来源定位契约页已建立并被主文档引用
-- `source_system/source_id` 是主标准，`resource_id` 仅作为兼容入口
-- 跨子系统最小事件边界已具备共享词表和契约测试锚点
-- 变更理由、验证结果和写作可复用表述已经写入 `memory/` 和 `tasks/`
+- [x] PlatformDirectory 卡片 Meta 三层化 + 表格主操作 + 排序 + 筛选 chips + 批量入口
+- [x] PlatformStatsBar 三段分组（Tab 概览 / 可点击维度分布 / 健康度）+ 可折叠竖排迷你条
+- [x] UnifiedResourceDetail 面包屑维度层 + 操作分层 + 双列 Descriptions + 生命周期 Timeline + 锚点 + 嵌套元数据可展开
+- [x] ThreeDSourceDetailDrawer 独立组件 + 5 Tab + 底部固定栏 + 自适应宽度
+- [x] 主导航 Sider collapsible + 默认收起
+- [x] 目录上下文持久化（sessionStorage 六个字段 + isInitialMountRef）
+- [x] 移除三维重复预览按钮
+- [x] 三维预览动画批量重生成脚本完成，7 个资源全部更新
+- [x] `memory/` 实验日志、决策、原型设计记录已同步
 
 ## Inputs
-- `backend/app/schemas.py`
-- `backend/app/platform/image_source.py`
-- `backend/app/platform/three_d_source.py`
-- `backend/tests/test_platform_directory.py`
-- `backend/tests/test_three_d_subsystem.py`
-- `frontend/src/types/assets.ts`
+- `frontend/src/components/PlatformDirectory.tsx`
+- `frontend/src/components/PlatformStatsBar.tsx`
 - `frontend/src/components/UnifiedResourceDetail.tsx`
+- `frontend/src/components/ThreeDSourceDetailDrawer.tsx`（新增）
+- `frontend/src/App.tsx`
+- `backend/app/scripts/regenerate_three_d_previews.py`（新增）
+- `backend/app/services/three_d_preview.py`
 
 ## Status
-- Done on 2026-04-22 and extended on 2026-04-23.
-- Verification: `python3 -m compileall backend/app backend/tests` passed; targeted backend contract tests on event boundary / three_d_production / routes_smoke passed with PostgreSQL-related skips only.
-
-## Next
-- 审计剩余历史文档与镜像说明中的术语漂移，再决定是否需要继续批量迁移。
+- Done on 2026-05-17.
+- Verification: `npx tsc --noEmit` 通过，`docker compose up -d --build frontend` 通过，前端 http://localhost:3000 返回 200。

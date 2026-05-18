@@ -18,7 +18,7 @@
 - `backend/app/services/three_d_storage.py`
 - `backend/app/services/three_d_detail.py`
 
-截至 **2026-04-08**，三维侧已经形成如下稳定分层：
+截至 **2026-05-17**，三维侧已经形成如下稳定分层：
 - `core`
 - `management`
 - `collection`
@@ -49,6 +49,8 @@
 | `is_current` | `ThreeDAsset.is_current` |
 | `is_web_preview` | `ThreeDAsset.is_web_preview` |
 | `web_preview_status` / `web_preview_reason` | `ThreeDAsset.web_preview_*` |
+
+在统一平台层，三维来源当前以 `three_d_digital_object` 作为主要聚合结果，`source_system` 稳定为 `three_d`，`source_id` 可采用对象级标识，例如 `object-{anchor_asset_id}`。
 
 ### 2. Management
 
@@ -233,11 +235,12 @@
 
 ## 七、当前工作结论
 
-截至 **2026-04-08**，MDAMS 三维子系统已经不再只是上传和预览入口，而是具备：
+截至 **2026-05-17**，MDAMS 三维子系统已经不再只是上传和预览入口，而是具备：
 - 对象/版本/文件包分层；
 - 最小文件角色词表；
 - 技术字段、对象字段和保存字段分层；
 - Web 展示状态与保存状态并存的基础。
+- 统一平台对象级聚合与统一详情接入。
 
 因此，当前最务实的推进路径是：
 

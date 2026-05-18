@@ -12,7 +12,7 @@
 
 ## 当前立场
 
-截至 **2026-04-08**，MDAMS 已经存在大量 proto-PREMIS 行为：
+截至 **2026-05-17**，MDAMS 已经存在大量 proto-PREMIS 行为：
 - fixity 生成/校验；
 - 元数据提取；
 - 转换与访问副本生成；
@@ -20,6 +20,8 @@
 - 绑定、替换、提交、退回等工作流动作；
 - 三维生产记录；
 - AI 面板动作日志。
+- 视频 stream / 预览等访问行为；
+- 人脸识别辅助元数据增强行为。
 
 但这些行为目前分散在：
 - 状态字段；
@@ -88,10 +90,12 @@
 | `image_record` | `ImageRecord` |
 | `three_d_asset` | `ThreeDAsset` |
 | `three_d_file` | `ThreeDAssetFile` |
+| `video_asset` | 视频资源 |
 | `application` | `Application` |
 | `application_item` | `ApplicationItem` |
 | `access_representation` | IIIF Manifest、预览图、viewer-ready 文件 |
 | `export_package` | BagIt ZIP、交付包 |
+| `metadata_enrichment` | 人脸识别等辅助元数据增强结果 |
 
 ### 4. 对象角色
 
@@ -109,6 +113,8 @@
 | `oblique_photo` | 倾斜摄影文件 |
 | `texture` | 三维贴图 |
 | `support_file` | 辅助文件 |
+| `video_stream` | 视频播放 / stream 表示 |
+| `face_recognition_result` | 人脸识别辅助结果 |
 
 ## 三、P0 优先事件集合
 
@@ -141,6 +147,8 @@ P0 事件是当前最值得统一落地的最小事件集合。
 | `application_review` | `application` | 审批通过 / 拒绝 | P1 |
 | `delivery_export` | `export_package` | 利用交付包导出 | P1 |
 | `ai_action_execute` | `access_representation` | Mirador AI 动作日志 | P1 |
+| `video_stream_access` | `access_representation` | 视频播放 / stream 访问 | P2 |
+| `face_recognition_execute` | `metadata_enrichment` | 人脸识别辅助元数据增强 | P2 |
 
 ## 五、按工作流映射
 
@@ -183,6 +191,14 @@ P0 事件是当前最值得统一落地的最小事件集合。
 | 审批处理 | `application_review` | `application` | 记录 approved / rejected |
 | 导出交付包 | `delivery_export` | `export_package` | 记录与申请单的关联 |
 
+### 5. 多模态与辅助增强链路
+
+| 工作流动作 | 建议事件类型 | 目标对象 | 说明 |
+|---|---|---|---|
+| 视频播放或预览 | `video_stream_access` | `access_representation` | 记录视频资源访问表示，不等同于保存对象 |
+| AI 面板执行查看器动作 | `ai_action_execute` | `access_representation` | 记录辅助交互动作 |
+| 人脸识别执行 | `face_recognition_execute` | `metadata_enrichment` | 记录辅助元数据增强，不改变资产本体 |
+
 ## 六、当前落地策略
 
 ### Phase 1
@@ -204,4 +220,4 @@ P0 事件是当前最值得统一落地的最小事件集合。
 
 对当前项目而言，最现实的表述是：
 
-> MDAMS 已经具备建立最小 PREMIS 风格事件模型的现实基础，下一步应优先把二维资产主链路、图像记录协作链路和三维生产/展示链路中的核心动作统一为可追踪、可解释、可扩展的事件集合。
+> MDAMS 已经具备建立最小 PREMIS 风格事件模型的现实基础，下一步应优先把二维资产主链路、图像记录协作链路、三维生产/展示链路以及多模态访问和辅助增强链路中的核心动作统一为可追踪、可解释、可扩展的事件集合。

@@ -12,12 +12,13 @@
 
 ## 当前判断
 
-截至 **2026-04-08**，MDAMS 已经具备：
+截至 **2026-05-17**，MDAMS 已经具备：
 - 可解释的统一对象模型；
 - 一版 PREMIS 风格最小事件模型；
 - 二维与三维的最小 metadata/profile 说明；
 - IIIF、BagIt、OAIS 与演示链路材料；
 - 样本级 IIIF / BagIt 证据。
+- 三维对象级平台聚合、视频来源接入、AI / Mirador 辅助交互和人脸识别增强链路的事实说明。
 
 当前最真实的缺口，不是“没有研究表达”，而是**研究表达与实施边界之间仍有几处关键断层**。
 
@@ -35,11 +36,13 @@
 
 | 项目 | 当前状态 | 主要锚点 | 当前断层 | 推荐动作 | 优先级 |
 | --- | --- | --- | --- | --- | --- |
-| 统一对象模型 | 文档层稳定，代码层分散 | `backend/app/models.py`、`backend/app/services/asset_detail.py`、`backend/app/services/platform_*` | `Asset` 与 `ThreeDAsset` 仍通过适配层聚合，没有更明确共享契约 | 先补共享字段/行为契约说明或平台级 contract tests，而不是强行统一数据库模型 | P1 |
+| 统一对象模型 | 文档层稳定，代码层分散 | `backend/app/models.py`、`backend/app/services/asset_detail.py`、`backend/app/platform/` | `Asset`、`ThreeDAsset` 与视频资源仍通过适配层聚合，没有更明确共享契约 | 先补共享字段/行为契约说明或平台级 contract tests，而不是强行统一数据库模型 | P1 |
 | PREMIS 风格事件模型 | 文档层明确，局部实现存在 | `backend/app/models.py` 中 `ThreeDProductionRecord`、`backend/app/services/three_d_production.py`、`backend/app/services/asset_detail.py` | 只有三维链路有近似事件表；二维、申请、IIIF、BagIt 仍主要依赖状态字段或派生说明 | 先定义跨子系统最小事件边界和测试入口，再考虑是否新增通用事件持久化 | P1 |
 | 二维 profile 完整性 | 已有 metadata 分层与提交校验 | `backend/app/services/metadata_layers.py`、`backend/app/services/image_record_validation.py`、`backend/app/services/reference_import.py` | profile 必填语义分散在构建、提交校验、参考导入完整性检查三处，规则未完全统一 | 先统一 profile 必填规则来源，并补 contract tests | P0 |
 | 三维 profile 最小约束 | 已有 metadata 分层与字典 | `backend/app/services/three_d_metadata.py`、`backend/app/services/three_d_dictionary.py`、`backend/tests/test_three_d_dictionary.py` | 当前更像“字段词典存在”，但缺少覆盖上传/详情/平台链路的最小 profile 契约 | 增加工作流级 contract tests，明确哪些字段/角色组合构成“最小可展示三维对象” | P1 |
 | 访问表示与导出表示 | 已有真实输出与样本级证据 | `backend/app/routers/iiif.py`、`backend/app/routers/downloads.py`、`backend/app/services/asset_detail.py`、`backend/tests/test_iiif_access_phase1.py` | IIIF Manifest 与 BagIt 已稳定存在，但仍是派生输出，不是第一类持久对象 | 明确“保持派生对象”还是“进入更强结构契约”，并补输出层 contract tests | P1 |
+| 多模态来源边界 | 已有平台接入事实 | `backend/app/platform/video_source.py`、`backend/app/routers/video.py`、统一详情前端 | 视频来源已接入，但仍是最小来源示例，不是完整视频 DAM 子系统 | 补视频来源的最小平台契约说明和测试边界 | P2 |
+| 辅助智能能力边界 | 已有真实链路但不应主线化 | `ai_mirador` 路由、Mirador AI 面板、`FACE_RECOGNITION_*` 配置 | AI / 人脸识别已有实现证据，但研究表达需避免喧宾夺主 | 只写成辅助交互与辅助元数据增强层，并补审计/权限边界问题清单 | P2 |
 
 ## 优先项详解
 
@@ -160,6 +163,16 @@
 - 维持分子系统模型；
 - 在平台聚合层明确共享字段和动作契约；
 - 用平台/detail 层测试去固化这种“语义统一、存储分治”的结构。
+
+### P2. 为视频来源和辅助智能能力设定边界
+
+视频、AI / Mirador 和人脸识别已经进入当前事实基线，但它们应被放在正确位置：
+
+- 视频是多模态统一平台来源示例，不是完整视频资产管理子系统；
+- AI / Mirador 是辅助交互层，不是 MDAMS 的主贡献；
+- 人脸识别是可开关的辅助元数据增强链路，不是核心 DAMS 主线。
+
+推荐下一步补充最小测试或说明，明确这些能力的权限、审计和失败模式边界。
 
 ## 下一轮最推荐推进的 2 项
 

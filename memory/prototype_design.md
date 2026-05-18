@@ -23,6 +23,10 @@
   - 多条主链路已可演示：二维影像、ImageRecord 协作、申请交付、统一平台、三维对象管理、Mirador AI 辅助交互
   - 基础测试体系已建立：后端 `pytest`，前端 `Playwright`
   - 研究文档已具备：研究问题、概念模型、设计决策、标准映射、评估框架、论文大纲
+  - 统一资源目录与详情完成信息效率导向的可视化重构：卡片分层、操作主次、生命线 Timeline、抽屉 Tabs、锚点导航
+  - 主导航 Sider 与检索概览栏均支持可伸缩折叠，默认收起
+  - 目录上下文持久化：进入详情后返回时还原 Tab/页码/排序/筛选
+  - 三维资源预览动画自动生成机制已建立，并完成 7 个资源的批量重生成
 - In progress:
   - 对象模型、PREMIS 事件模型和 metadata/profile 已有最小框架，但仍待进一步 formalize
   - IIIF、BagIt、OAIS 的细粒度支撑材料与 IIIF / BagIt 样本级证据已建立
@@ -32,6 +36,7 @@
 - Next:
   - 继续把跨子系统事件边界向更明确的保存/审计语义推进，必要时再决定是否需要统一持久化表
   - 为三维最小 profile 建立工作流级 contract tests
+  - AdvancedSearchPanel 内部 state 与外部筛选 chips 的双向同步
 
 ## Confirmed Strengths
 - 仓库不是纸面设计，已有真实代码、真实部署、真实回归测试

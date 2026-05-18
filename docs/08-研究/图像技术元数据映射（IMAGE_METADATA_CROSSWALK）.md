@@ -4,7 +4,7 @@
 
 本文档用于把 MDAMS 当前二维图像工作流中的技术元数据能力，与 NISO Z39.87《Data Dictionary – Technical Metadata for Digital Still Images》的核心关注点建立一个**最小可实施 crosswalk**。
 
-截至 **2026-04-08**，它优先回答：
+截至 **2026-05-17**，它优先回答：
 - 当前代码里到底已经稳定出现了哪些图像技术字段；
 - 哪些字段可以直接进入最小 still image profile；
 - 哪些字段属于 MDAMS 的访问/处理扩展，而不是 Z39.87 核心字段；
