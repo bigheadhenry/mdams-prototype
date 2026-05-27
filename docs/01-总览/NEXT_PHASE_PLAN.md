@@ -178,9 +178,9 @@
 
 ### P1
 
-5. 强化资源申请与交付文档
-6. 完善三维浏览与保存说明
-7. 继续补齐统一平台层文档
+5. 强化资源申请与交付文档（已落地：`03-产品与流程/APPLICATION_DELIVERY_WORKFLOW.md`）
+6. 完善三维浏览与保存说明（已落地：`03-产品与流程/THREE_D_VIEW_AND_PRESERVATION_GUIDE.md`）
+7. 继续补齐统一平台层文档（已落地：`03-产品与流程/UNIFIED_PLATFORM_OPERATIONS_GUIDE.md`）
 
 ### P2
 

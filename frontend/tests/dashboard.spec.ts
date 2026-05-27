@@ -306,6 +306,27 @@ async function bootstrapAuthenticatedState(page, authContext = systemAdminAuthCo
   });
 
   await page.route('**/api/applications**', async (route) => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        json: {
+          id: 101,
+          application_no: 'APP-202605210001-DEMO',
+          requester_name: 'Standard Demo User',
+          requester_org: 'MDAMS Demo',
+          contact_email: 'demo@example.org',
+          purpose: '标准演示链路验证',
+          usage_scope: '内部演示',
+          status: 'submitted',
+          status_label: '待处理',
+          review_note: null,
+          created_at: '2026-05-21T10:00:00Z',
+          submitted_at: '2026-05-21T10:00:00Z',
+          reviewed_at: null,
+          items: [],
+        },
+      });
+      return;
+    }
     await route.fulfill({ json: [] });
   });
 }
@@ -529,6 +550,20 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
     await route.fulfill({ json: visibleAssets });
   });
 
+  await page.route('**/api/assets/*/preview**', async (route) => {
+    await route.fulfill({
+      contentType: 'image/svg+xml',
+      body: "<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='72' height='72' fill='#eef2f7'/></svg>",
+    });
+  });
+
+  await page.route('**/api/assets/*/download**', async (route) => {
+    await route.fulfill({
+      contentType: 'application/octet-stream',
+      body: 'mock-download',
+    });
+  });
+
   await page.route('**/api/image-records**', async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith('/api/image-records/artifact-samples')) {
@@ -742,6 +777,26 @@ test.describe('Dashboard permissions', () => {
     await page.getByTestId('platform-unified-detail-1').click();
     await expect(page.getByTestId('unified-resource-detail')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'test_image.jpg' })).toBeVisible();
+  });
+
+  test('system admin can add a unified resource to the application cart and submit', async ({ page }) => {
+    await page.getByTestId('menu-5').click();
+    await page.getByTestId('platform-apply-1').click();
+    await expect(page.getByText('已加入申请车')).toBeVisible();
+
+    await page.getByTestId('menu-3').click();
+    await expect(page.getByRole('heading', { name: '申请车' })).toBeVisible();
+    await expect(page.getByText('test_image.jpg').first()).toBeVisible();
+
+    await page.getByLabel('申请人').fill('Standard Demo User');
+    await page.getByLabel('所属机构').fill('MDAMS Demo');
+    await page.getByLabel('联系邮箱').fill('demo@example.org');
+    await page.getByLabel('申请用途').fill('标准演示链路验证');
+    await page.getByLabel('使用范围').fill('内部演示');
+    await page.getByRole('button', { name: '提交申请单' }).click();
+
+    await expect(page.getByText('申请单已提交')).toBeVisible();
+    await expect(page.getByText('申请车还是空的，先去统一资源目录加入资源。')).toBeVisible();
   });
 });
 

@@ -54,48 +54,14 @@ import {
   type AuthUserSummary,
   type MenuKey,
 } from './auth/permissions';
+import { buildApplicationCartItemFromUnifiedResource } from './utils/applicationCart';
+import { buildPreviewUrl, getAssetStatusLabel, getAuthModeLabel, MENU_LABELS } from './utils/appLabels';
 import type { ApplicationCartItem, ApplicationSummary, AssetSummary, UnifiedResourceSummary } from './types/assets';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Paragraph, Text, Title } = Typography;
 
 const AUTH_TOKEN_KEY = 'mdams.auth.token';
-
-const MENU_LABELS: Record<MenuKey, string> = {
-  '1': '总览',
-  '2': '二维资源',
-  '3': '申请车',
-  '4': '入库处理',
-  '5': '统一资源目录',
-  '6': '统一资源详情',
-  '7': '三维管理',
-  '8': '申请管理',
-  '9': '影像信息录入',
-};
-
-const ASSET_STATUS_LABELS: Record<string, string> = {
-  ready: '就绪',
-  processing: '处理中',
-  error: '异常',
-};
-
-const AUTH_MODE_LABELS: Record<string, string> = {
-  session: '会话认证',
-  fallback: '回退认证',
-  'legacy-header': '兼容请求头认证',
-};
-
-const getAssetStatusLabel = (status: string) => ASSET_STATUS_LABELS[status] || status || '-';
-
-const getAuthModeLabel = (mode?: string | null) => {
-  if (!mode) return '-';
-  return AUTH_MODE_LABELS[mode] || mode;
-};
-
-const buildPreviewUrl = (record: AssetSummary) => {
-  const version = encodeURIComponent(`${record.created_at}-${record.file_size}`);
-  return `/api/assets/${record.id}/preview?v=${version}`;
-};
 
 const App: React.FC = () => {
   const [assets, setAssets] = useState<AssetSummary[]>([]);
@@ -790,23 +756,7 @@ const App: React.FC = () => {
                     setSelectedAssetId(null);
                     setSelectedKey('6');
                   }}
-                  onAddToApplication={(resource) =>
-                    addToApplicationCart({
-                      cartKey: resource.id,
-                      assetId:
-                        resource.source_system === 'image_2d' && Number.isFinite(Number(resource.source_id))
-                          ? Number(resource.source_id)
-                          : null,
-                      sourceSystem: resource.source_system,
-                      sourceId: resource.source_id,
-                      resourceType: resource.resource_type,
-                      title: resource.title,
-                      manifestUrl: resource.manifest_url,
-                      sourceLabel: resource.source_label,
-                      objectNumber: resource.id,
-                      canSubmit: true,
-                    })
-                  }
+                  onAddToApplication={(resource) => addToApplicationCart(buildApplicationCartItemFromUnifiedResource(resource))}
                 />
             ) : (
               <>
@@ -855,23 +805,7 @@ const App: React.FC = () => {
                       setSelectedAssetId(null);
                       setSelectedKey('6');
                     }}
-                    onAddToApplication={(resource) =>
-                      addToApplicationCart({
-                        cartKey: resource.id,
-                        assetId:
-                          resource.source_system === 'image_2d' && Number.isFinite(Number(resource.source_id))
-                            ? Number(resource.source_id)
-                            : null,
-                        sourceSystem: resource.source_system,
-                        sourceId: resource.source_id,
-                        resourceType: resource.resource_type,
-                        title: resource.title,
-                        manifestUrl: resource.manifest_url,
-                        sourceLabel: resource.source_label,
-                        objectNumber: resource.id,
-                        canSubmit: true,
-                      })
-                    }
+                    onAddToApplication={(resource) => addToApplicationCart(buildApplicationCartItemFromUnifiedResource(resource))}
                   />
                 ) : null}
 

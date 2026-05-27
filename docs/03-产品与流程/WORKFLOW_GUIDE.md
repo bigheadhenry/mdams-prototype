@@ -8,6 +8,8 @@
 
 本文件用于概括当前 MDAMS 原型已经落地的核心业务工作流，帮助读者快速理解系统不是“单页面上传工具”，而是由多条关联链路组成。
 
+如需进行馆内汇报、部署前验收或主链路回归，请优先使用 `STANDARD_DEMO_FLOW.md`。本文解释各条工作流的业务含义，标准演示文档定义一条必须稳定复现的端到端路径。
+
 ## 2. 总体流程图
 
 当前项目可以粗分为七条核心链路：
@@ -199,6 +201,10 @@
 
 - `USER_ROLE_PERMISSION_MATRIX.md`
 - `FRONTEND_MENU_VISIBILITY_MATRIX.md`
+- `STANDARD_DEMO_FLOW.md`
+- `APPLICATION_DELIVERY_WORKFLOW.md`
+- `UNIFIED_PLATFORM_OPERATIONS_GUIDE.md`
+- `THREE_D_VIEW_AND_PRESERVATION_GUIDE.md`
 - `../02-架构设计/API_ROUTE_MAP.md`
 - `../02-架构设计/PLATFORM_SOURCE_ADAPTERS.md`
 - `../01-总览/PROJECT_STATUS.md`
