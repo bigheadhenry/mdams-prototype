@@ -106,12 +106,29 @@ const App: React.FC = () => {
 
   const applyToken = useCallback((token: string | null) => {
     if (token) {
-      axios.defaults.headers.common.Authorization = `Bearer ${token}`;
       window.localStorage.setItem(AUTH_TOKEN_KEY, token);
     } else {
-      delete axios.defaults.headers.common.Authorization;
       window.localStorage.removeItem(AUTH_TOKEN_KEY);
     }
+  }, []);
+
+  // Request interceptor: only attach auth token to same-origin /api/ requests
+  // to prevent token exfiltration to external URLs.
+  useEffect(() => {
+    const interceptor = axios.interceptors.request.use((config) => {
+      const url = config.url || '';
+      // Only attach token to relative URLs (same-origin API calls)
+      if (url.startsWith('/api/') || url.startsWith('/auth/')) {
+        const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+      return config;
+    });
+    return () => {
+      axios.interceptors.request.eject(interceptor);
+    };
   }, []);
 
   const fetchAuthUsers = useCallback(async () => {
