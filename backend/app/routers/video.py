@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,6 +14,7 @@ from ..schemas import VideoAssetOut
 from ..services.video_metadata import build_video_metadata_layers
 
 router = APIRouter(prefix="/video", tags=["video"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/resources", response_model=list[VideoAssetOut])
@@ -109,6 +111,16 @@ def delete_video_asset(
     asset = db.query(VideoAsset).filter(VideoAsset.id == asset_id).first()
     if asset is None:
         raise HTTPException(status_code=404, detail="Video asset not found")
+    file_path = asset.file_path
     db.delete(asset)
     db.commit()
+    # Best-effort cleanup of the physical file
+    if file_path:
+        try:
+            path = Path(file_path)
+            if path.is_file():
+                path.unlink()
+                logger.info("Deleted video file: %s", file_path)
+        except OSError:
+            logger.warning("Failed to delete video file: %s", file_path, exc_info=True)
     return {"ok": True}
