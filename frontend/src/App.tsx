@@ -147,6 +147,24 @@ const App: React.FC = () => {
     }
   }, [applyToken]);
 
+  // 401 interceptor: auto-logout on token expiry
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (axios.isAxiosError(error) && error.response?.status === 401 && error.config?.url !== '/api/auth/login') {
+          applyToken(null);
+          setAuthContext(null);
+          message.warning('登录已过期，请重新登录');
+        }
+        return Promise.reject(error);
+      },
+    );
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [applyToken]);
+
   useEffect(() => {
     const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
@@ -249,20 +267,14 @@ const App: React.FC = () => {
         message.warning('当前用户没有提交申请的权限');
         return false;
       }
-      let added = false;
-      setApplicationCart((current) => {
-        if (current.some((entry) => entry.cartKey === item.cartKey)) {
-          return current;
-        }
-        added = true;
-        return [...current, item];
-      });
-      if (added) {
-        message.success('已加入申请车');
+      if (applicationCart.some((entry) => entry.cartKey === item.cartKey)) {
+        return false;
       }
-      return added;
+      setApplicationCart((current) => [...current, item]);
+      message.success('已加入申请车');
+      return true;
     },
-    [canCreateApplications],
+    [canCreateApplications, applicationCart],
   );
 
   const updateApplicationNote = useCallback((cartKey: string, note: string) => {
@@ -640,8 +652,8 @@ const App: React.FC = () => {
                     }))}
                   />
                 </Form.Item>
-                <Form.Item name="password" label="密码" initialValue="mdams123" rules={[{ required: true, message: '请输入密码' }]}>
-                  <Input.Password placeholder="输入密码" />
+                <Form.Item name="password" label="密码" rules={[{ required: true, message: '请输入密码' }]}>
+                  <Input.Password placeholder="输入密码" autoComplete="current-password" />
                 </Form.Item>
                 <Button type="primary" htmlType="submit" icon={<LoginOutlined />} loading={loginSubmitting} block>
                   登录进入系统
