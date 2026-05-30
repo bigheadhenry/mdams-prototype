@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from PIL import Image
 
@@ -43,7 +44,7 @@ from ..services.iiif_access import (
     mark_asset_derivative_pending,
     mark_asset_ready_with_original_access,
 )
-from ..services.metadata_layers import CORE_FIELD_LABELS, FIELD_LABELS, PROFILE_DEFINITIONS, build_metadata_layers, get_fixity_sha256
+from ..services.metadata_layers import CORE_FIELD_LABELS, FIELD_LABELS, PROFILE_DEFINITIONS, build_metadata_layers
 from ..tasks import generate_iiif_access_derivative, recognize_business_activity_faces
 from ..utils.metadata import extract_metadata
 
@@ -390,11 +391,20 @@ def _matches_query(record: ImageRecord, normalized_query: str | None) -> bool:
 def _duplicate_assets_for_hash(db: Session, sha256: str) -> list[Asset]:
     if not sha256:
         return []
-    matches: list[Asset] = []
-    for asset in db.query(Asset).order_by(Asset.id.asc()).all():
-        if get_fixity_sha256(asset.metadata_info) == sha256:
-            matches.append(asset)
-    return matches
+    # Use PostgreSQL JSONB query to filter at the database level
+    # instead of loading all assets into memory and checking in Python.
+    tech = Asset.metadata_info["technical"]
+    return (
+        db.query(Asset)
+        .filter(
+            or_(
+                tech["fixity_sha256"].astext == sha256,
+                tech["checksum"].astext == sha256,
+            )
+        )
+        .order_by(Asset.id.asc())
+        .all()
+    )
 
 
 def _serialize_pending_upload(record: ImageRecord) -> ImageRecordPendingUpload | None:
