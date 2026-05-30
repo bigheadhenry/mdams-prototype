@@ -143,7 +143,9 @@ async def upload_file(
 
 
 @router.get("/debug/files")
-def list_uploaded_files():
+def list_uploaded_files(
+    _user=Depends(require_permission("system.manage")),
+):
     try:
         files = []
         for filename in os.listdir(config.UPLOAD_DIR):
