@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -8,6 +9,8 @@ from sqlalchemy.orm import Session
 
 from .. import config
 from ..models import Role, User, UserRole, UserSession
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_PASSWORD = config.AUTH_DEFAULT_PASSWORD
 PASSWORD_SALT = "mdams-prototype-auth"
@@ -86,6 +89,14 @@ def create_session_token() -> str:
 
 
 def seed_auth_data(db: Session) -> None:
+    if not DEFAULT_PASSWORD:
+        logger.warning("AUTH_DEFAULT_PASSWORD is not set; skipping user seeding.")
+        return
+    if DEFAULT_PASSWORD == "mdams123":
+        logger.warning(
+            "Using default password 'mdams123' for seeded users. "
+            "Set AUTH_DEFAULT_PASSWORD in .env for production."
+        )
     role_map: dict[str, Role] = {}
     for key, definition in DEFAULT_ROLES.items():
         role = db.query(Role).filter(Role.key == key).first()

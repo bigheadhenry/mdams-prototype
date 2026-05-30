@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from sqlalchemy.orm import Session
 
+from .. import config as app_config
 from ..database import get_db
 from ..models import User
 from ..permissions import CurrentUser, CurrentUserDep, get_current_user, require_permission
@@ -64,6 +65,7 @@ def login(payload: AuthLoginRequest, response: Response, db: Session = Depends(g
         key=SESSION_COOKIE_NAME,
         value=session.session_token,
         httponly=True,
+        secure=getattr(app_config, "SESSION_COOKIE_SECURE", True),
         samesite="lax",
         path="/",
         max_age=60 * 60 * 12,

@@ -52,6 +52,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 AUTH_DEFAULT_PASSWORD = os.getenv("AUTH_DEFAULT_PASSWORD", "mdams123")
 LEGACY_HEADER_AUTH_ENABLED = os.getenv("LEGACY_HEADER_AUTH_ENABLED", "0") == "1"
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "1") == "1"
 
 # Moonshot (Kimi) is OpenAI-compatible. Keep the OPENAI_* names for backwards
 # compatibility, but default them to Moonshot when dedicated Moonshot values are
