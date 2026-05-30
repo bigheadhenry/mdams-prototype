@@ -4,12 +4,12 @@ services:
     container_name: mdams-local-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
-      - POSTGRESQL_USERNAME=meam
-      - POSTGRESQL_PASSWORD=meam_secret
-      - POSTGRESQL_DATABASE=meam_db
-      - POSTGRESQL_POSTGRES_PASSWORD=meam_secret
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRESQL_DATABASE=${POSTGRES_DB}
+      - POSTGRESQL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - mdams-local-postgres-data:/bitnami/postgresql
 
