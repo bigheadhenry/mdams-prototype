@@ -678,8 +678,8 @@ class ThreeDMetadataDictionaryResponse(BaseModel):
 
 
 class AuthLoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(max_length=150)
+    password: str = Field(max_length=1024)
 
 
 class AuthRoleResponse(BaseModel):

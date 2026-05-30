@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 import shutil
 import tempfile
@@ -165,5 +166,6 @@ def download_asset_bag(
         return FileResponse(zip_path, media_type="application/zip", filename=zip_filename)
 
     except Exception as exc:
-        shutil.rmtree(temp_dir)
-        raise HTTPException(status_code=500, detail=f"Failed to generate bag: {str(exc)}")
+        logging.getLogger(__name__).exception("Failed to generate bag")
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        raise HTTPException(status_code=500, detail="Failed to generate delivery package")

@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, timezone
 
@@ -25,7 +26,8 @@ def build_health_payload(db: Session) -> dict:
         db.execute(text("SELECT 1"))
     except Exception as exc:
         db_status = "unhealthy"
-        checks["database"]["error"] = str(exc)
+        logging.getLogger(__name__).warning("Health check DB error: %s", exc)
+        checks["database"]["error"] = "database connection failed"
 
     checks["database"]["status"] = db_status
 
