@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import User
-from ..permissions import CurrentUserDep, get_current_user
+from ..permissions import CurrentUser, CurrentUserDep, get_current_user, require_permission
 from ..schemas import AuthContextResponse, AuthLoginRequest, AuthLoginResponse, AuthRoleResponse, AuthUserSummary
 from ..services.auth import authenticate_user, create_user_session, delete_session_token
 
@@ -28,7 +28,10 @@ def get_auth_context(user: CurrentUserDep):
 
 
 @router.get("/users", response_model=list[AuthUserSummary])
-def list_auth_users(db: Session = Depends(get_db)):
+def list_auth_users(
+    db: Session = Depends(get_db),
+    _user: CurrentUser = Depends(require_permission("system.manage")),
+):
     users = db.query(User).order_by(User.id.asc()).all()
     return [
         AuthUserSummary(

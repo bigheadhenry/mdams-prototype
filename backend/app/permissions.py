@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import Cookie, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
+from . import config
 from .database import get_db
 from .models import User
 from .services.auth import DEFAULT_USERS, get_user_by_session_token
@@ -197,7 +199,12 @@ def get_current_user(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session token")
         return _build_current_user_from_db_user(user)
 
-    if x_mdams_user:
+    if x_mdams_user and config.LEGACY_HEADER_AUTH_ENABLED:
+        logging.getLogger(__name__).warning(
+            "Legacy header auth used by '%s'. "
+            "Set LEGACY_HEADER_AUTH_ENABLED=0 to disable in production.",
+            x_mdams_user,
+        )
         legacy_scope = _parse_collection_scope(x_mdams_collection_scope)
         return _build_legacy_demo_user(x_mdams_user.strip().lower(), legacy_scope)
 

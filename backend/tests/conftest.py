@@ -73,6 +73,10 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 from app import config as app_config  # noqa: E402
 from app.database import Base  # noqa: E402
 
+# Enable legacy header auth for tests so existing tests using
+# get_current_user(x_mdams_user=...) continue to work.
+app_config.LEGACY_HEADER_AUTH_ENABLED = True
+
 
 @pytest.fixture()
 def test_upload_dir(tmp_path, monkeypatch):
