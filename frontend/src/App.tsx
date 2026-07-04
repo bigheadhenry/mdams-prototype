@@ -773,6 +773,8 @@ const App: React.FC = () => {
                     items={applicationCart}
                     onRemove={removeFromApplicationCart}
                     onUpdateNote={updateApplicationNote}
+                    onAddItem={addToApplicationCart}
+                    onNavigateToDirectory={() => setSelectedKey('2')}
                     onSubmit={submitApplication}
                     submitting={applicationsSubmitting}
                   />

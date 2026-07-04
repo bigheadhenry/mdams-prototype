@@ -41,6 +41,7 @@ import {
 import axios from 'axios';
 import ThreeDViewer from './ThreeDViewer';
 import ThreeDSourceDetailDrawer from './ThreeDSourceDetailDrawer';
+import { getFieldLabel } from '../utils/metadataLabels';
 import type {
   AssetDetailFileRecord,
   AssetDetailResponse,
@@ -51,6 +52,7 @@ import type {
   UnifiedResourceDetail as UnifiedResourceDetailType,
   UnifiedResourceSummary,
   ThreeDFileRecord,
+  RightsDisplay,
 } from '../types/assets';
 import type { LifecycleEntry } from '../types/assets';
 
@@ -274,6 +276,51 @@ const SectionTitle: React.FC<{ title: string; subtitle?: string }> = ({ title, s
   </Space>
 );
 
+const renderRightsPanel = (rights?: RightsDisplay | null) => {
+  if (!rights) return null;
+
+  const isOpen = rights.copyright_status === '公共领域';
+
+  return (
+    <div style={{
+      background: isOpen ? '#f6ffed' : '#fffbe6',
+      border: `1px solid ${isOpen ? '#b7eb8f' : '#ffe58f'}`,
+      borderLeft: `4px solid ${isOpen ? '#52c41a' : '#faad14'}`,
+      borderRadius: 8,
+      padding: '10px 16px',
+      marginBottom: 16,
+    }}>
+      <div style={{ fontWeight: 500, fontSize: 14, color: isOpen ? '#135200' : '#ad6800', marginBottom: 4 }}>
+        {rights.statement}
+        {rights.copyright_status && (
+          <span style={{
+            display: 'inline-block', marginLeft: 8, padding: '1px 6px', borderRadius: 4,
+            fontSize: 11, background: isOpen ? 'rgba(82,196,26,0.15)' : 'rgba(250,173,20,0.15)',
+          }}>
+            {rights.copyright_status}
+          </span>
+        )}
+      </div>
+      <Space size="large" wrap style={{ fontSize: 12, color: '#8c8c8c' }}>
+        {rights.credit_line && <span>署名：{rights.credit_line}</span>}
+        {rights.license && (
+          <span>
+            许可：
+            {rights.license_url ? (
+              <a href={rights.license_url} target="_blank" rel="noopener noreferrer" style={{ color: '#1890ff' }}>
+                {rights.license} ↗
+              </a>
+            ) : (
+              <span style={{ color: '#1890ff' }}>{rights.license}</span>
+            )}
+          </span>
+        )}
+        {rights.usage_restrictions && <span style={{ color: '#faad14' }}>⚠ {rights.usage_restrictions}</span>}
+      </Space>
+    </div>
+  );
+};
+
 const scrollToHero = () => {
   const el = document.querySelector('.unified-resource-hero');
   if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -404,6 +451,45 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
       }
     };
     void loadRelatedResources();
+  }, [detail]);
+
+  // ── Related by object_number (cross-source) ───────────────────
+  const [objNumberRelated, setObjNumberRelated] = useState<UnifiedResourceSummary[]>([]);
+  const [objNumberLoading, setObjNumberLoading] = useState(false);
+
+  useEffect(() => {
+    const loadObjNumberRelated = async () => {
+      if (!detail) {
+        setObjNumberRelated([]);
+        return;
+      }
+      // Extract object_number from source_record profile fields
+      const record = detail.source_record as Record<string, unknown> | null;
+      const profile = (record?.metadata as Record<string, unknown> | null)
+        ?? (record?.profile as Record<string, unknown> | null);
+      const on = profile?.object_number as string | undefined;
+      if (!on) {
+        setObjNumberRelated([]);
+        return;
+      }
+      setObjNumberLoading(true);
+      try {
+        const res = await axios.get<PaginatedUnifiedResourceList>('/api/platform/related', {
+          params: {
+            object_number: on,
+            exclude_source: detail.source_system,
+            exclude_id: detail.source_id,
+            limit: 6,
+          },
+        });
+        setObjNumberRelated(res.data.items);
+      } catch {
+        setObjNumberRelated([]);
+      } finally {
+        setObjNumberLoading(false);
+      }
+    };
+    void loadObjNumberRelated();
   }, [detail]);
 
   const sourceRecord = detail?.source_record ?? null;
@@ -821,7 +907,216 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
             </Space>
           </Space>
         </Card>
+
+        {renderRightsPanel(detail.rights_display)}
       </div>
+
+      {/* ── P1: 元数据分组展示（可折叠 Collapse） ── */}
+      {/* 提取 management 字段：从 metadata_layers 中获取 */}
+      {(() => {
+        const metadataLayers = assetRecord?.metadata_layers ?? threeDRecord?.metadata_layers ?? null;
+        const managementFields = metadataLayers?.management as Record<string, unknown> | undefined;
+        const technicalMeta = metadataLayers?.technical as Record<string, unknown> | undefined;
+        const profileSection = metadataLayers?.profile;
+        const profileFields = profileSection?.fields as Record<string, unknown> | undefined;
+
+        const managementRows = managementFields
+          ? Object.entries(managementFields).filter(
+              ([, v]) => v !== null && v !== undefined && v !== '',
+            )
+          : [];
+
+        const technicalRows = technicalMeta
+          ? Object.entries(technicalMeta).filter(
+              ([, v]) => v !== null && v !== undefined && v !== '',
+            )
+          : [];
+
+        const profileRows = profileFields
+          ? Object.entries(profileFields).filter(
+              ([, v]) => v !== null && v !== undefined && v !== '',
+            )
+          : [];
+
+        const hasExtra =
+          managementRows.length > 0 ||
+          technicalRows.length > 0 ||
+          profileRows.length > 0 ||
+          detail?.format ||
+          detail?.resolution;
+
+        if (!hasExtra) return null;
+
+        const renderFieldValue = (value: unknown): React.ReactNode => {
+          if (value === null || value === undefined || value === '') return '-';
+          if (typeof value === 'boolean') return value ? '是' : '否';
+          if (typeof value === 'object') {
+            try { return JSON.stringify(value); } catch { return '-'; }
+          }
+          return String(value);
+        };
+
+        const fieldStyle: React.CSSProperties = {
+          display: 'flex',
+          justifyContent: 'space-between',
+          padding: '4px 0',
+          borderBottom: '1px solid #f0f0f0',
+          fontSize: 13,
+        };
+        const labelStyle: React.CSSProperties = { color: '#8c8c8c', flexShrink: 0, marginRight: 12 };
+        const valueStyle: React.CSSProperties = { textAlign: 'right', wordBreak: 'break-all' };
+
+        return (
+          <Card bordered={false} style={{ marginTop: 16, marginBottom: 16 }}>
+            <Collapse
+              defaultActiveKey={['core']}
+              size="small"
+              items={[
+                {
+                  key: 'core',
+                  label: '核心元数据 (Core)',
+                  children: (
+                    <div>
+                      <div style={fieldStyle}>
+                        <span style={labelStyle}>标题</span>
+                        <span style={valueStyle}>{detail?.title || '-'}</span>
+                      </div>
+                      <div style={fieldStyle}>
+                        <span style={labelStyle}>资源类型</span>
+                        <span style={valueStyle}>{getResourceTypeLabel(detail?.resource_type)}</span>
+                      </div>
+                      <div style={fieldStyle}>
+                        <span style={labelStyle}>来源系统</span>
+                        <span style={valueStyle}>{detail?.source_label || detail?.source_system || '-'}</span>
+                      </div>
+                      <div style={fieldStyle}>
+                        <span style={labelStyle}>来源 ID</span>
+                        <span style={valueStyle}>{detail?.source_id || '-'}</span>
+                      </div>
+                      <div style={fieldStyle}>
+                        <span style={labelStyle}>统一 ID</span>
+                        <span style={valueStyle}>{detail?.id || '-'}</span>
+                      </div>
+                      <div style={fieldStyle}>
+                        <span style={labelStyle}>状态</span>
+                        <span style={valueStyle}>{getStatusLabel(detail?.status)}</span>
+                      </div>
+                      <div style={fieldStyle}>
+                        <span style={labelStyle}>Profile</span>
+                        <span style={valueStyle}>{detail?.profile_label || detail?.profile_key || '-'}</span>
+                      </div>
+                      <div style={{ ...fieldStyle, borderBottom: 'none' }}>
+                        <span style={labelStyle}>更新时间</span>
+                        <span style={valueStyle}>{detail?.updated_at || '-'}</span>
+                      </div>
+                    </div>
+                  ),
+                },
+                ...(managementRows.length > 0
+                  ? [
+                      {
+                        key: 'management',
+                        label: `管理元数据 (Management) · ${managementRows.length} 项`,
+                        children: (
+                          <div>
+                            {managementRows.map(([key, value]) => (
+                              <div key={key} style={fieldStyle}>
+                                <span style={labelStyle}>{getFieldLabel(key)}</span>
+                                <span style={valueStyle}>{renderFieldValue(value)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(technicalRows.length > 0 || detail?.format || detail?.resolution
+                  ? [
+                      {
+                        key: 'technical',
+                        label: '技术元数据 (Technical)',
+                        children: (
+                          <div>
+                            {detail?.format && (
+                              <div style={fieldStyle}>
+                                <span style={labelStyle}>格式</span>
+                                <span style={valueStyle}>{detail.format}</span>
+                              </div>
+                            )}
+                            {detail?.resolution && (
+                              <div style={fieldStyle}>
+                                <span style={labelStyle}>分辨率</span>
+                                <span style={valueStyle}>{detail.resolution}</span>
+                              </div>
+                            )}
+                            {(() => {
+                              const fileSize = assetRecord?.file?.file_size ?? defaultThreeDRecord?.file?.file_size ?? null;
+                              if (!fileSize) return null;
+                              return (
+                                <div style={fieldStyle}>
+                                  <span style={labelStyle}>文件大小</span>
+                                  <span style={valueStyle}>{formatBytes(fileSize)}</span>
+                                </div>
+                              );
+                            })()}
+                            {technicalRows.map(([key, value]) => {
+                              const isLast = key === technicalRows[technicalRows.length - 1]?.[0];
+                              return (
+                                <div
+                                  key={key}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    padding: '4px 0',
+                                    borderBottom: isLast ? 'none' : '1px solid #f0f0f0',
+                                    fontSize: 13,
+                                  }}
+                                >
+                                  <span style={labelStyle}>{getFieldLabel(key)}</span>
+                                  <span style={valueStyle}>{renderFieldValue(value)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(profileRows.length > 0
+                  ? [
+                      {
+                        key: 'profile',
+                        label: `Profile 字段 · ${profileSection?.label || profileSection?.key || '自定义'} (${profileRows.length} 项)`,
+                        children: (
+                          <div>
+                            {profileRows.map(([key, value]) => {
+                              const isLast = key === profileRows[profileRows.length - 1]?.[0];
+                              return (
+                                <div
+                                  key={key}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    padding: '4px 0',
+                                    borderBottom: isLast ? 'none' : '1px solid #f0f0f0',
+                                    fontSize: 13,
+                                  }}
+                                >
+                                  <span style={labelStyle}>{getFieldLabel(key)}</span>
+                                  <span style={valueStyle}>{renderFieldValue(value)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          </Card>
+        );
+      })()}
 
       {sourceRecord && (
         <Row gutter={[16, 16]} data-testid="unified-resource-detail">
@@ -1282,6 +1577,80 @@ const UnifiedResourceDetail: React.FC<UnifiedResourceDetailProps> = ({
                   <Alert type="info" showIcon message="暂无相关推荐。" />
                 )}
               </Card>
+
+              {/* 段落 5：同一文物号的其他资源 */}
+              {objNumberRelated.length > 0 && (
+                <Card id="section-obj-related" bordered={false}>
+                  <SectionTitle
+                    title="同一文物号的其他资源"
+                    subtitle={`${objNumberRelated.length} 件跨来源资源。`}
+                  />
+                  {objNumberLoading ? (
+                    <Spin tip="正在加载..." />
+                  ) : (
+                    <Row gutter={[16, 16]}>
+                      {objNumberRelated.map((item) => (
+                        <Col key={item.id} xl={6} lg={8} md={12} sm={24}>
+                          <Card
+                            hoverable
+                            size="small"
+                            style={{ height: '100%', cursor: 'pointer' }}
+                            onClick={() =>
+                              onOpenUnifiedResourceDetail?.(item.source_system, item.source_id)
+                            }
+                            cover={
+                              <div
+                                style={{
+                                  height: 120,
+                                  background: '#fafafa',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                {item.thumbnail_url ? (
+                                  <Image
+                                    src={item.thumbnail_url}
+                                    alt={item.title}
+                                    style={{
+                                      maxHeight: '100%',
+                                      maxWidth: '100%',
+                                      objectFit: 'cover',
+                                    }}
+                                    preview={false}
+                                  />
+                                ) : item.source_system === 'three_d' ? (
+                                  <BlockOutlined style={{ fontSize: 36, color: '#bfbfbf' }} />
+                                ) : (
+                                  <FileOutlined style={{ fontSize: 36, color: '#bfbfbf' }} />
+                                )}
+                              </div>
+                            }
+                          >
+                            <Card.Meta
+                              title={
+                                <Text strong style={{ fontSize: 13 }}>
+                                  {item.title || '(无标题)'}
+                                </Text>
+                              }
+                              description={
+                                <Space direction="vertical" size={2}>
+                                  <Tag>{item.source_label}</Tag>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>
+                                    {item.resource_type} · 同一文物号
+                                  </Text>
+                                </Space>
+                              }
+                            />
+                          </Card>
+                        </Col>
+                      ))}
+                    </Row>
+                  )}
+                </Card>
+              )}
+
             </Space>
           </Col>
         </Row>

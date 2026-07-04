@@ -169,6 +169,8 @@ export interface ApplicationCartItem {
   title: string;
   manifestUrl: string;
   objectNumber?: string | null;
+  era?: string | null;
+  objectLevel?: string | null;
   sourceLabel?: string | null;
   canSubmit?: boolean;
   note?: string;
@@ -260,6 +262,7 @@ export interface AssetDetailResponse {
   };
   technical_metadata: AssetTechnicalMetadata;
   metadata_layers?: AssetMetadataLayers;
+  rights_display?: RightsDisplay | null;
   access: AssetAccessSummary;
   access_paths: {
     manifest?: {
@@ -313,7 +316,19 @@ export interface AssetMetadataLayers {
     sheet?: string;
     fields?: Record<string, unknown>;
   };
+  rights?: Record<string, unknown>;
+  rights_display?: RightsDisplay;
   raw_metadata?: Record<string, unknown>;
+}
+
+export interface RightsDisplay {
+  statement: string;
+  credit_line: string;
+  license?: string | null;
+  license_url?: string | null;
+  copyright_status?: string | null;
+  usage_restrictions?: string | null;
+  allow_derivatives?: boolean | null;
 }
 
 export interface FaceRecognitionFaceResult {
@@ -441,6 +456,12 @@ export interface UnifiedResourceSummary {
   preview_data?: ThreeDPreviewData | null;
   updated_at: string;
   actions?: UnifiedResourceAction[];
+  resolution?: string | null;
+  format?: string | null;
+  era?: string | null;
+  object_level?: string | null;
+  main_person?: string | null;
+  main_location?: string | null;
 }
 
 export interface ThreeDPreviewData {
@@ -459,6 +480,7 @@ export interface UnifiedResourceDetail extends UnifiedResourceSummary {
   source_record_type?: 'asset_detail' | 'three_d_detail' | 'three_d_object_detail' | string | null;
   source_record_schema?: string | null;
   source_record?: AssetDetailResponse | ThreeDDetailResponse | ThreeDDigitalObjectDetailResponse | null;
+  rights_display?: RightsDisplay | null;
 }
 
 export interface PaginatedUnifiedResourceList {
@@ -758,4 +780,65 @@ export interface ThreeDObjectGroup {
   updatedAt: string | null;
   readyCount: number;
   totalFileCount: number;
+}
+
+// ── Import Dialog types ──────────────────────────────────────────────
+
+/** 单个图片项，来自文物号查询返回 */
+export interface LookupImageItem {
+  sourceSystem: string;
+  sourceId: string;
+  title: string;
+  thumbnailUrl?: string | null;
+  manifestUrl?: string | null;
+  objectNumber?: string | null;
+  /** 分辨率字符串，如 "6000x4000" */
+  resolution?: string | null;
+  /** 拍摄日期 */
+  captureDate?: string | null;
+  /** 摄影者 */
+  photographer?: string | null;
+  /** 拍摄内容 */
+  content?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
+}
+
+/** 文物号查询 API 响应 */
+export interface LookupResponse {
+  items: LookupImageItem[];
+  total: number;
+  objectNumber: string;
+  objectName?: string | null;
+}
+
+/** 解析后的导入行（来自文本粘贴或 CSV/Excel） */
+export interface ParsedImportRow {
+  /** 文物号 */
+  objectNumber: string;
+  /** 图片ID（如有则为精确匹配） */
+  imageId?: string | null;
+  /** 拍摄内容 */
+  content?: string | null;
+  /** 拍摄时间 */
+  captureDate?: string | null;
+  /** 摄影者 */
+  photographer?: string | null;
+  /** 匹配类型 */
+  matchType: 'exact' | 'expand';
+  /** 行号（用于错误定位） */
+  lineNo: number;
+  /** 原始行文本 */
+  raw: string;
+}
+
+/** ImportDialog 最终选择导入的条目 */
+export interface ImportSelectionItem {
+  sourceSystem: string;
+  sourceId: string;
+  title: string;
+  objectNumber?: string | null;
+  thumbnailUrl?: string | null;
+  manifestUrl?: string | null;
+  note?: string | null;
 }

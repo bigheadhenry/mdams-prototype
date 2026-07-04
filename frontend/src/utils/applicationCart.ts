@@ -16,6 +16,8 @@ export const buildApplicationCartItemFromUnifiedResource = (
   title: resource.title,
   manifestUrl: resource.manifest_url,
   sourceLabel: resource.source_label,
-  objectNumber: resource.id,
+  objectNumber: resource.source_id,
+  era: resource.era || null,
+  objectLevel: resource.object_level || null,
   canSubmit: true,
 });
