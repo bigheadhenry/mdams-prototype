@@ -118,6 +118,17 @@ class AssetStructureResponse(BaseModel):
     packaging: AssetPackagingInfo | None = None
 
 
+class RightsDisplay(BaseModel):
+    """User-facing rights information for the detail page."""
+    statement: str
+    credit_line: str
+    license: str | None = None
+    license_url: str | None = None
+    copyright_status: str | None = None
+    usage_restrictions: str | None = None
+    allow_derivatives: bool | None = None
+
+
 class AssetDetailResponse(BaseModel):
     id: int
     identifier: str
@@ -136,6 +147,7 @@ class AssetDetailResponse(BaseModel):
     structure: AssetStructureResponse
     technical_metadata: dict[str, Any]
     metadata_layers: dict[str, Any]
+    rights_display: RightsDisplay | None = None
     access: AssetAccessSummary
     access_paths: AssetAccessPaths
     outputs: AssetOutputs
@@ -183,6 +195,12 @@ class UnifiedResourceSummary(BaseModel):
     preview_data: dict[str, Any] | None = None
     updated_at: datetime
     actions: list[UnifiedResourceAction] = Field(default_factory=list)
+    resolution: str | None = Field(None, description="Image resolution like '6000x4000'")
+    format: str | None = Field(None, description="File format like 'TIFF', 'JPEG'")
+    era: str | None = Field(None, description="Era/period like '清', '明', '宋'")
+    object_level: str | None = Field(None, description="Artifact level like '一级', '二级'")
+    main_person: str | None = Field(None, description="Main person for activity images")
+    main_location: str | None = Field(None, description="Main location for activity images")
 
 
 class UnifiedResourceDetail(UnifiedResourceSummary):
@@ -190,6 +208,7 @@ class UnifiedResourceDetail(UnifiedResourceSummary):
     source_record_type: str | None = None
     source_record_schema: str | None = None
     source_record: dict[str, Any] | None = None
+    rights_display: RightsDisplay | None = None
 
 
 class PaginatedUnifiedResourceList(BaseModel):
@@ -466,6 +485,8 @@ class ApplicationListItem(BaseModel):
     created_at: datetime
     submitted_at: datetime | None = None
     reviewed_at: datetime | None = None
+    reviewed_by: str | None = Field(None, description="Display name of the reviewer")
+    exported_by: str | None = Field(None, description="Display name of the exporter")
 
 
 class ApplicationDetailResponse(BaseModel):
@@ -481,9 +502,22 @@ class ApplicationDetailResponse(BaseModel):
     created_at: datetime
     submitted_at: datetime | None = None
     reviewed_at: datetime | None = None
+    reviewed_by: str | None = Field(None, description="Display name of the reviewer")
+    exported_by: str | None = Field(None, description="Display name of the exporter")
     items: list[ApplicationItemResponse] = Field(default_factory=list)
+    audit_logs: list["ApplicationAuditLogEntry"] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ApplicationAuditLogEntry(BaseModel):
+    id: int
+    action: str
+    from_status: str | None = None
+    to_status: str | None = None
+    actor_display_name: str | None = None
+    review_note: str | None = None
+    created_at: datetime
 
 
 class ThreeDCollectionObjectOut(BaseModel):
@@ -707,3 +741,37 @@ class AuthContextResponse(BaseModel):
 class AuthLoginResponse(BaseModel):
     token: str
     user: AuthContextResponse
+
+
+# ── Search Subscription schemas ───────────────────────────────
+
+
+class SearchSubscriptionCreateRequest(BaseModel):
+    """Create a search subscription."""
+    name: str = Field(..., description="订阅名称", max_length=256)
+    query_params: dict[str, str | int | float | bool | None] = Field(
+        ..., description="搜索过滤条件，如 q, status, resource_type, profile_key, source_system, sort_by, sort_order"
+    )
+
+
+class SearchSubscriptionResponse(BaseModel):
+    """Search subscription response."""
+    id: int
+    user_id: str
+    name: str
+    query_params: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
+    created_at: datetime
+    last_checked_at: datetime | None = None
+    active: bool = True
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SearchSubscriptionCheckResponse(BaseModel):
+    """Result of checking a subscription for new items."""
+    id: int
+    name: str
+    checked_at: str
+    total_items: int
+    new_items_since_last_check: int
+    message: str

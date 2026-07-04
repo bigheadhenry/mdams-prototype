@@ -28,12 +28,18 @@ services:
       - FACE_RECOGNITION_MODEL_NAME=${FACE_RECOGNITION_MODEL_NAME}
       - FACE_RECOGNITION_INDEX_DIR=${FACE_RECOGNITION_INDEX_DIR}
       - FACE_RECOGNITION_STRICT_LOCAL_MODELS=${FACE_RECOGNITION_STRICT_LOCAL_MODELS}
+      - MEILI_URL=${MEILI_URL:-http://meilisearch:7700}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-mdams_search_key}
     volumes:
       # Map NAS mount point directly
       - ${HOST_MUSEUM_PATH}:/app/uploads
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
 
   celery_worker:
     build: ./backend
@@ -60,8 +66,10 @@ services:
       # Map NAS mount point directly
       - ${HOST_MUSEUM_PATH}:/app/uploads
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
@@ -69,6 +77,12 @@ services:
     restart: always
     ports:
       - "${REDIS_PORT}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
 
   frontend:
     build: ./frontend
@@ -100,6 +114,32 @@ services:
       resources:
         limits:
           memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Search engine for unified resource search
+  # 统一资源目录检索引擎
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: meam-meili
+    restart: always
+    expose:
+      - "7700"
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-mdams_search_key}
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - ./meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # IIIF Server for high-resolution image serving
   # 用于高分辨率图像服务的 IIIF 服务器
@@ -126,6 +166,12 @@ services:
       # Ensure UTF-8 support for filenames
       - LANG=C.UTF-8
       - LC_ALL=C.UTF-8
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8182/iiif/2/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
 volumes:
   meam_pg_data:

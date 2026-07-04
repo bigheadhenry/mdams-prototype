@@ -1,6 +1,6 @@
 # 测试策略
 
-- 最后核对日期：2026-05-17
+- 最后核对日期：2026-07-04
 - 核对范围：`backend/tests/`、`frontend/tests/`、`frontend/package.json`、`pytest.ini`
 
 ## 1. 目标
@@ -32,6 +32,7 @@
 
 - `eslint` 静态检查
 - `vite build` 构建检查
+- Vitest 单元/契约测试（权限类型、标签映射等）
 - Playwright 回归测试
 
 Playwright 当前重点覆盖：
@@ -52,6 +53,7 @@ Playwright 当前重点覆盖：
 - `test_config.py`
 - `test_auth_service.py`
 - `test_permissions.py`
+- `test_p0_security.py`
 - `test_asset_visibility.py`
 - `test_derivative_policy.py`
 - `test_event_boundary.py`

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from .. import config
 from ..database import get_db
 from ..models import Asset
+from ..permissions import CurrentUser, require_permission
 from ..schemas import IngestSipResponse
 from ..services.iiif_access import (
     get_asset_iiif_access_file_path,
@@ -30,7 +31,8 @@ router = APIRouter(
 async def ingest_sip(
     file: UploadFile = File(...),
     manifest: str = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("image.upload")),
 ):
     """
     Receive SIP (Submission Information Package) with BagIt-like verification.

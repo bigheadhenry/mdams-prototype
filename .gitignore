@@ -18,6 +18,9 @@ cantaloupe/cantaloupe-5.0.6/
 .vscode/
 .idea/
 
+# Local meili data
+meili_data/
+
 # Build artifacts
 dist/
 build/

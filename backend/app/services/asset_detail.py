@@ -20,6 +20,7 @@ from app.schemas import (
     AssetStatusInfo,
     AssetStructureResponse,
     AssetTimelineEntry,
+    RightsDisplay,
 )
 from .iiif_access import (
     get_asset_iiif_access_file_path,
@@ -312,6 +313,17 @@ def build_asset_detail_response(asset: Asset) -> AssetDetailResponse:
         for item in lifecycle
     ]
 
+    raw_rights_display = metadata_layers.get("rights_display", {}) or {}
+    rights_display = RightsDisplay(
+        statement=str(raw_rights_display.get("statement", "")),
+        credit_line=str(raw_rights_display.get("credit_line", "")),
+        license=raw_rights_display.get("license"),
+        license_url=raw_rights_display.get("license_url"),
+        copyright_status=raw_rights_display.get("copyright_status"),
+        usage_restrictions=raw_rights_display.get("usage_restrictions"),
+        allow_derivatives=raw_rights_display.get("allow_derivatives"),
+    ) if raw_rights_display.get("statement") else None
+
     return AssetDetailResponse(
         id=asset.id,
         identifier=f"asset-{asset.id}",
@@ -351,6 +363,7 @@ def build_asset_detail_response(asset: Asset) -> AssetDetailResponse:
         ),
         technical_metadata=technical,
         metadata_layers=metadata_layers,
+        rights_display=rights_display,
         access=AssetAccessSummary(
             manifest_url=f"/api/iiif/{asset.id}/manifest",
             preview_enabled=preview_ready,

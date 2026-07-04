@@ -6,17 +6,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from .. import config
 from ..database import get_db
 from ..models import VideoAsset
+from ..permissions import CurrentUser, require_permission
 from ..schemas import VideoAssetOut
-from ..services.video_metadata import build_video_metadata_layers
 
 router = APIRouter(prefix="/video", tags=["video"])
 
 
 @router.get("/resources", response_model=list[VideoAssetOut])
-def list_video_assets(db: Session = Depends(get_db)):
+def list_video_assets(
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("video.view")),
+):
     assets = db.query(VideoAsset).order_by(VideoAsset.created_at.desc(), VideoAsset.id.desc()).all()
     result: list[VideoAssetOut] = []
     for asset in assets:
@@ -45,7 +47,11 @@ def list_video_assets(db: Session = Depends(get_db)):
 
 
 @router.get("/resources/{asset_id}", response_model=VideoAssetOut)
-def get_video_asset(asset_id: int, db: Session = Depends(get_db)):
+def get_video_asset(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("video.view")),
+):
     asset = db.query(VideoAsset).filter(VideoAsset.id == asset_id).first()
     if asset is None:
         raise HTTPException(status_code=404, detail="Video asset not found")
@@ -71,7 +77,11 @@ def get_video_asset(asset_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/resources/{asset_id}/stream")
-def stream_video(asset_id: int, db: Session = Depends(get_db)):
+def stream_video(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("video.view")),
+):
     """Stream video file with range request support."""
     asset = db.query(VideoAsset).filter(VideoAsset.id == asset_id).first()
     if asset is None:
@@ -90,7 +100,11 @@ def stream_video(asset_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/resources/{asset_id}")
-def delete_video_asset(asset_id: int, db: Session = Depends(get_db)):
+def delete_video_asset(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("video.delete")),
+):
     asset = db.query(VideoAsset).filter(VideoAsset.id == asset_id).first()
     if asset is None:
         raise HTTPException(status_code=404, detail="Video asset not found")

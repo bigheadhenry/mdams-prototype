@@ -58,11 +58,14 @@
 ## 5. 容易混淆的文档关系
 
 | 容易混淆项 | 当前解释 |
-|---|---|
-| `ARCHITECTURE.md` vs `SYSTEM_ARCHITECTURE.md` | `ARCHITECTURE.md` 是快速概览；`SYSTEM_ARCHITECTURE.md` 是当前系统架构事实入口 |
-| `DEPLOYMENT.md` vs `SETUP_AND_DEPLOYMENT.md` | `DEPLOYMENT.md` 只是迁移提示；当前部署以 `SETUP_AND_DEPLOYMENT.md` 为准 |
-| `INSTALL_DOCKER_WINDOWS.md` | 已迁移提示，首次启动看 `SETUP_AND_DEPLOYMENT.md` |
-| `MANUAL_IMAGE_GUIDE.md` | 特定网络环境下的应急记录，不是常规部署流程 |
+|------------|---------|
+| `ARCHITECTURE.md` vs `SYSTEM_ARCHITECTURE.md` | 均已归档到 `docs/00-归档/`，当前架构事实入口为 `docs/02-架构设计/SYSTEM_ARCHITECTURE.md` |
+| `DEPLOYMENT.md` vs `SETUP_AND_DEPLOYMENT.md` | `DEPLOYMENT.md` 已归档；当前部署以 `SETUP_AND_DEPLOYMENT.md` 为准 |
+| `INSTALL_DOCKER_WINDOWS.md` | 已归档到 `docs/00-归档/`，首次启动看 `SETUP_AND_DEPLOYMENT.md` |
+| `MANUAL_IMAGE_GUIDE.md` | 已归档，特定网络环境下的应急记录 |
+| `SYSTEM_ARCHITECTURE.md`（根目录） | 已归档，功能合并到 `docs/02-架构设计/SYSTEM_ARCHITECTURE.md` |
+| `WORKFLOW_GUIDE.md`（根目录） | 已归档，当前入口为 `docs/03-产品与流程/WORKFLOW_GUIDE.md` |
+| `CANTALOUPE_DEPLOY_NOTES.md` | 已归档，对应排障内容在 `TROUBLESHOOTING.md` |
 | `04-实施方案/*_PLAN.md` | 阶段方案和设计意图，不能直接当作当前实现事实 |
 | `PROJECT_DIRECTION_AGGREGATION_ARCHITECTURE.md` | 中长期方向说明，当前 API / 平台事实以 `API_ROUTE_MAP.md` 和 `PLATFORM_SOURCE_ADAPTERS.md` 为准 |
 
@@ -73,3 +76,13 @@
 3. 研究材料必须标清“已实现 / 部分对齐 / 概念借鉴 / 未来扩展”。
 4. 实施方案完成后不删除，改为归档或在入口文档中说明其历史状态。
 5. 新增来源或权限时，同步更新 API 路由、平台来源、角色权限和菜单矩阵。
+6. 每次变更后必须更新 `DOCUMENT_REGISTRY.md` 中被修改文档的最后更新日期。
+7. 每次变更后必须评估是否需要追加 `CHANGELOG.md` 条目。
+8. 正式发布前应更新 `VERSION` 文件。
+
+## 7. 版本管理
+
+- 版本号定义在仓库根目录 `VERSION` 文件中。
+- 前端 `frontend/package.json` 的 `version` 字段与之同步。
+- 变更记录在 `CHANGELOG.md` 中维护，按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式组织。
+- 所有文档的当前状态集中管理在 `docs/DOCUMENT_REGISTRY.md`。

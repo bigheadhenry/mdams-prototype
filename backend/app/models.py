@@ -188,12 +188,24 @@ class Application(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    exported_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
 
     items = relationship(
         "ApplicationItem",
         back_populates="application",
         cascade="all, delete-orphan",
         order_by="ApplicationItem.id",
+    )
+
+    reviewed_by = relationship("User", foreign_keys=[reviewed_by_user_id])
+    exported_by = relationship("User", foreign_keys=[exported_by_user_id])
+
+    audit_logs = relationship(
+        "ApplicationAuditLog",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        order_by="ApplicationAuditLog.created_at",
     )
 
 
@@ -217,6 +229,23 @@ class ApplicationItem(Base):
 
     application = relationship("Application", back_populates="items")
     asset = relationship("Asset", back_populates="application_items")
+
+
+class ApplicationAuditLog(Base):
+    __tablename__ = "application_audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    application_id = Column(Integer, ForeignKey("applications.id", ondelete="CASCADE"), index=True, nullable=False)
+    action = Column(String, nullable=False, index=True)
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=True)
+    actor_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    actor_display_name = Column(String, nullable=True)
+    review_note = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    application = relationship("Application", back_populates="audit_logs")
+    actor = relationship("User")
 
 
 class ThreeDAsset(Base):
@@ -331,3 +360,15 @@ class VideoAsset(Base):
 
     # Status: processing, ready, error
     status = Column(String, default="processing")
+
+
+class SearchSubscription(Base):
+    __tablename__ = "search_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    query_params = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_checked_at = Column(DateTime(timezone=True), nullable=True)
+    active = Column(Boolean, default=True)

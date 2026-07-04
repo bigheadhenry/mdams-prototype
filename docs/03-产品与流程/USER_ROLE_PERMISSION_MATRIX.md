@@ -1,6 +1,6 @@
 # 用户角色与权限矩阵
 
-- 最后核对日期：2026-05-17
+- 最后核对日期：2026-07-04
 - 核对范围：`backend/app/permissions.py`、`backend/app/services/auth.py`、`frontend/src/auth/permissions.ts`、`frontend/src/App.tsx`
 
 ## 1. 目标
@@ -37,7 +37,7 @@
 - `platform.view`
 - `system.manage`
 
-当前视频资源没有单独的 `video.*` 权限命名空间；视频作为统一平台来源，通过 `platform.view` 进入统一目录和统一详情。
+视频资源已独立使用 `video.view` / `video.delete` 权限命名空间；统一平台目录仍通过 `platform.view` 聚合视频来源。
 
 ### 3.2 二维资源
 
@@ -67,7 +67,13 @@
 - `three_d.upload`
 - `three_d.edit_scope`
 
-### 3.5 利用申请
+### 3.5 视频资源
+
+- `video.view`
+- `video.delete`
+
+
+### 3.6 利用申请
 
 - `application.create`
 - `application.view_own`
@@ -75,7 +81,7 @@
 - `application.review`
 - `application.export`
 
-### 3.6 范围相关
+### 3.7 范围相关
 
 - `collection.scope`
 
@@ -85,17 +91,17 @@
 
 | 角色 | 当前权限 |
 | :--- | :--- |
-| `image_structured_editor` | `dashboard.view`, `image.view`, `image.edit`, `platform.view` |
-| `image_ingest_operator` | `dashboard.view`, `image.view`, `image.upload`, `platform.view` |
-| `image_ingest_reviewer` | `dashboard.view`, `image.view`, `image.ingest_review`, `platform.view` |
-| `image_resource_manager` | `dashboard.view`, `image.view`, `image.edit`, `image.delete`, `platform.view` |
+| `image_structured_editor` | `dashboard.view`, `image.view`, `image.edit`, `video.view`, `platform.view` |
+| `image_ingest_operator` | `dashboard.view`, `image.view`, `image.upload`, `video.view`, `platform.view` |
+| `image_ingest_reviewer` | `dashboard.view`, `image.view`, `image.ingest_review`, `video.view`, `platform.view` |
+| `image_resource_manager` | `dashboard.view`, `image.view`, `image.edit`, `image.delete`, `video.view`, `video.delete`, `platform.view` |
 | `image_metadata_entry` | `dashboard.view`, `image.view`, `platform.view`, `image.record.create`, `image.record.view`, `image.record.edit`, `image.record.submit`, `image.record.return`, `image.record.list` |
 | `image_photographer_upload` | `dashboard.view`, `image.view`, `platform.view`, `image.record.view`, `image.record.view_ready_for_upload`, `image.file.upload`, `image.file.match` |
-| `three_d_operator` | `dashboard.view`, `three_d.view`, `three_d.upload`, `three_d.edit`, `platform.view` |
-| `application_reviewer` | `dashboard.view`, `image.view`, `platform.view`, `application.view_all`, `application.review`, `application.export` |
-| `collection_owner` | `dashboard.view`, `image.view`, `image.edit_scope`, `three_d.view`, `three_d.edit_scope`, `platform.view`, `collection.scope` |
-| `resource_user` | `dashboard.view`, `image.view`, `three_d.view`, `platform.view`, `application.create`, `application.view_own` |
-| `system_admin` | 拥有当前全部业务权限，并额外拥有 `system.manage` |
+| `three_d_operator` | `dashboard.view`, `three_d.view`, `three_d.upload`, `three_d.edit`, `video.view`, `platform.view` |
+| `application_reviewer` | `dashboard.view`, `image.view`, `video.view`, `platform.view`, `application.view_all`, `application.review`, `application.export` |
+| `collection_owner` | `dashboard.view`, `image.view`, `image.edit_scope`, `three_d.view`, `three_d.edit_scope`, `video.view`, `platform.view`, `collection.scope` |
+| `resource_user` | `dashboard.view`, `image.view`, `three_d.view`, `video.view`, `platform.view`, `application.create`, `application.view_own` |
+| `system_admin` | 拥有当前全部业务权限（含 `video.view`、`video.delete`），并额外拥有 `system.manage` |
 
 ## 5. 菜单入口规则
 

@@ -385,8 +385,91 @@ YYYY-MM-DD
 - 验证结果：已检查 `WORK_LOG.md` 未提交 diff 与主要代码 diff，确认新增/修改主题均有日志覆盖；执行敏感信息扫描，未发现真实 token 或私钥形态，仅命中示例密码、空 API key 字段和已有测试默认密码。本轮同步前未重新运行全量测试，沿用各条日志中记录的专项验证结果。
 - 备注：本条用于把较长时间累积的本地未提交内容统一对齐到日志；`backend/runtime/face_recognition/README.md` 只提交运行时结构说明，模型、索引和识别库数据仍由 `.gitignore` 排除。
 
+### 2026-06-23 - 版本管理与文档治理基线建立
+- 修改范围：`VERSION`（新增）、`CHANGELOG.md`（新增）、`docs/DOCUMENT_REGISTRY.md`（新增）、`docs/DOCUMENT_GOVERNANCE.md`（更新）、`frontend/package.json`（更新 version）、`memory/MDAMS_联合评估报告_2026-06-23.md`（新增评估报告）
+- 变更内容：基于 git log 结构化整理 CHANGELOG（4 个版本：0.0.1～0.3.0）；创建 `VERSION` 文件将版本号独立管理；创建 `docs/DOCUMENT_REGISTRY.md` 集中跟踪所有文档状态和最后更新日期；更新 `DOCUMENT_GOVERNANCE.md` 补充版本管理和文档更新规则；将 `frontend/package.json` 版本号从 `0.0.0` 同步为 `0.3.0`。
+- 验证结果：`VERSION`、`CHANGELOG.md`、`DOCUMENT_REGISTRY.md` 文件创建完成；`DOCUMENT_GOVERNANCE.md` 和 `frontend/package.json` 更新完成；skill `mdams-doc-update` 已注册到 skill 系统。
+- 备注：后续每次代码变更后必须加载 `mdams-doc-update` skill 并执行其中的 7 步工作流。评估报告同步存于 `memory/`。
+
+### 2026-06-23 - Docker healthcheck + deploy.sh 改进 + Cantaloupe URL 修正
+- 修改范围：`docker-compose.yml`（3 个健康检查 + 2 个 depends_on 条件）、`deploy.sh`（health polling 替代 sleep 10）、`.env.example`（CANTALOUPE_INTERNAL_URL 默认值改为容器内部地址）、`CHANGELOG.md`（合并 0.3.1 条目）、`VERSION`（0.3.0 → 0.3.1）
+- 变更内容：为 db（pg_isready）、redis（redis-cli ping）、cantaloupe（curl health）添加 Docker healthcheck；backend 和 celery_worker 的 depends_on 从简单依赖改为 `condition: service_healthy`；deploy.sh 用 90s 轮询代替盲等 10 秒；.env.example 中的 CANTALOUPE_INTERNAL_URL 默认值从 `localhost:8182` 改为 `cantaloupe:8182`，消除容器内外网络混淆。
+- 验证结果：`docker compose config` 语法检查通过（静默无报错）；`python -m py_compile backend/app/permissions.py backend/app/config.py` 通过。
+- 备注：对应评估报告 Phase 1 中的 #2（healthcheck）和 #3（Cantaloupe URL）。安全后门（#1）由另一子 agent 并行完成。
+
 ### 2026-05-16 - 代码审计与安全修复
 - 修改范围：后端 CORS 与认证服务、二维/三维文件上传下载、BagIt 输出、前端依赖锁文件、后端安全契约测试、环境变量示例。
 - 变更内容：将 CORS 从通配改为 `CORS_ALLOWED_ORIGINS` 配置；将默认认证密码改为 `AUTH_DEFAULT_PASSWORD` 配置，并把口令哈希升级为带随机盐的 PBKDF2 格式，同时兼容并自动迁移旧固定盐哈希；为二维上传文件名增加 basename 归一化，防止路径穿越；为二维文件下载与 BagIt 导出补充认证与可见范围校验；为三维单文件下载、文件级下载与 ZIP 打包增加资源目录边界检查和归档文件名清洗；固定 BagIt tag files 在 Windows 下的换行输出；运行 `npm audit fix --legacy-peer-deps` 升级可安全更新的前端依赖。
-- 验证结果：`python -m py_compile backend\app\config.py backend\app\main.py backend\app\services\auth.py backend\app\routers\assets.py backend\app\routers\downloads.py backend\app\routers\three_d.py backend\app\services\three_d_storage.py` 通过；`python -m pytest backend\tests\test_auth_service.py backend\tests\test_output_contracts.py -q` 结果为 `7 passed, 2 skipped`，跳过原因是本地 PostgreSQL `localhost:5432` 未启动；`npm run build` 通过；`npm audit --audit-level=moderate` 从 17 个漏洞降到 4 个中危残留。
+- 验证结果：`python -m py_compile backend\\app\\config.py backend\\app\\main.py backend\\app\\services\\auth.py backend\\app\\routers\\assets.py backend\\app\\routers\\downloads.py backend\\app\\routers\\three_d.py backend\\app\\services\\three_d_storage.py` 通过；`python -m pytest backend\\tests\\test_auth_service.py backend\\tests\\test_output_contracts.py -q` 结果为 `7 passed, 2 skipped`，跳过原因是本地 PostgreSQL `localhost:5432` 未启动；`npm run build` 通过；`npm audit --audit-level=moderate` 从 17 个漏洞降到 4 个中危残留。
 - 备注：残留 npm audit 项分别来自 Mirador 3.x 间接依赖 DOMPurify 与 Vite/esbuild dev server 风险，自动修复需要 `mirador@4` 或 `vite@8` 破坏性大版本升级，本轮未使用 `--force`；后续建议单独评估 Mirador 4 迁移和 Vite 大版本升级。
+
+### 2026-06-23 - 安全修复：X-MDAMS-User Header 认证后门关闭
+- 修改范围：`backend/app/config.py`、`backend/app/permissions.py`、`backend/tests/conftest.py`、`.env.example`、`docs/05-部署与运维/ENVIRONMENT_VARIABLES.md`、`VERSION`、`CHANGELOG.md`、`frontend/package.json`
+- 变更内容：由联合评估报告（#6 高优先级）驱动。新增 `MDAMS_DEMO_MODE` 环境变量（默认 `0`），`permissions.py` 中 `get_current_user()` 的 `X-MDAMS-User` 分支现在仅当 `MDAMS_DEMO_MODE=1` 时生效，否则安全后门被关闭。启动 demo 模式时日志输出 `WARNING` 级安全提示。测试 conftest 自动设为 `1` 保持兼容。
+- 验证结果：`python -m py_compile backend/app/config.py backend/app/permissions.py` 通过；`python -m pytest backend/tests/test_permissions.py backend/tests/test_asset_visibility.py backend/tests/test_image_records.py -q` 结果待验证（需 PostgreSQL）。
+- 备注：这是评估报告 「Phase 3 — 后端清理」中最紧急的安全项。后续应继续按评估路线处理 models.py 拆分、Docker healthchecks 等。
+
+### 2026-06-23 - Alembic 迁移系统 + 根目录遗留文档归档
+- 修改范围：`backend/app/main.py`（替换 schema 兼容函数为 Alembic 自动迁移）、`backend/alembic/`（Alembic 初始化 + 初始 migration 捕获 15 张表）、`backend/requirements.txt`（+alembic）、`backend/requirements-dev.txt`（+alembic）、`backend/Dockerfile`（启动时自动 alembic upgrade head）、`backend/start.sh`（新增迁移执行脚本）、`CHANGELOG.md`（追加 0.3.1 条目）、`VERSION`（0.3.1）、`frontend/package.json`（同步 0.3.1）、`docs/00-归档/`（新增归档目录 + README）、`docs/DOCUMENT_GOVERNANCE.md`（更新混淆说明）、`docs/DOCUMENT_REGISTRY.md`（新增归档记录 + 清理根目录表）、`docs/README.md`（增加 00-归档 目录说明）
+- 变更内容：初始化 Alembic 迁移框架，生成包含全部 15 张表和 12 个唯一索引的初始 migration；docker-compose 启动时自动执行 `alembic upgrade head`；保留 `Base.metadata.create_all()` 作为 Alembic 不可用时的后备路径；将 7 个已过时的根级别文档移入 `docs/00-归档/` 并更新所有交叉引用。
+- 验证结果：`alembic revision --autogenerate -m "initial schema"` 成功（SQLite 离线模式），生成 migration 文件（379 行，15 表全量）；`python -m py_compile backend/app/main.py` 通过；`git mv` 操作完成，根目录现在仅保留 4 个必需文件（README/CHANGELOG/VERSION/cubox/FORCodex）。
+- 备注：对应评估报告 Phase 1 中的 #4（Alembic）和 #5（根目录清理）。Phase 1（工程基础设施）全部 5 项已完成。
+
+### 2026-06-23 - 影像利用申请交付包增加授权说明
+- 修改范围：`backend/app/services/application_delivery.py`（新增 `_build_authorization_notice` 函数、替换 README.txt、`application.json` 追加 `reviewed_at`）、`backend/tests/test_applications.py`（扩展导出测试验证交付包完整性：授权说明内容、application.json 字段、数据文件、README.txt）、`CHANGELOG.md`（追加 0.3.1 条目）
+- 变更内容：交付包新增「授权说明.md」，包含授权编号/获批用途/使用范围/有效期限/署名要求/版权声明/使用限制；application.json 新增 `reviewed_at` 时间戳；README.txt 指引用户查阅授权说明；单元验证通过（8 项内容检查全部通过：授权编号、申请人、获批用途、版权归属、署名要求、有效期限、不可转让条款、文物编号）；集成测试扩展覆盖交付包 4 类文件完整性检查。
+- 验证结果：`python -m py_compile backend/app/services/application_delivery.py` 通过；独立验证脚本 8/8 内容检查通过（682 字符通知文本）；集成测试待 PostgreSQL 可用后运行（当前无数据库）。
+- 备注：对应评估报告影像利用申请分析中 P0 项 #3（交付包授权说明）。后续 P0 项 #1（申请人与系统用户关联）和 #2（审批审计日志）可继续推进。
+
+### 2026-06-23 - 审批与导出操作追加操作人记录
+- 修改范围：`backend/app/models.py`（Application 表新增 reviewed_by_user_id + exported_by_user_id FK）、`backend/app/schemas.py`（ApplicationListItem + ApplicationDetailResponse 新增 reviewed_by / exported_by 字段）、`backend/app/routers/applications.py`（approve/reject/export 写入操作用户、列表查询预加载 user 关系）、`backend/tests/test_applications.py`（导入 CurrentUser、传递 mock reviewer、新增 test_reject_application）、`backend/alembic/versions/c7f0f77cf2a2_*.py`（手动迁移 2 列 + 2 索引 + 2 FK）、`CHANGELOG.md`
+- 变更内容：审批/拒绝操作记录 `reviewed_by_user_id`，导出操作记录 `exported_by_user_id`，响应中返回对应 `display_name`；列表和详情查询预加载 user 关系避免 N+1；测试覆盖率从 3 用例扩展到 4 用例，全部传递 mock CurrentUser。
+- 验证结果：`python -m py_compile` 通过（6 个文件全部编译成功）。
+- 备注：对应评估报告 P0 项 #1（操作人追溯）。P0 剩余 #2（审批审计日志）待推进。
+
+### 2026-06-23 - 审批审计日志系统
+- 修改范围：`backend/app/models.py`（新增 ApplicationAuditLog 模型表 + Application.audit_logs 关系）、`backend/app/schemas.py`（新增 ApplicationAuditLogEntry schema）、`backend/app/routers/applications.py`（新增 `_write_audit_log` 辅助函数 + 在 create/approve/reject/export 4 个端点写入审计记录 + 详情查询预加载 audit_logs）、`backend/tests/test_applications.py`（新增 CREATOR mock user + 4 个测试全部验证 audit_logs 条数和内容）、`backend/alembic/versions/e4a8b3c1d2f0_add_application_audit_logs_table.py`（新建表 9 列 + 5 索引 + 2 FK）、`CHANGELOG.md`
+- 变更内容：审计日志表独立记录每次申请单状态变更（操作人、操作类型、状态迁移、审批备注、时间戳），支持 SQL 查询审计链路；详情 API 返回时间序 audit_logs 列表。测试覆盖全流程 4 个状态变更点。
+- 验证结果：`python -m py_compile` 通过（6 个文件全部编译成功）。
+- 备注：对应评估报告 P0 项 #2（审批审计日志）。至此评估报告「影像利用申请」P0 三项（交付包授权说明 + 操作人追溯 + 审计日志）全部完成。
+
+### 2026-06-24 - 申请车 API（方案B：后端 Session 购物车）
+- 修改范围：`backend/app/routers/cart.py`（新增：6 个 Cart API 端点 + 内存存储 + 提交转申请单）、`backend/app/main.py`（注册 cart_router）、`CHANGELOG.md`、`memory/申请车API对接方案.html`（新增：外部系统对接说明）
+- 变更内容：新增 Cart API，支持外部系统（文物系统等）通过 HTTP 将资源加入 MDAMS 申请车，无需关心前端组件实现；3 个必填字段（source_system/source_id/title），按用户 session 隔离，提交时自动转为 Application 申请单复用现有审批流程；同步创建对外对接说明 HTML。
+- 验证结果：`python -m py_compile backend/app/routers/cart.py backend/app/main.py` 通过。
+- 备注：当前为内存存储（方案 B），设计上可无感升级为数据库持久化（方案 C）。
+
+### 2026-06-25 - 统一检索平台优化 P0+P1
+- 修改范围：
+  - `backend/app/routers/platform.py`（GET /platform/resources 新增 sort_by/sort_order 参数，排序逻辑）
+  - `backend/app/models.py`（新增 SearchSubscription 模型）
+  - `backend/app/schemas.py`（新增 3 个搜索订阅 schema）
+  - `backend/app/routers/subscriptions.py`（新增——订阅 CRUD + CHECK API）
+  - `backend/app/routers/cart.py`（修复 Lock→RLock 死锁，加购物车上限检查）
+  - `backend/app/main.py`（注册 subscriptions_router）
+  - `backend/alembic/versions/f5a6b7c8d9e0_add_search_subscriptions_table.py`（新建迁移）
+  - `frontend/src/components/PlatformDirectory.tsx`（卡面多选 Checkbox + 批量操作栏）
+  - `frontend/src/components/UnifiedResourceDetail.tsx`（Collapse 分组展示 4 层元数据）
+- 验证：后端 py_compile ✅、前端 tsc --noEmit ✅
+- 安全审计：订阅参数白名单校验、购物车上限 413、RLock 修复死锁
+
+### 2026-06-24 - 申请车批量导入 + 文物号查询 + 前端 ImportDialog
+- 修改范围：`backend/app/routers/cart.py`（新增 POST /import 批量导入 + GET /lookup 文物号查询 + 4 个新增 schema）、`frontend/src/components/ImportDialog.tsx`（新增 1011 行组件：查文物号多图 / 文本粘贴 / 文件上传三 Tab）、`frontend/src/types/assets.ts`（新增 4 个类型接口）、`CHANGELOG.md`
+- 变更内容：批量导入端点逐条校验 + 去重 + 统计返回；文物号查询端点先查数据库再回退模拟数据，支持拍摄内容/时间/摄影者筛选；前端 ImportDialog 支持文物号展开多图网格勾选、CSV/Excel/文本粘贴解析、预览确认后批量加车。
+- 验证结果：`python -m py_compile backend/app/routers/cart.py` 通过；`npx tsc --noEmit` 组件零错误；Vite build 通过（5152 modules）。
+- 备注：导入流程实现了智能解析决策树（有图片ID精确匹配 / 只有文物号展开多图 / 都无标记错误）。
+
+### 2026-07-04 - P0 安全补丁：ingest / video / 审批状态机
+- 修改范围：
+  - `backend/app/routers/ingest.py`：`POST /ingest/sip` 新增 `current_user: CurrentUser = Depends(require_permission("image.upload"))`，关闭未认证即可提交 SIP 的漏洞。
+  - `backend/app/routers/video.py`：视频列表、详情、在线播放、删除 4 个端点新增 `require_permission("video.view")` 或 `require_permission("video.delete")`。
+  - `backend/app/routers/applications.py`：`approve_application` / `reject_application` / `export_application` 增加状态机前置校验，禁止已批准、已拒绝、已交付申请被重复审批或重复导出。
+  - `backend/app/permissions.py`：新增 `video.view`、`video.delete` 权限命名空间，并按角色补齐视频查看/删除权限。
+  - `frontend/src/auth/permissions.ts`：同步新增 `video.view`、`video.delete` 类型。
+  - `backend/tests/test_ingest.py`：SIP 测试显式传入 `current_user` mock。
+  - `backend/tests/test_p0_security.py`：新增 P0 安全回归测试，覆盖 ingest 未授权、video 未授权、审批状态机防重入。
+  - `frontend/src/auth/permissions.spec.ts`、`frontend/src/utils/appLabels.spec.ts`：新增前端权限与标签回归测试。
+- 变更内容：关闭 3 个 P0 安全漏洞——ingest/sip 无权限校验、video 路由无权限校验、审批状态机无校验。补丁以路由级权限和状态级前置条件为主，不改变认证核心逻辑。
+- 验证结果：`./.venv/bin/python -m pytest tests/test_p0_security.py tests/test_applications.py tests/test_ingest.py -q --tb=short` 通过；`npm test -- --run` 通过（前端 Vitest 11/11）。
+- 安全审计：未新增环境变量、密钥或外部服务依赖；失败路径返回最小错误信息，不泄露内部对象细节。
+

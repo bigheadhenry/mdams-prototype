@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
@@ -17,79 +19,56 @@ from .routers.image_records import router as image_records_router
 from .routers.platform import router as platform_router
 from .routers.three_d import router as three_d_router
 from .routers.video import router as video_router
+from .routers.cart import router as cart_router
+from .routers.subscriptions import router as subscriptions_router
 from .services.auth import seed_auth_data
 from .services.three_d_demo_assets import seed_demo_three_d_assets
 from .services.video_seed import seed_demo_video_asset
 
+logger = logging.getLogger(__name__)
 
-def _ensure_sqlite_schema_compatibility() -> None:
-    if engine.dialect.name not in {"sqlite", "postgresql"}:
-        return
 
+def _migrate_if_new() -> None:
+    """Apply Alembic migrations on first startup (empty DB).
+    
+    Keeps the legacy `_ensure_sqlite_schema_compatibility()` approach as a
+    fallback for environments where Alembic is unavailable (e.g. test runners
+    without the dev dependency installed).
+    """
     inspector = inspect(engine)
-    existing_columns = {column["name"] for column in inspector.get_columns("assets")}
-    statements: list[str] = []
-    if "visibility_scope" not in existing_columns:
-        statements.append("ALTER TABLE assets ADD COLUMN visibility_scope VARCHAR DEFAULT 'open'")
-    if "collection_object_id" not in existing_columns:
-        statements.append("ALTER TABLE assets ADD COLUMN collection_object_id INTEGER")
-    if "image_record_id" not in existing_columns:
-        statements.append("ALTER TABLE assets ADD COLUMN image_record_id INTEGER")
+    existing_tables = inspector.get_table_names()
+    
+    if existing_tables:
+        # Database already has tables — schema migration is Alembic's job now.
+        # The old inline _ensure_sqlite_schema_compatibility() has been removed
+        # in favor of proper Alembic migrations.
+        return
+    
+    # New database: let Alembic create the full schema.
+    try:
+        from alembic.config import Config
+        from alembic import command
 
-    if "image_records" in inspector.get_table_names():
-        image_record_columns = {column["name"] for column in inspector.get_columns("image_records")}
-        if "sheet_id" not in image_record_columns:
-            statements.append("ALTER TABLE image_records ADD COLUMN sheet_id INTEGER")
-        if "line_no" not in image_record_columns:
-            statements.append("ALTER TABLE image_records ADD COLUMN line_no INTEGER")
+        alembic_cfg = Config( str(Path(__file__).resolve().parent.parent / "alembic.ini") )
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Alembic migration applied (empty DB → head).")
+    except Exception:
+        # Fallback: create all tables directly (Alembic not installed / configured).
+        logger.warning("Alembic unavailable — falling back to Base.metadata.create_all.")
+        Base.metadata.create_all(bind=engine)
 
-    if "application_items" in inspector.get_table_names():
-        application_item_columns = {column["name"] for column in inspector.get_columns("application_items")}
-        application_item_column_specs = {
-            "source_system": "VARCHAR",
-            "source_id": "VARCHAR",
-            "resource_type": "VARCHAR",
-            "resource_title": "VARCHAR",
-            "manifest_url": "VARCHAR",
-            "source_label": "VARCHAR",
-            "object_number": "VARCHAR",
-        }
-        for column_name, column_type in application_item_column_specs.items():
-            if column_name not in application_item_columns:
-                statements.append(f"ALTER TABLE application_items ADD COLUMN {column_name} {column_type}")
-        if engine.dialect.name == "postgresql":
-            asset_id_column = next(
-                (column for column in inspector.get_columns("application_items") if column["name"] == "asset_id"),
-                None,
-            )
-            if asset_id_column and not asset_id_column.get("nullable", True):
-                statements.append("ALTER TABLE application_items ALTER COLUMN asset_id DROP NOT NULL")
 
-    with engine.begin() as connection:
-        for statement in statements:
-            connection.execute(text(statement))
-        connection.execute(
-            text(
-                "CREATE UNIQUE INDEX IF NOT EXISTS uq_assets_image_record_id "
-                "ON assets(image_record_id) WHERE image_record_id IS NOT NULL"
-            )
-        )
-        connection.execute(
-            text(
-                "CREATE INDEX IF NOT EXISTS ix_image_records_sheet_id "
-                "ON image_records(sheet_id)"
-            )
-        )
+from pathlib import Path  # noqa: E402 — imported here for alembic config path resolution above
 
 # Initialize DB tables
-Base.metadata.create_all(bind=engine)
-_ensure_sqlite_schema_compatibility()
+_migrate_if_new()
+
 with SessionLocal() as session:
     seed_auth_data(session)
     seed_demo_three_d_assets(session)
     seed_demo_video_asset(session)
 
-app = FastAPI(title="MEAM Prototype API")
+app = FastAPI(title="MDAMS Prototype API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -111,4 +90,19 @@ app.include_router(ingest_router)
 app.include_router(image_records_router)
 app.include_router(three_d_router)
 app.include_router(video_router)
+app.include_router(cart_router)
+app.include_router(subscriptions_router)
 app.include_router(platform_router)
+
+# ── Search engine init ───────────────────────────────────────────
+from .services.search_engine.engine import init_engine, seed_index_from_adapters
+from .database import SessionLocal
+
+@app.on_event("startup")
+async def _init_search_engine():
+    init_engine()
+    try:
+        with SessionLocal() as session:
+            seed_index_from_adapters(session)
+    except Exception:
+        pass  # Non-blocking — search falls back to adapter filtering

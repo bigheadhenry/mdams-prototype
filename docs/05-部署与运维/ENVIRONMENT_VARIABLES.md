@@ -87,7 +87,19 @@
 | `VIPS_CONCURRENCY` | libvips 并发数 | `2` |
 | `JAVA_OPTS` | JVM 参数 | `-Xmx4g -Djava.security.egd=file:/dev/./urandom` |
 
-## 9. 端口
+## 9. 安全/演示模式
+
+| 变量 | 说明 | 默认值 |
+| :--- | :--- | :--- |
+| `MDAMS_DEMO_MODE` | 设为 `1` 时允许 X-MDAMS-User Header 绕过真实认证（仅开发/演示用）；生产环境必须设为 `0` | `0` |
+
+说明：
+
+- 生产部署必须设置 `MDAMS_DEMO_MODE=0`，此时仅接受 Authorization（Bearer Token）和 mdams.session Cookie 两种认证方式
+- 设为 `1` 时，任意客户端可通过设置 `X-MDAMS-User: system-admin` 等 Header 模拟任意用户，存在安全风险
+- 默认 `0`（安全默认值），确保新部署默认不暴露此后门
+
+## 10. 端口
 
 | 变量 | 默认值 |
 | :--- | :--- |
@@ -97,7 +109,7 @@
 | `REDIS_PORT` | `6379` |
 | `CANTALOUPE_PORT` | `8182` |
 
-## 10. 使用建议
+## 11. 使用建议
 
 - 本地开发优先只改 `.env`
 - 浏览器侧应通过 Manifest 中的 `/api/iiif/{asset_id}/service/...` 访问图像服务代理
@@ -107,7 +119,7 @@
 - 容器内服务继续使用 `DATABASE_URL`，主机侧 `pytest` 建议单独设置 `TEST_DATABASE_URL`
 - 人脸识别默认关闭，需要模型、索引或远程服务准备好后再启用
 
-## 11. 关联文档
+## 12. 关联文档
 
 - `SETUP_AND_DEPLOYMENT.md`
 - `TROUBLESHOOTING.md`
