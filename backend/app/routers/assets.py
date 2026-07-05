@@ -53,7 +53,7 @@ def _normalize_collection_object_id(value: object) -> int | None:
 
 
 def _safe_upload_filename(filename: str | None) -> str:
-    safe_name = Path(filename or "upload.bin").name
+    safe_name = Path((filename or "upload.bin").replace("\\", "/")).name
     if safe_name in {"", ".", ".."}:
         return "upload.bin"
     return safe_name

@@ -46,6 +46,14 @@ COPY requirements.txt .
 # Use Aliyun mirror for PyPI
 RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
+# Copy alembic configuration and migration scripts
+COPY alembic.ini .
+COPY alembic/ alembic/
+
+# Copy application code
 COPY . .
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Make start.sh executable
+RUN chmod +x start.sh
+
+CMD ["./start.sh"]

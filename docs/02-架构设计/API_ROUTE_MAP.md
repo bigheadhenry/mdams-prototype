@@ -1,6 +1,6 @@
 # API 路由总览
 
-- 最后核对日期：2026-05-17
+- 最后核对日期：2026-07-04
 - 核对口径：仅以已提交代码中的稳定实现为准，不纳入当前工作区未提交改动
 - 核对范围：`backend/app/main.py`、`backend/app/routers/`、`backend/app/platform/`
 
@@ -133,10 +133,10 @@
 
 负责视频资源的最小来源接口：
 
-- 视频资源列表
-- 视频资源详情
-- 视频文件 inline stream
-- 视频资源删除
+- 视频资源列表（需 `video.view`）
+- 视频资源详情（需 `video.view`）
+- 视频文件 inline stream（需 `video.view`）
+- 视频资源删除（需 `video.delete`）
 
 典型接口：
 
@@ -145,7 +145,7 @@
 - `GET /api/video/resources/{asset_id}/stream`
 - `DELETE /api/video/resources/{asset_id}`
 
-当前视频接口主要服务统一平台多模态来源接入和演示预览，不等同于完整视频生产管理子系统。
+当前视频接口主要服务统一平台多模态来源接入和演示预览，不等同于完整视频生产管理子系统；所有视频端点已纳入后端权限校验。
 
 ### 3.10 `platform`
 

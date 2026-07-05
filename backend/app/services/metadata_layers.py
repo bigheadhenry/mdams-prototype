@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime
@@ -21,10 +21,44 @@ RESOURCE_TYPE_LABELS = {
     "image_2d_cultural_object": "2D Cultural Object Image",
 }
 
-SECTION_KEYS = {"core", "management", "technical", "raw_metadata"}
+SECTION_KEYS = {"core", "management", "technical", "raw_metadata", "rights"}
+
+# ── Controlled Vocabularies ─────────────────────────────────────────────
+# 文物级别（国家文物局《文物藏品定级标准》）
+OBJECT_LEVELS = frozenset({
+    "一级文物", "二级文物", "三级文物", "一般文物", "参考品",
+})
+
+# 文物分类（故宫博物院数字文物库分类）
+OBJECT_CATEGORIES = frozenset({
+    "绘画", "法书", "碑帖", "铜器", "金银器", "漆器",
+    "珐琅器", "玉石器", "雕塑", "陶瓷", "织绣",
+    "雕刻工艺", "其他工艺", "文具", "生活用具",
+    "钟表仪器", "珍宝", "古籍", "玺印", "文房四宝",
+    "玻璃器", "骨角牙", "竹木", "甲骨",
+})
+
+# 年代/时期（故宫博物院藏品年代标签）
+ERAS = frozenset({
+    "新石器时代", "夏", "商", "周", "春秋", "战国",
+    "秦", "汉", "三国", "晋", "南北朝", "隋",
+    "唐", "五代十国", "辽", "宋", "金", "元",
+    "明", "清", "民国",
+})
+
 CORE_FIELD_LABELS = {
+    "resource_id": "Resource ID",
+    "title": "Title",
+    "resource_type": "Resource Type",
+    "resource_type_label": "Resource Type Label",
+    "status": "Status",
+    "preview_enabled": "Preview Enabled",
     "visibility_scope": "Visibility Scope",
     "collection_object_id": "Collection Object ID",
+    "profile_key": "Profile Key",
+    "profile_label": "Profile Label",
+    "profile_sheet": "Profile Sheet",
+    "created_at": "Created At",
 }
 
 MANAGEMENT_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
@@ -32,7 +66,6 @@ MANAGEMENT_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
     ("project_name", "Project Name", ("project_name", "项目名称")),
     ("photographer", "Photographer", ("photographer", "摄影者")),
     ("photographer_org", "Photographer Org", ("photographer_org", "摄影者单位")),
-    ("copyright_owner", "Copyright Owner", ("copyright_owner", "版权所属")),
     ("capture_time", "Capture Time", ("capture_time", "拍摄时间", "拍摄/制作时间")),
     ("image_category", "Image Category", ("image_category", "影像类别")),
     ("image_name", "Image Name", ("image_name", "影像名称")),
@@ -78,12 +111,39 @@ TECHNICAL_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
     ("derivative_threshold_bytes", "Derivative Threshold Bytes", ("derivative_threshold_bytes",)),
     ("derivative_threshold_pixels", "Derivative Threshold Pixels", ("derivative_threshold_pixels",)),
     ("fixity_sha256", "Fixity SHA256", ("fixity_sha256", "sha256", "SHA256")),
+]
+
+MISCELLANEOUS_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
     ("conversion_method", "Conversion Method", ("conversion_method",)),
     ("original_file_path", "Original File Path", ("original_file_path",)),
     ("original_file_size", "Original File Size", ("original_file_size",)),
     ("original_mime_type", "Original MIME Type", ("original_mime_type",)),
     ("error_message", "Error Message", ("error_message",)),
 ]
+
+# ── Rights / Usage Metadata ──────────────────────────────────────────────
+RIGHTS_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
+    ("copyright_status", "Copyright Status", ("copyright_status", "版权状态")),
+    ("copyright_owner", "Copyright Owner", ("copyright_owner", "版权所属")),
+    ("access_scope", "Access Scope", ("access_scope", "访问范围")),
+    ("allowed_usage", "Allowed Usage", ("allowed_usage", "允许用途")),
+    ("license", "License", ("license", "授权协议")),
+    ("license_url", "License URL", ("license_url", "许可协议链接")),
+    ("allow_derivatives", "Allow Derivatives", ("allow_derivatives", "允许衍生", "是否允许衍生")),
+    ("usage_restrictions", "Usage Restrictions", ("usage_restrictions", "使用限制", "使用限制说明")),
+    ("rights_holder", "Rights Holder", ("rights_holder", "权利持有人")),
+    ("permission_notes", "Permission Notes", ("permission_notes", "权限说明")),
+]
+
+# 版权状态受控词表
+COPYRIGHT_STATUSES = frozenset({
+    "故宫所有", "合作共享", "授权使用", "捐赠", "公共领域", "其他",
+})
+
+# 访问范围受控词表
+ACCESS_SCOPES = frozenset({
+    "公开", "院内", "部门内", "限制访问",
+})
 
 PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
     "movable_artifact": {
@@ -98,9 +158,8 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
             ("object_category", "Object Category", ("object_category", "文物类别")),
             ("object_subcategory", "Object Subcategory", ("object_subcategory", "文物细类")),
             ("management_group", "Management Group", ("management_group", "管理科组")),
-            ("photographer", "Photographer", ("photographer", "摄影者")),
-            ("photographer_phone", "Photographer Phone", ("photographer_phone", "摄影者电话")),
             ("visible_to_custodians_only", "Visible To Custodians Only", ("visible_to_custodians_only", "仅责任人可见")),
+            ("era", "Era", ("era", "年代", "时代")),
         ],
     },
     "immovable_artifact": {
@@ -191,7 +250,7 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
 }
 
 FIELD_LABELS: dict[str, str] = {}
-for field_key, field_label, _aliases in MANAGEMENT_FIELDS + TECHNICAL_FIELDS:
+for field_key, field_label, _aliases in MANAGEMENT_FIELDS + TECHNICAL_FIELDS + MISCELLANEOUS_FIELDS + RIGHTS_FIELDS:
     FIELD_LABELS[field_key] = field_label
 for profile_definition in PROFILE_DEFINITIONS.values():
     for field_key, field_label, _aliases in profile_definition["fields"]:
@@ -364,12 +423,12 @@ def _build_technical_section(
     asset_file_size: int | None,
     asset_mime_type: str | None,
 ) -> dict[str, Any]:
-    technical = _build_field_section(metadata, TECHNICAL_FIELDS)
+    technical = _build_field_section(metadata, TECHNICAL_FIELDS + MISCELLANEOUS_FIELDS)
 
     if asset_filename and not technical.get("original_file_name"):
         technical["original_file_name"] = asset_filename
 
-    if asset_file_path and not technical.get("original_file_path"):
+    if asset_file_path and not technical.get("original_file_path") and "original_file_path" not in metadata:
         technical["original_file_path"] = asset_file_path
 
     if asset_file_path and not technical.get("image_file_name"):
@@ -409,6 +468,62 @@ def _build_profile_section(metadata: Mapping[str, Any], profile_key: str) -> dic
     return _build_field_section(metadata, profile_definition["fields"])
 
 
+def _build_rights_section(metadata: Mapping[str, Any]) -> dict[str, Any]:
+    return _build_field_section(metadata, RIGHTS_FIELDS)
+
+
+def _build_rights_display(
+    rights: Mapping[str, Any],
+    management: Mapping[str, Any],
+    metadata: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build user-facing rights display fields for the detail page."""
+    copyright_owner = (
+        rights.get("copyright_owner")
+        or _lookup_value(metadata, "copyright_owner", "版权所属", "版权所属单位")
+        or "故宫博物院"
+    )
+    photographer = management.get("photographer") or _lookup_value(metadata, "photographer", "摄影者")
+    license_val = rights.get("license") or ""
+    allowed_usage = rights.get("allowed_usage") or ""
+    usage_restrictions = rights.get("usage_restrictions") or ""
+
+    # Build statement
+    if license_val.upper() in ("CC0", "CC0 1.0", "CC0 1.0 通用"):
+        statement = f"© {copyright_owner} · 本资源属于公共领域"
+    elif license_val:
+        statement = f"© {copyright_owner} · 本资源遵循 {license_val} 协议"
+    elif allowed_usage:
+        statement = f"© {copyright_owner} · 本资源仅供 {allowed_usage} 使用"
+    else:
+        statement = f"© {copyright_owner}"
+
+    # Build credit line
+    credit_line = copyright_owner
+    if photographer:
+        credit_line += f" · 摄影：{photographer}"
+
+    display: dict[str, Any] = {
+        "statement": statement,
+        "credit_line": credit_line,
+    }
+
+    # Pass through fields from rights section
+    for key in ("license", "license_url", "copyright_status", "usage_restrictions"):
+        value = rights.get(key) or _lookup_value(metadata, key)
+        if _is_present(value):
+            display[key] = _normalize_scalar(value)
+
+    # allow_derivatives needs separate handling (False is a valid value)
+    ad = rights.get("allow_derivatives")
+    if ad is None:
+        ad = _lookup_value(metadata, "allow_derivatives", "允许衍生", "是否允许衍生")
+    if ad is not None:
+        display["allow_derivatives"] = bool(ad)
+
+    return display
+
+
 def build_metadata_layers(
     *,
     asset_id: int | None = None,
@@ -433,6 +548,7 @@ def build_metadata_layers(
         management_base = _as_dict(source.get("management"))
         technical_base = _as_dict(source.get("technical"))
         profile_base = _as_dict(source.get("profile"))
+        rights_base = _as_dict(source.get("rights"))
         raw_base = _as_dict(source.get("raw_metadata"))
         fallback = {key: value for key, value in source.items() if key not in SECTION_KEYS}
     else:
@@ -440,6 +556,7 @@ def build_metadata_layers(
         management_base = {}
         technical_base = {}
         profile_base = {}
+        rights_base = {}
         raw_base = {}
         fallback = source
 
@@ -495,6 +612,10 @@ def build_metadata_layers(
         "fields": profile_fields,
     }
 
+    rights = _merge_sections(_build_rights_section(source), rights_base)
+
+    rights_display = _build_rights_display(rights, management, source)
+
     raw_metadata = deepcopy(source_metadata if source_metadata is not None else raw_base or fallback)
 
     return {
@@ -503,6 +624,8 @@ def build_metadata_layers(
         "management": management,
         "technical": technical,
         "profile": profile,
+        "rights": rights,
+        "rights_display": rights_display,
         "raw_metadata": raw_metadata,
     }
 

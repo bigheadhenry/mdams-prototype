@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Button,
   Card,
+  Checkbox,
   Col,
   Image,
   Pagination,
@@ -15,6 +16,7 @@ import {
   Typography,
 } from 'antd';
 import {
+  CheckOutlined,
   CloseCircleOutlined,
   EyeOutlined,
   LinkOutlined,
@@ -259,6 +261,22 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
         queryParams.skip = (page - 1) * size;
         queryParams.limit = size;
 
+        // Map frontend sort key to backend sort params (for Meilisearch server-side sorting)
+        if (sortKey) {
+          const sortMap: Record<string, { sort_by: string; sort_order: string }> = {
+            updated_desc: { sort_by: 'updated_at', sort_order: 'desc' },
+            updated_asc: { sort_by: 'updated_at', sort_order: 'asc' },
+            title_asc: { sort_by: 'title', sort_order: 'asc' },
+            title_desc: { sort_by: 'title', sort_order: 'desc' },
+            status: { sort_by: 'status', sort_order: 'asc' },
+          };
+          const mapped = sortMap[sortKey];
+          if (mapped) {
+            queryParams.sort_by = mapped.sort_by;
+            queryParams.sort_order = mapped.sort_order;
+          }
+        }
+
         const [sourcesRes, resourcesRes] = await Promise.all([
           axios.get<UnifiedResourceSourceSummary[]>('/api/platform/sources'),
           axios.get<PaginatedUnifiedResourceList>('/api/platform/resources', {
@@ -424,6 +442,28 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
             </Space>
           );
         },
+      },
+      {
+        title: '规格',
+        key: 'spec',
+        width: 140,
+        render: (_: unknown, record: UnifiedResourceSummary) => (
+          <Space direction="vertical" size={2}>
+            {record.format && <Tag style={{ fontSize: 10, margin: 0 }}>{record.format}</Tag>}
+            {record.resolution && (
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {record.resolution}
+              </Text>
+            )}
+          </Space>
+        ),
+      },
+      {
+        title: '年代',
+        key: 'era',
+        width: 80,
+        render: (_: unknown, record: UnifiedResourceSummary) =>
+          record.era && record.profile_key === 'movable_artifact' ? <Text style={{ fontSize: 11 }}>{record.era}</Text> : null,
       },
       {
         title: '更新时间',
@@ -629,6 +669,35 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
             </div>
           )}
 
+          {viewMode === 'card' && selectedRowKeys.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 12px',
+                background: '#e6f4ff',
+                border: '1px solid #91caff',
+                borderRadius: 6,
+              }}
+            >
+              <Text>已选 {selectedRowKeys.length} 项</Text>
+              <Space>
+                <Button size="small" onClick={() => setSelectedRowKeys([])}>
+                  取消选择
+                </Button>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<ShoppingCartOutlined />}
+                  onClick={handleBatchAddToApplication}
+                >
+                  批量加入申请车
+                </Button>
+              </Space>
+            </div>
+          )}
+
           {viewMode === 'card' ? (
             <>
               <Row gutter={[16, 16]}>
@@ -639,9 +708,38 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                     <Card
                       hoverable
                       size="small"
-                      style={{ height: '100%' }}
+                      style={{ height: '100%', position: 'relative' }}
                       cover={
-                        resource.source_system === 'three_d' ? (
+                        <div style={{ position: 'relative' }}>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const id = resource.id;
+                              setSelectedRowKeys((prev) =>
+                                prev.includes(id)
+                                  ? prev.filter((k) => k !== id)
+                                  : [...prev, id],
+                              );
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: 6,
+                              left: 6,
+                              zIndex: 10,
+                              cursor: 'pointer',
+                              background: 'rgba(255,255,255,0.85)',
+                              borderRadius: 4,
+                              padding: '2px 2px 0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Checkbox
+                              checked={selectedRowKeys.includes(resource.id)}
+                            />
+                          </div>
+                        {resource.source_system === 'three_d' ? (
                           <ThreeDTurntablePreview
                             title={resource.title}
                             previewData={resource.preview_data}
@@ -724,6 +822,8 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                           </div>
                         )
                       }
+                      </div>
+                    }
                       actions={[
                         <Button
                           key="detail"
@@ -788,6 +888,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                           </Space>
                         }
                         description={
+                          <Space direction="vertical" size={2} style={{ width: '100%' }}>
                           <Text
                             type="secondary"
                             style={{ fontSize: 11, display: 'block' }}
@@ -798,6 +899,36 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                             {' · '}
                             {resource.updated_at}
                           </Text>
+                          {(resource.resolution || resource.format) && (
+                            <Text type="secondary" style={{ fontSize: 10 }}>
+                              {[resource.format, resource.resolution].filter(Boolean).join(' · ')}
+                            </Text>
+                          )}
+                          {resource.era && (
+                            <Text type="secondary" style={{ fontSize: 10 }}>
+                              🏷️ {resource.era}
+                            </Text>
+                          )}
+                          {resource.object_level && resource.profile_key === 'movable_artifact' && (
+                            <Text type="secondary" style={{ fontSize: 10 }}>
+                              ⭐ {resource.object_level}
+                            </Text>
+                          )}
+                          {resource.profile_key === 'business_activity' && (
+                            <>
+                              {resource.main_person && (
+                                <Text type="secondary" style={{ fontSize: 10 }}>
+                                  👤 {resource.main_person}
+                                </Text>
+                              )}
+                              {resource.main_location && (
+                                <Text type="secondary" style={{ fontSize: 10 }}>
+                                  📍 {resource.main_location}
+                                </Text>
+                              )}
+                            </>
+                          )}
+                          </Space>
                         }
                       />
                     </Card>

@@ -74,6 +74,11 @@ def _profile_fields(record: ImageRecord) -> dict[str, Any]:
     return fields if isinstance(fields, dict) else {}
 
 
+def _rights_section(record: ImageRecord) -> dict[str, Any]:
+    rights = _record_layers(record).get("rights")
+    return rights if isinstance(rights, dict) else {}
+
+
 def _field_label(field_key: str) -> str:
     return FIELD_LABELS.get(field_key) or field_key.replace("_", " ").title()
 
@@ -305,7 +310,8 @@ def validate_image_record_for_submit(record: ImageRecord, *, record_no_is_unique
                 message="Photographer is missing",
             )
         )
-    if not _clean_optional_text(management.get("copyright_owner")):
+    rights = _rights_section(record)
+    if not _clean_optional_text(rights.get("copyright_owner")):
         rules.append(
             _make_rule(
                 code="submit.copyright_owner.missing",

@@ -69,6 +69,7 @@ def _ensure_postgres_database_exists(database_url: str) -> None:
 
 TEST_DATABASE_URL = _resolve_test_database_url()
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+os.environ.setdefault("MDAMS_DEMO_MODE", "1")
 
 from app import config as app_config  # noqa: E402
 from app.database import Base  # noqa: E402

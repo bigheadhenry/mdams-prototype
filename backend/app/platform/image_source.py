@@ -19,7 +19,7 @@ from .base import PlatformSourceAdapter
 from .registry import registry
 
 SOURCE_SYSTEM = "image_2d"
-SOURCE_LABEL = "二维影像子系统"
+SOURCE_LABEL = "二维影像子系�?
 RESOURCE_TYPE = "image_2d_cultural_object"
 
 
@@ -65,7 +65,7 @@ def _resource_actions(asset_id: int, *, preview_enabled: bool) -> list[UnifiedRe
         ),
         UnifiedResourceAction(
             key="export_bagit",
-            label="下载 BagIt 包",
+            label="下载 BagIt �?,
             kind="export",
             target="export_package",
             url=f"/api/assets/{asset_id}/download-bag",
@@ -178,6 +178,21 @@ def list_unified_resources_filtered(
         asset_preview_enabled = is_iiif_ready(asset)
         if preview_enabled is not None and preview_enabled != asset_preview_enabled:
             continue
+
+        # Extract resolution and format from metadata
+        tech = layers.get("technical") or {}
+        width = tech.get("width") or ""
+        height = tech.get("height") or ""
+        resolution = f"{width}x{height}" if width and height else None
+        fmt = (asset.mime_type or "").split("/")[-1].upper() if asset.mime_type else None
+
+        # Extract era from profile fields
+        profile_fields = (layers.get("profile") or {}).get("fields") or {}
+        era = profile_fields.get("era") or ""
+        object_level = profile_fields.get("object_level") or ""
+        main_person = profile_fields.get("main_person") or ""
+        main_location = profile_fields.get("main_location") or ""
+
         resources.append(
             UnifiedResourceSummary(
                 id=_platform_id(asset.id),
@@ -195,6 +210,12 @@ def list_unified_resources_filtered(
                 detail_url=_resource_detail_url(asset.id),
                 updated_at=asset.created_at,
                 actions=_resource_actions(asset.id, preview_enabled=asset_preview_enabled),
+                resolution=resolution,
+                format=fmt,
+                era=era or None,
+                object_level=object_level or None,
+                main_person=main_person or None,
+                main_location=main_location or None,
             )
         )
     return resources
@@ -206,6 +227,11 @@ def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
         raise LookupError("Resource not found")
 
     source_record = build_asset_detail_response(asset)
+    rights_data = (
+        source_record.rights_display.model_dump(mode="json")
+        if source_record.rights_display
+        else None
+    )
     preview_enabled = is_iiif_ready(asset)
     layers = build_metadata_layers(
         asset_id=asset.id,
@@ -239,6 +265,7 @@ def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
         source_record_type="asset_detail",
         source_record_schema="asset_detail.v1",
         source_record=source_record.model_dump(mode="json"),
+        rights_display=rights_data,
     )
 
 

@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
-from ..models import Application, ApplicationItem, Asset
+from ..models import Application, ApplicationAuditLog, ApplicationItem, Asset, User
 from ..permissions import CurrentUser, ensure_current_user, require_any_permission, require_permission
 from ..services.application_delivery import build_application_export_package
 from ..schemas import (
@@ -34,6 +34,7 @@ def _status_label(status: str) -> str:
     }.get(status, status)
 
 
+
 def _to_list_item(application: Application) -> ApplicationListItem:
     return ApplicationListItem(
         id=application.id,
@@ -49,13 +50,20 @@ def _to_list_item(application: Application) -> ApplicationListItem:
         created_at=application.created_at,
         submitted_at=application.submitted_at,
         reviewed_at=application.reviewed_at,
+        reviewed_by=application.reviewed_by.display_name if application.reviewed_by else None,
+        exported_by=application.exported_by.display_name if application.exported_by else None,
     )
 
 
 def _get_application_or_404(application_id: int, db: Session) -> Application:
     application = (
         db.query(Application)
-        .options(joinedload(Application.items).joinedload(ApplicationItem.asset))
+        .options(
+            joinedload(Application.items).joinedload(ApplicationItem.asset),
+            joinedload(Application.reviewed_by),
+            joinedload(Application.exported_by),
+            joinedload(Application.audit_logs),
+        )
         .filter(Application.id == application_id)
         .first()
     )
@@ -64,11 +72,37 @@ def _get_application_or_404(application_id: int, db: Session) -> Application:
     return application
 
 
+def _write_audit_log(
+    application_id: int,
+    action: str,
+    from_status: str | None,
+    to_status: str | None,
+    actor: CurrentUser | None,
+    review_note: str | None,
+    db: Session,
+) -> None:
+    """Write an audit log entry for an application state change."""
+    log = ApplicationAuditLog(
+        application_id=application_id,
+        action=action,
+        from_status=from_status,
+        to_status=to_status,
+        actor_user_id=None,  # resolved below
+        actor_display_name=actor.display_name if actor else None,
+        review_note=review_note,
+    )
+    if actor:
+        db_user = db.query(User).filter(User.username == actor.user_id).first()
+        if db_user:
+            log.actor_user_id = db_user.id
+    db.add(log)
+
+
 @router.post("/applications", response_model=ApplicationDetailResponse)
 def create_application(
     payload: ApplicationCreateRequest,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("application.create")),
+    current_user: CurrentUser = Depends(require_permission("application.create")),
 ):
     if not payload.items:
         raise HTTPException(status_code=400, detail="Application must include at least one item")
@@ -118,6 +152,15 @@ def create_application(
         )
         db.add(application_item)
 
+    _write_audit_log(
+        application_id=application.id,
+        action="submitted",
+        from_status=None,
+        to_status="submitted",
+        actor=current_user,
+        review_note=None,
+        db=db,
+    )
     db.commit()
     db.refresh(application)
     application = _get_application_or_404(application.id, db)
@@ -132,7 +175,11 @@ def list_applications(
     user = ensure_current_user(user)
     applications = (
         db.query(Application)
-        .options(joinedload(Application.items))
+        .options(
+            joinedload(Application.items),
+            joinedload(Application.reviewed_by),
+            joinedload(Application.exported_by),
+        )
         .order_by(Application.created_at.desc(), Application.id.desc())
         .all()
     )
@@ -155,12 +202,27 @@ def approve_application(
     application_id: int,
     payload: ApplicationApproveRequest,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("application.review")),
+    current_user: CurrentUser = Depends(require_permission("application.review")),
 ):
     application = _get_application_or_404(application_id, db)
+    if application.status != "submitted":
+        raise HTTPException(status_code=409, detail="Only submitted applications can be approved")
     application.status = "approved"
     application.review_note = payload.review_note
     application.reviewed_at = datetime.now(timezone.utc)
+    # Record reviewer
+    db_user = db.query(User).filter(User.username == current_user.user_id).first()
+    if db_user:
+        application.reviewed_by_user_id = db_user.id
+    _write_audit_log(
+        application_id=application.id,
+        action="approved",
+        from_status="submitted",
+        to_status="approved",
+        actor=current_user,
+        review_note=payload.review_note,
+        db=db,
+    )
     db.commit()
     db.refresh(application)
     return _get_application_or_404(application_id, db)
@@ -171,12 +233,27 @@ def reject_application(
     application_id: int,
     payload: ApplicationApproveRequest,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("application.review")),
+    current_user: CurrentUser = Depends(require_permission("application.review")),
 ):
     application = _get_application_or_404(application_id, db)
+    if application.status != "submitted":
+        raise HTTPException(status_code=409, detail="Only submitted applications can be rejected")
     application.status = "rejected"
     application.review_note = payload.review_note
     application.reviewed_at = datetime.now(timezone.utc)
+    # Record reviewer
+    db_user = db.query(User).filter(User.username == current_user.user_id).first()
+    if db_user:
+        application.reviewed_by_user_id = db_user.id
+    _write_audit_log(
+        application_id=application.id,
+        action="rejected",
+        from_status="submitted",
+        to_status="rejected",
+        actor=current_user,
+        review_note=payload.review_note,
+        db=db,
+    )
     db.commit()
     db.refresh(application)
     return _get_application_or_404(application_id, db)
@@ -187,10 +264,10 @@ def export_application(
     application_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("application.export")),
+    current_user: CurrentUser = Depends(require_permission("application.export")),
 ):
     application = _get_application_or_404(application_id, db)
-    if application.status not in {"approved", "fulfilled"}:
+    if application.status != "approved":
         raise HTTPException(status_code=400, detail="Only approved applications can be exported")
 
     temp_dir, zip_path, zip_filename = build_application_export_package(application)
@@ -198,6 +275,19 @@ def export_application(
 
     application.status = "fulfilled"
     application.reviewed_at = datetime.now(timezone.utc)
+    # Record exporter
+    db_user = db.query(User).filter(User.username == current_user.user_id).first()
+    if db_user:
+        application.exported_by_user_id = db_user.id
+    _write_audit_log(
+        application_id=application.id,
+        action="exported",
+        from_status="approved",
+        to_status="fulfilled",
+        actor=current_user,
+        review_note=None,
+        db=db,
+    )
     db.commit()
 
     return FileResponse(zip_path, media_type="application/zip", filename=zip_filename)

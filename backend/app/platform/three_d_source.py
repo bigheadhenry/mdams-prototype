@@ -307,6 +307,25 @@ def _preview_data_from_layers(layers: dict[str, object]) -> dict[str, object] | 
     return None
 
 
+def _build_rights_display_from_layers(layers: dict[str, object]) -> dict[str, object] | None:
+    """Build minimal rights_display from 3D metadata layers."""
+    rights = layers.get("rights") if isinstance(layers, dict) else {}
+    if not isinstance(rights, dict):
+        return None
+    copyright_owner = rights.get("copyright_owner") or ""
+    copyright_status = rights.get("copyright_status") or ""
+    license_val = rights.get("license") or ""
+    if not (copyright_owner or copyright_status or license_val):
+        return None
+    statement = f"© {copyright_owner}" if copyright_owner else ""
+    return {
+        "statement": statement,
+        "credit_line": copyright_owner,
+        "copyright_status": copyright_status or None,
+        "license": license_val or None,
+    }
+
+
 def list_source_summary(db: Session) -> UnifiedResourceSourceSummary:
     assets = db.query(ThreeDAsset).all()
     resource_count = len({_object_key(asset) for asset in assets})
@@ -481,6 +500,7 @@ def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
         source_record_type="three_d_object_detail",
         source_record_schema="three_d_object_detail.v1",
         source_record=source_record,
+        rights_display=_build_rights_display_from_layers(default_preview_layers or layers_by_id.get(anchor_asset.id, {})),
     )
 
 

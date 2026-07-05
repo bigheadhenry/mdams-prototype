@@ -66,6 +66,11 @@ OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", MOONSHOT_BASE_URL)
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", MOONSHOT_MODEL)
 OPENAI_TIMEOUT_SECONDS = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "30"))
 
+# Security: demo-mode gates the legacy X-MDAMS-User header authentication.
+# Production deployments MUST set this to "0" to prevent header-based auth bypass.
+# When disabled, only Authorization (Bearer) and mdams.session cookie are accepted.
+MDAMS_DEMO_MODE = os.getenv("MDAMS_DEMO_MODE", "0") == "1"
+
 FACE_RECOGNITION_ENABLED = os.getenv("FACE_RECOGNITION_ENABLED", "0") == "1"
 FACE_RECOGNITION_PROVIDER = os.getenv("FACE_RECOGNITION_PROVIDER", "local").strip().lower()
 FACE_RECOGNITION_BASE_URL = os.getenv("FACE_RECOGNITION_BASE_URL", "http://host.docker.internal:8010")
@@ -78,3 +83,7 @@ FACE_RECOGNITION_INDEX_DIR = os.getenv(
     str((FACE_RUNTIME_ROOT / "index").resolve()),
 )
 FACE_RECOGNITION_STRICT_LOCAL_MODELS = os.getenv("FACE_RECOGNITION_STRICT_LOCAL_MODELS", "1") == "1"
+
+# Meilisearch (unified search engine)
+MEILI_URL = os.getenv("MEILI_URL", "http://meilisearch:7700")
+MEILI_MASTER_KEY = os.getenv("MEILI_MASTER_KEY", "mdams_search_key")

@@ -174,6 +174,29 @@ def list_unified_resources(
     return resources
 
 
+def _build_video_rights_display(layers: dict[str, object], metadata_info: dict[str, object] | None) -> dict[str, object] | None:
+    """Build minimal rights_display for video from metadata layers or metadata_info."""
+    rights = layers.get("rights") if isinstance(layers, dict) else {}
+    if isinstance(rights, dict):
+        owner = rights.get("copyright_owner") or ""
+        status = rights.get("copyright_status") or ""
+        license_val = rights.get("license") or ""
+        if owner or status or license_val:
+            statement = f"© {owner}" if owner else ""
+            return {
+                "statement": statement,
+                "credit_line": owner,
+                "copyright_status": status or None,
+                "license": license_val or None,
+            }
+    # Fallback: check metadata_info for rights_label
+    if metadata_info:
+        label = metadata_info.get("rights_label") or metadata_info.get("license_label") or ""
+        if label:
+            return {"statement": label, "credit_line": ""}
+    return None
+
+
 def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
     asset = db.query(VideoAsset).filter(VideoAsset.id == asset_id).first()
     if asset is None:
@@ -236,6 +259,7 @@ def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
                 },
             },
         },
+        rights_display=_build_video_rights_display(layers, asset.metadata_info or {}),
     )
 
 

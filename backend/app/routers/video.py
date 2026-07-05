@@ -11,7 +11,6 @@ from ..database import get_db
 from ..models import VideoAsset
 from ..permissions import CurrentUser, require_permission
 from ..schemas import VideoAssetOut
-from ..services.video_metadata import build_video_metadata_layers
 
 router = APIRouter(prefix="/video", tags=["video"])
 logger = logging.getLogger(__name__)
@@ -20,7 +19,7 @@ logger = logging.getLogger(__name__)
 @router.get("/resources", response_model=list[VideoAssetOut])
 def list_video_assets(
     db: Session = Depends(get_db),
-    _user: CurrentUser = Depends(require_permission("image.view")),
+    _user: CurrentUser = Depends(require_permission("video.view")),
 ):
     assets = db.query(VideoAsset).order_by(VideoAsset.created_at.desc(), VideoAsset.id.desc()).all()
     result: list[VideoAssetOut] = []
@@ -53,7 +52,7 @@ def list_video_assets(
 def get_video_asset(
     asset_id: int,
     db: Session = Depends(get_db),
-    _user: CurrentUser = Depends(require_permission("image.view")),
+    _user: CurrentUser = Depends(require_permission("video.view")),
 ):
     asset = db.query(VideoAsset).filter(VideoAsset.id == asset_id).first()
     if asset is None:
@@ -83,7 +82,7 @@ def get_video_asset(
 def stream_video(
     asset_id: int,
     db: Session = Depends(get_db),
-    _user: CurrentUser = Depends(require_permission("image.view")),
+    _user: CurrentUser = Depends(require_permission("video.view")),
 ):
     """Stream video file with range request support."""
     asset = db.query(VideoAsset).filter(VideoAsset.id == asset_id).first()
@@ -106,7 +105,7 @@ def stream_video(
 def delete_video_asset(
     asset_id: int,
     db: Session = Depends(get_db),
-    _user: CurrentUser = Depends(require_permission("image.delete")),
+    _user: CurrentUser = Depends(require_permission("video.delete")),
 ):
     asset = db.query(VideoAsset).filter(VideoAsset.id == asset_id).first()
     if asset is None:

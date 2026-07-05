@@ -15,3 +15,5 @@ numpy==1.26.4
 opencv-python-headless==4.10.0.84
 onnxruntime==1.20.1
 insightface==0.7.3
+alembic==1.18.4
+meilisearch==0.37.1

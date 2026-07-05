@@ -15,12 +15,14 @@ from .services.auth import DEFAULT_USERS, get_user_by_session_token
 PermissionName = str
 RoleName = str
 
+logger = logging.getLogger(__name__)
+
 
 ROLE_PERMISSIONS: dict[RoleName, set[PermissionName]] = {
-    "image_structured_editor": {"dashboard.view", "image.view", "image.edit", "platform.view"},
-    "image_ingest_operator": {"dashboard.view", "image.view", "image.upload", "platform.view"},
-    "image_ingest_reviewer": {"dashboard.view", "image.view", "image.ingest_review", "platform.view"},
-    "image_resource_manager": {"dashboard.view", "image.view", "image.edit", "image.delete", "platform.view"},
+    "image_structured_editor": {"dashboard.view", "image.view", "image.edit", "video.view", "platform.view"},
+    "image_ingest_operator": {"dashboard.view", "image.view", "image.upload", "video.view", "platform.view"},
+    "image_ingest_reviewer": {"dashboard.view", "image.view", "image.ingest_review", "video.view", "platform.view"},
+    "image_resource_manager": {"dashboard.view", "image.view", "image.edit", "image.delete", "video.view", "video.delete", "platform.view"},
     "image_metadata_entry": {
         "dashboard.view",
         "image.view",
@@ -41,10 +43,11 @@ ROLE_PERMISSIONS: dict[RoleName, set[PermissionName]] = {
         "image.file.upload",
         "image.file.match",
     },
-    "three_d_operator": {"dashboard.view", "three_d.view", "three_d.upload", "three_d.edit", "platform.view"},
+    "three_d_operator": {"dashboard.view", "three_d.view", "three_d.upload", "three_d.edit", "video.view", "platform.view"},
     "application_reviewer": {
         "dashboard.view",
         "image.view",
+        "video.view",
         "platform.view",
         "application.view_all",
         "application.review",
@@ -56,6 +59,7 @@ ROLE_PERMISSIONS: dict[RoleName, set[PermissionName]] = {
         "image.edit_scope",
         "three_d.view",
         "three_d.edit_scope",
+        "video.view",
         "platform.view",
         "collection.scope",
     },
@@ -63,6 +67,7 @@ ROLE_PERMISSIONS: dict[RoleName, set[PermissionName]] = {
         "dashboard.view",
         "image.view",
         "three_d.view",
+        "video.view",
         "platform.view",
         "application.create",
         "application.view_own",
@@ -86,6 +91,8 @@ ROLE_PERMISSIONS: dict[RoleName, set[PermissionName]] = {
         "three_d.view",
         "three_d.edit",
         "three_d.upload",
+        "video.view",
+        "video.delete",
         "platform.view",
         "application.create",
         "application.view_all",
@@ -199,10 +206,10 @@ def get_current_user(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session token")
         return _build_current_user_from_db_user(user)
 
-    if x_mdams_user and config.LEGACY_HEADER_AUTH_ENABLED:
-        logging.getLogger(__name__).warning(
-            "Legacy header auth used by '%s'. "
-            "Set LEGACY_HEADER_AUTH_ENABLED=0 to disable in production.",
+    if x_mdams_user and (config.LEGACY_HEADER_AUTH_ENABLED or config.MDAMS_DEMO_MODE):
+        logger.warning(
+            "Legacy/demo X-MDAMS-User header accepted for user=%s. "
+            "Set LEGACY_HEADER_AUTH_ENABLED=0 and MDAMS_DEMO_MODE=0 in production.",
             x_mdams_user,
         )
         legacy_scope = _parse_collection_scope(x_mdams_collection_scope)
