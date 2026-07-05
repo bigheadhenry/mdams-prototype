@@ -39,7 +39,7 @@ def _migrate_if_new() -> None:
     existing_tables = inspector.get_table_names()
 
     if existing_tables:
-        # Database already has tables â€?schema migration is Alembic's job now.
+        # Database already has tables â€” schema migration is Alembic's job now.
         # The old inline _ensure_sqlite_schema_compatibility() has been removed
         # in favor of proper Alembic migrations.
         return
@@ -51,14 +51,14 @@ def _migrate_if_new() -> None:
 
         alembic_cfg = Config( str(Path(__file__).resolve().parent.parent / "alembic.ini") )
         command.upgrade(alembic_cfg, "head")
-        logger.info("Alembic migration applied (empty DB â†?head).")
+        logger.info("Alembic migration applied (empty DB â†’ head).")
     except Exception:
         # Fallback: create all tables directly (Alembic not installed / configured).
-        logger.warning("Alembic unavailable â€?falling back to Base.metadata.create_all.")
+        logger.warning("Alembic unavailable â€” falling back to Base.metadata.create_all.")
         Base.metadata.create_all(bind=engine)
 
 
-from pathlib import Path  # noqa: E402 â€?imported here for alembic config path resolution above
+from pathlib import Path  # noqa: E402 â€” imported here for alembic config path resolution above
 
 # Initialize DB tables
 _migrate_if_new()
@@ -105,4 +105,4 @@ async def _init_search_engine():
         with SessionLocal() as session:
             seed_index_from_adapters(session)
     except Exception:
-        pass  # Non-blocking â€?search falls back to adapter filtering
+        pass  # Non-blocking â€” search falls back to adapter filtering

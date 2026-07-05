@@ -19,7 +19,7 @@ from .base import PlatformSourceAdapter
 from .registry import registry
 
 SOURCE_SYSTEM = "image_2d"
-SOURCE_LABEL = "二维影像子系�?
+SOURCE_LABEL = "二维影像子系统"
 RESOURCE_TYPE = "image_2d_cultural_object"
 
 
@@ -65,7 +65,7 @@ def _resource_actions(asset_id: int, *, preview_enabled: bool) -> list[UnifiedRe
         ),
         UnifiedResourceAction(
             key="export_bagit",
-            label="下载 BagIt �?,
+            label="下载 BagIt 包",
             kind="export",
             target="export_package",
             url=f"/api/assets/{asset_id}/download-bag",
