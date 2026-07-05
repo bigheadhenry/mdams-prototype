@@ -16,7 +16,6 @@ import {
   Typography,
 } from 'antd';
 import {
-  CheckOutlined,
   CloseCircleOutlined,
   EyeOutlined,
   LinkOutlined,
@@ -293,7 +292,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
         setLoading(false);
       }
     },
-    [activeTab],
+    [activeTab, sortKey],
   );
 
   useEffect(() => {

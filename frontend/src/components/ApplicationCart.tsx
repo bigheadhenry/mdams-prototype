@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Button, Card, Empty, Form, Input, List, Modal, Select, Space, Tag, Typography, message } from 'antd';
-import { DatabaseOutlined, DeleteOutlined, FileDoneOutlined, FolderOpenOutlined, ImportOutlined, SearchOutlined, SortAscendingOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Empty, Form, Input, List, Select, Space, Tag, Typography, message } from 'antd';
+import { DeleteOutlined, FileDoneOutlined, ImportOutlined, SearchOutlined, SortAscendingOutlined } from '@ant-design/icons';
 import ImportDialog from './ImportDialog';
 import type { ApplicationCartItem, ImportSelectionItem } from '../types/assets';
 
@@ -41,7 +41,6 @@ const ApplicationCart: React.FC<ApplicationCartProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [importVisible, setImportVisible] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [sortKey, setSortKey] = useState('default');
 
   // Sort items
@@ -70,7 +69,6 @@ const ApplicationCart: React.FC<ApplicationCartProps> = ({
       message.warning('请至少选择一项');
       return;
     }
-    setImporting(true);
     let added = 0;
     let skipped = 0;
     try {
@@ -89,8 +87,6 @@ const ApplicationCart: React.FC<ApplicationCartProps> = ({
     } catch (err) {
       console.error('import failed', err);
       message.error('导入失败，请重试');
-    } finally {
-      setImporting(false);
     }
   }, [onAddItem]);
 

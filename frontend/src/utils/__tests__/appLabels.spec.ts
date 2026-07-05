@@ -5,6 +5,7 @@ import {
   getAuthModeLabel,
   buildPreviewUrl,
 } from '../appLabels';
+import type { AssetSummary } from '../../types/assets';
 
 describe('MENU_LABELS', () => {
   it('returns correct Chinese label for each known menu key', () => {
@@ -69,7 +70,7 @@ describe('buildPreviewUrl', () => {
       id: 'abc-123',
       created_at: '2025-06-01T10:00:00Z',
       file_size: 2048576,
-    } as any;
+    } as AssetSummary;
 
     const url = buildPreviewUrl(record);
     expect(url).toMatch(/^\/api\/assets\/abc-123\/preview\?v=/);
