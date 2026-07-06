@@ -65,3 +65,6 @@ META-INF/
 # Local scratch and generated files
 pytest_backend.db
 reference/
+frontend/coverage/
+.hermes/
+memory/

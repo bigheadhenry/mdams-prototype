@@ -177,3 +177,63 @@
 - `THREE_D_SUBSYSTEM_ARCHITECTURE.md`
 - `../03-产品与流程/WORKFLOW_GUIDE.md`
 - `../03-产品与流程/UNIFIED_PLATFORM_OPERATIONS_GUIDE.md`
+
+---
+
+## 14. 三来源最小字段契约（2026-07-06）
+
+所有平台来源（`image_2d` / `three_d` / `video`）必须至少提供以下最小字段集。这是契约测试的基准。
+
+### 14.1 UnifiedResourceSummary 最小字段
+
+| 字段 | 类型 | 说明 | 是否可选 |
+|------|------|------|----------|
+| `id` | `str` | 平台复合 ID，如 `image_2d:12` | 必填 |
+| `source_system` | `str` | 来源系统标识 | 必填 |
+| `source_id` | `str` | 来源内稳定定位 ID | 必填 |
+| `source_label` | `str` | 来源中文名称 | 必填 |
+| `title` | `str` | 资源标题（fallback 到文件名） | 必填 |
+| `resource_type` | `str` | 平台侧资源类型 | 必填 |
+| `profile_key` | `str \| None` | 元数据模板键 | 可为空 |
+| `profile_label` | `str \| None` | 元数据模板中文名 | 可为空 |
+| `status` | `str` | 资源状态 | 必填 |
+| `preview_enabled` | `bool` | 是否可预览 | 必填 |
+| `manifest_url` | `str` | 主要访问入口 | 必填 |
+| `detail_url` | `str` | 统一详情 URL | 必填 |
+| `thumbnail_url` | `str \| None` | 缩略图 URL | 可为空 |
+| `preview_data` | `dict \| None` | 预览数据（三维专用） | 可为空 |
+| `updated_at` | `datetime` | 最后更新时间 | 必填 |
+| `actions` | `list[UnifiedResourceAction]` | 可用操作列表 | 必填，可空数组 |
+
+每个 action 必须包含：`key`、`label`、`kind`、`target`、`url`（可空）、`enabled`。
+
+### 14.2 三来源差异对照
+
+| 特征 | `image_2d` | `three_d` | `video` |
+|------|:----------:|:---------:|:-------:|
+| 额外字段 | `resolution`, `format`, `era`, `object_level`, `main_person`, `main_location` | `preview_data` | 无额外字段 |
+| `thumbnail_url`来源 | `/api/assets/{id}/preview` | `preview_data.poster_url` | `/api/video/resources/{id}/stream` |
+| `preview_enabled`判断 | `is_iiif_ready(asset)` | 有默认预览表现 | `status == "ready"` |
+| `manifest_url`含义 | IIIF Manifest | 默认预览资源入口 | 视频 stream |
+| actions 数量 | 5（含 export_bagit） | 4（无 export） | 4（无 export） |
+| source_record | 二维详情对象 | 三维对象+表现列表 | 视频详情对象 |
+
+### 14.3 统一详情新增字段（继承 Summary 基础上）
+
+| 字段 | 类型 | 说明 | 是否可选 |
+|------|------|------|----------|
+| `source_detail_url` | `str` | 来源原详情 URL | 必填 |
+| `source_record_type` | `str \| None` | 来源记录类型标识 | 可为空 |
+| `source_record_schema` | `str \| None` | 来源记录结构版本 | 可为空 |
+| `source_record` | `dict \| None` | 来源记录完整信息 | 可为空 |
+| `rights_display` | `RightsDisplay \| None` | 权利展示信息 | 可为空 |
+
+### 14.4 数据验证规则
+
+1. 每个来源的 `source_system` 必须唯一且稳定。
+2. `id` 应为 `{source_system}:{source_id}` 格式。
+3. `source_id` 在同来源内必须稳定（不随列表页刷新变化）。
+4. `actions` 中至少应包含 `platform_detail`（跳转统一详情）和 `source_detail`（跳转来源原页面）。
+5. `detail_url` 应对应 `GET /api/platform/resources/{source_system}/{source_id}` 可访问。
+6. `thumbnail_url` 可为 None，但不能返回 404 或崩溃。
+7. `updated_at` 应为 UTC 或带时区标记、ISO 格式。

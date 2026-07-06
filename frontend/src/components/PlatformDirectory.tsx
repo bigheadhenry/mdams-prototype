@@ -16,7 +16,6 @@ import {
   Typography,
 } from 'antd';
 import {
-  CheckOutlined,
   CloseCircleOutlined,
   EyeOutlined,
   LinkOutlined,
@@ -293,7 +292,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
         setLoading(false);
       }
     },
-    [activeTab],
+    [activeTab, sortKey],
   );
 
   useEffect(() => {
@@ -531,6 +530,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
     <Row
       gutter={[16, 16]}
       data-testid="platform-directory"
+      className="mdams-content"
       style={{ minHeight: 400, width: '100%', margin: 0 }}
     >
       <Col
@@ -557,33 +557,27 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
         style={{ minWidth: 0, transition: 'all 0.2s ease' }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 12,
-              flexWrap: 'wrap',
-            }}
-          >
+          <div className="mdams-toolbar">
             <Title level={4} style={{ margin: 0 }}>
               统一资源目录
               <Text type="secondary" style={{ fontSize: 13, fontWeight: 400, marginLeft: 8 }}>
                 · {activeSourceLabel}
               </Text>
             </Title>
-            <Space size={8}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                排序
-              </Text>
-              <Select
-                size="small"
-                style={{ minWidth: 140 }}
-                value={sortKey}
-                options={SORT_OPTIONS}
-                onChange={(value) => setSortKey(value as SortKey)}
-              />
-            </Space>
+            <div className="mdams-toolbar-right">
+              <Space size={8}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  排序
+                </Text>
+                <Select
+                  size="small"
+                  style={{ minWidth: 140 }}
+                  value={sortKey}
+                  options={SORT_OPTIONS}
+                  onChange={(value) => setSortKey(value as SortKey)}
+                />
+              </Space>
+            </div>
           </div>
 
           <Tabs
@@ -706,6 +700,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
                   return (
                   <Col key={resource.id} xxl={6} xl={8} lg={12} md={12} sm={24} xs={24}>
                     <Card
+                      className="mdams-stat-card"
                       hoverable
                       size="small"
                       style={{ height: '100%', position: 'relative' }}
@@ -953,6 +948,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
           ) : (
             <Card size="small">
               <Table
+                className="mdams-table-dense"
                 rowKey="id"
                 rowSelection={rowSelection}
                 loading={loading}

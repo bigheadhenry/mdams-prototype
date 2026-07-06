@@ -551,17 +551,17 @@ const App: React.FC = () => {
     <>
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={8}>
-          <Card>
+          <Card className="mdams-stat-card">
             <Statistic title="二维资源数" value={assets.length} />
           </Card>
         </Col>
         <Col span={8}>
-          <Card>
+          <Card className="mdams-stat-card">
             <Statistic title="申请车条目" value={applicationCart.length} />
           </Card>
         </Col>
         <Col span={8}>
-          <Card>
+          <Card className="mdams-stat-card">
             <Statistic title="申请单数" value={applications.length} />
           </Card>
         </Col>
@@ -593,7 +593,7 @@ const App: React.FC = () => {
       </Card>
 
       {canViewImages ? (
-        <div data-testid="assets-table" style={{ marginTop: 24 }}>
+        <div data-testid="assets-table" className="mdams-table-dense" style={{ marginTop: 24 }}>
           <Table dataSource={assets} columns={assetColumns} rowKey="id" loading={loading} />
         </div>
       ) : null}
@@ -675,12 +675,12 @@ const App: React.FC = () => {
   }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout className="mdams-layout" style={{ minHeight: '100vh' }}>
       <Sider breakpoint="lg" collapsedWidth="0" collapsible collapsed={siderCollapsed} onCollapse={setSiderCollapsed}>
         <div style={{ padding: 16, color: '#fff' }}>
           <Space direction="vertical" size={4} style={{ width: '100%' }}>
             <Text style={{ color: '#fff', fontWeight: 700 }}>MDAMS 原型系统</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.75)' }}>真实用户与角色上下文</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11 }}>真实用户与角色上下文</Text>
           </Space>
         </div>
         <Menu
@@ -720,7 +720,7 @@ const App: React.FC = () => {
         </Header>
 
         <Content style={{ margin: '24px 16px 0' }}>
-          <div style={{ padding: 24, minHeight: 360, background: '#fff' }}>
+          <div className="mdams-content" style={{ padding: 24, minHeight: 360, background: '#fff' }}>
             {selectedAssetId !== null ? (
               <AssetDetail
                 assetId={selectedAssetId}
@@ -763,7 +763,7 @@ const App: React.FC = () => {
                 {selectedKey === '1' ? renderDashboard() : null}
 
                 {selectedKey === '2' && canViewImages ? (
-                  <div data-testid="assets-table">
+                  <div data-testid="assets-table" className="mdams-table-dense">
                     <Table dataSource={assets} columns={assetColumns} rowKey="id" loading={loading} />
                   </div>
                 ) : null}

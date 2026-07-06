@@ -1,0 +1,100 @@
+/*
+ * MDAMS Design Tokens — 从 HTML 原型提取
+ * 覆盖 Ant Design 全局变量 + 自定义实用类
+ * 不破坏 Ant Design 原有样式体系
+ */
+
+/* ── Color palette ─────────────────────────────────────── */
+
+:root {
+  /* Sidebar dark gradient (from HTML prototype) */
+  --mdams-sidebar-gradient: linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #1e293b 100%);
+  
+  /* Status badge colors */
+  --mdams-status-ready: #16a34a;
+  --mdams-status-processing: #2563eb;
+  --mdams-status-error: #dc2626;
+  --mdams-status-warning: #d97706;
+
+  /* Card & surface */
+  --mdams-card-radius: 8px;
+  --mdams-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --mdams-card-radius-lg: 20px;
+
+  /* Dashboard stat card palette */
+  --mdams-stat-blue: #eff6ff;
+  --mdams-stat-green: #f0fdf4;
+  --mdams-stat-purple: #f3e8ff;
+  --mdams-stat-orange: #fef3c7;
+
+  /* Table & toolbar */
+  --mdams-table-row-hover: #f8fafc;
+  --mdams-toolbar-spacing: 12px;
+  --mdams-content-max-width: 1240px;
+}
+
+/* ── Sidebar override ──────────────────────────────────── */
+
+.mdams-layout .ant-layout-sider {
+  background: var(--mdams-sidebar-gradient) !important;
+}
+
+.mdams-layout .ant-layout-sider .ant-menu-dark {
+  background: transparent !important;
+}
+
+.mdams-layout .ant-layout-sider .ant-layout-sider-trigger {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ── Dashboard stat cards ──────────────────────────────── */
+
+.mdams-stat-card {
+  border-radius: var(--mdams-card-radius-lg);
+  box-shadow: var(--mdams-card-shadow);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.mdams-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* ── Table density ─────────────────────────────────────── */
+
+.mdams-table-dense .ant-table-cell {
+  padding: 8px 12px !important;
+}
+
+/* ── Toolbar spacing ───────────────────────────────────── */
+
+.mdams-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--mdams-toolbar-spacing);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.mdams-toolbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--mdams-toolbar-spacing);
+}
+
+/* ── Status badges ─────────────────────────────────────── */
+
+.mdams-badge-ready { color: var(--mdams-status-ready); }
+.mdams-badge-processing { color: var(--mdams-status-processing); }
+.mdams-badge-error { color: var(--mdams-status-error); }
+.mdams-badge-warning { color: var(--mdams-status-warning); }
+
+/* ── Content container ─────────────────────────────────── */
+
+.mdams-content {
+  max-width: var(--mdams-content-max-width);
+  margin: 0 auto;
+  padding: 0 24px 32px;
+}

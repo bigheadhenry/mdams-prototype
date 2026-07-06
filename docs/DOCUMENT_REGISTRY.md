@@ -10,9 +10,9 @@
 | 文档 | 状态 | 最后更新 | 备注 |
 |------|------|---------|------|
 | `01-总览/PROJECT_STATUS.md` | 当前事实入口 | 2026-05-17 | 项目范围、当前边界、阶段判断 |
-| `01-总览/NEXT_PHASE_PLAN.md` | 实施方案 | 2026-05-17 | 下一阶段优先级建议 |
+| `01-总览/NEXT_PHASE_PLAN.md` | 实施方案 | 2026-07-06 | 重写为 M0–M6 优先级结构 |
 | `01-总览/TESTING_STRATEGY.md` | 当前事实入口 | 2026-07-04 | 测试策略、分类、覆盖矩阵 |
-| `01-总览/WORK_LOG.md` | 当前事实入口 | 2026-07-04 | 强制每次变更追加 |
+| `01-总览/WORK_LOG.md` | 当前事实入口 | 2026-07-06 | 强制每次变更追加 |
 | `01-总览/DOCUMENTATION_UPDATE_PLAN.md` | 实施方案 | 待核对 | 文档更新方案 |
 
 ### 架构设计（02-架构设计/）
@@ -22,7 +22,8 @@
 | `02-架构设计/SYSTEM_ARCHITECTURE.md` | 当前事实入口 | 待核对 | 系统架构总览 |
 | `02-架构设计/ARCHITECTURE.md` | 快速概览 | 待核对 | 非当前事实入口，用于快速理解 |
 | `02-架构设计/API_ROUTE_MAP.md` | 当前事实入口 | 2026-07-04 | 后端路由总览 |
-| `02-架构设计/PLATFORM_SOURCE_ADAPTERS.md` | 当前事实入口 | 待核对 | 平台适配器设计 |
+| `02-架构设计/PLATFORM_SOURCE_ADAPTERS.md` | 当前事实入口 | 2026-07-06 | 平台适配器设计（含最小字段契约） |
+| `02-架构设计/SEARCH_ENGINE.md` | 实施方案 | 2026-07-06 | 搜索引擎架构与边界说明 |
 | `02-架构设计/UNIFIED_PLATFORM_SOURCE_LOCATOR_CONTRACT.md` | 当前事实入口 | 待核对 | 统一平台定位契约 |
 | `02-架构设计/AUTH_AND_IIIF_INTEGRATION_PLAN.md` | 实施方案 | 待核对 | 认证与 IIIF 集成计划 |
 | `02-架构设计/THREE_D_SUBSYSTEM_ARCHITECTURE.md` | 当前事实入口 | 待核对 | 三维子系统架构 |

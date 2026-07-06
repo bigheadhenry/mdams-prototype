@@ -473,3 +473,62 @@ YYYY-MM-DD
 - 验证结果：`./.venv/bin/python -m pytest tests/test_p0_security.py tests/test_applications.py tests/test_ingest.py -q --tb=short` 通过；`npm test -- --run` 通过（前端 Vitest 11/11）。
 - 安全审计：未新增环境变量、密钥或外部服务依赖；失败路径返回最小错误信息，不泄露内部对象细节。
 
+### 2026-07-06 - M0 执行前基线确认 + M1 文档入口收敛
+- 修改范围：
+  - `docs/01-总览/NEXT_PHASE_PLAN.md`：重写优先级结构为 M0–M6 对应的 P0–P3，保留旧版历史分析。
+  - `docs/DOCUMENT_REGISTRY.md`：NEXT_PHASE_PLAN 最后更新改为 2026-07-06。
+- 变更内容：
+  - M0：读取 PROJECT_STATUS / NEXT_PHASE_PLAN / backlog / TESTING_STRATEGY / CHANGELOG，输出执行前摘要。
+  - M1：将 NEXT_PHASE_PLAN.md 从旧 P0/P1/P2/P3 结构更新为基于当前计划书的 M0–M6 结构；保留旧版内容作为历史参考。
+- 验证结果：后端 74 passed / 62 skipped；前端 68 passed / 6 files；前端 build 通过。
+
+### 2026-07-06 - M2 统一平台契约固化
+- 修改范围：
+  - `docs/02-架构设计/PLATFORM_SOURCE_ADAPTERS.md`：新增 §14 三来源最小字段契约（16 字段定义、差异对照表、统一详情字段、验证规则）。
+  - `backend/tests/test_platform_contract.py`：新增 19 个无 PG 依赖的契约测试。
+  - `frontend/src/components/UnifiedResourceDetail.tsx`：审查 fallback 行为，已有完备的 nullable 处理 + 条件渲染 + 空值 guards。
+- 变更内容：
+  - Task 2.1：提取 image_2d / three_d / video 三来源公共最小字段集合，文档化为测试级契约。
+  - Task 2.2：编写参数化契约测试（required fields / optional nulls / actions 结构 / id 格式 / Detail 继承 / 适配器常量）。
+  - Task 2.3：确认前端统一详情组件对缺省字段已有稳定 fallback（无字段缺失时崩溃路径）。
+- 验证结果：`test_platform_contract.py 19 passed in 0.72s`；`npm run lint` 通过；`npm run build` 通过。
+
+### 2026-07-06 - M3 统一检索与来源适配完善
+- 修改范围：
+  - `docs/02-架构设计/SEARCH_ENGINE.md`：新增搜索引擎架构文档（双轨架构、组件分工、索引结构、边界清单）。
+  - `backend/tests/test_search_engine.py`：新增 5 个契约测试（搜索结果字段结构、空关键词行为、None 关键词、SearchResponse 基本结构、facet 结构）。
+  - `docs/DOCUMENT_REGISTRY.md`：新增 SEARCH_ENGINE 条目。
+- 变更内容：
+  - Task 3.1：明确平台筛选 vs 全文检索的分工边界（适配器过滤 ≈ 精确匹配；Meilisearch ≈ 模糊搜索 + facet + 排序 + 订阅）。
+  - Task 3.2：新增搜索结果契约测试（无 Meilisearch 依赖）；空/None 关键词返回全部文档；facet 结构稳定。
+- 验证结果：`test_search_engine.py 17 passed, 4 skipped in 0.44s`；routes_smoke 跳过（PG 不可用）。
+
+### 2026-07-06 - M4 申请交付与权限治理加强
+- 修改范围：
+  - `backend/tests/test_application_contract.py`：新增 22 个无 PG 依赖的状态机 + 权限合约测试。
+  - `docs/03-产品与流程/USER_ROLE_PERMISSION_MATRIX.md`：已 2026-07-04 核对，无需更新。
+- 变更内容：
+  - Task 4.1：审查申请状态机（submitted / approved / rejected / fulfilled 四状态，Guard 健全，审计日志齐全），审查审批审计日志表（ApplicationAuditLog 覆盖 4 个操作点）。
+  - Task 4.2：新增无 PG 依赖的权限合约测试（状态转换守卫 12 参数化测试、owner scope 验证、view_all/view_own 权限隔离、审计日志结构验证）。
+- 验证结果：`test_application_contract.py 22 passed in 0.47s`。
+
+### 2026-07-06 - M5 长期保存与输出契约推进
+- 修改范围：
+  - `backend/tests/test_output_contracts.py`：新增 PREMIS 风格事件契约测试 3 个（事件动词定义、BagIt 保存元数据、输出事件链）。
+  - `backend/tests/test_event_boundary.py`：新增跨子系统最小事件边界测试 2 个（5 个最小事件映射、总事件覆盖 ≥20 项）。
+- 变更内容：
+  - Task 5.1：选择「申请通过 → 导出交付包 → BagIt → PREMIS 事件摘要 → 输出契约测试」主链路压实；验证现有 BagIt contract 已覆盖 manifest/fixity/bag-info。
+  - Task 5.2：验证 5 个最小事件（asset_uploaded/record_bound/application_submitted/application_approved/package_exported）已有对应的事件步骤定义。
+- 验证结果：`test_output_contracts.py + test_event_boundary.py = 13 passed, 1 skipped in 1.27s`。
+
+### 2026-07-06 - M6 UI 原型与真实前端融合完成
+- 修改范围：
+  - `frontend/src/styles/mdams-theme.css`：新增 MDAMS 设计 token 与实用类，覆盖侧边栏渐变、统计卡、表格密度、工具栏间距和内容容器。
+  - `frontend/src/main.tsx`：导入 `mdams-theme.css`。
+  - `frontend/src/App.tsx`：为 Dashboard 统计卡、二维资源表 wrapper、全局内容容器和主布局注入 MDAMS class。
+  - `frontend/src/components/PlatformDirectory.tsx`：为统一资源目录注入 `mdams-content`、`mdams-toolbar`、`mdams-toolbar-right`、`mdams-stat-card`、`mdams-table-dense`，并修复 JSX 嵌套、未使用 import 与 `sortKey` hook 依赖。
+  - `frontend/src/__tests__/mdamsTheme.spec.ts`：新增 3 个主题落点验证测试。
+- 变更内容：将 HTML 原型中的侧边栏深色渐变、统计卡圆角阴影、表格紧凑密度、工具栏间距落地为可维护的 CSS token 体系，覆盖 Dashboard 统计卡、二维资源表和统一平台目录三个高频页面。
+- 验证结果：M6 触碰文件定向 lint 通过（`npx eslint src/main.tsx src/App.tsx src/components/PlatformDirectory.tsx src/__tests__/mdamsTheme.spec.ts --max-warnings 0`）；前端全量 vitest `71 passed`；`npm run build` 生产构建通过；后端 sanity `137 passed, 73 skipped`（PostgreSQL 未运行，相关集成测试跳过）。
+- 备注：全仓库 `npm run lint` 仍有 30 条历史 warning，集中在 `ApplicationCart.tsx`、`AssetDetail.tsx`、`ImportDialog.tsx`、`fileCheck.spec.ts` 等非 M6 触碰文件，留待技术债清理；设计 token 提取自 `/opt/data/designs/mdams-ui/MDAMS_UI_Prototype.html`。M0–M6 阶段已全部执行完毕。
+

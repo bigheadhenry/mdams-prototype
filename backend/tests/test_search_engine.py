@@ -316,3 +316,90 @@ class TestMockSearchEngine:
         ))
         engine.clear()
         assert engine.count() == 0
+
+
+# ── Contract tests for search result structure ────────────────────
+
+
+class TestSearchResultContract:
+    """验证搜索返回结构稳定"""
+
+    def test_search_result_fields(self):
+        """搜索结果包含来源、资源 ID、标题、score"""
+        doc = SearchDocument(
+            id="image_2d:42",
+            source_system="image_2d",
+            source_id="42",
+            source_label="二维影像子系统",
+            title="清乾隆各色釉彩大瓶",
+            resource_type="image_2d_cultural_object",
+            profile_key="movable_artifact",
+            status="ready",
+            preview_enabled=True,
+            thumbnail_url="/api/assets/42/preview",
+            updated_at="2026-07-06T00:00:00Z",
+            manifest_url="/api/iiif/42/manifest",
+            detail_url="/api/platform/resources/image_2d/42",
+            search_text="清乾隆各色釉彩大瓶 二维影像子系统",
+        )
+        engine = MockSearchEngine()
+        engine.index_document(doc)
+
+        resp = engine.search(SearchQuery(q="釉彩"))
+        assert resp.total >= 1
+        for result in resp.items:
+            assert result.id == "image_2d:42"
+            assert result.document["source_system"] == "image_2d"
+            assert result.document["source_id"] == "42"
+            assert "釉彩" in result.document["title"]
+            # score may be None in MockEngine
+            assert "title" in result.document
+            assert "source_system" in result.document
+            assert "resource_type" in result.document
+            assert "status" in result.document
+
+    def test_empty_query_returns_all(self):
+        """空关键词返回所有文档"""
+        engine = MockSearchEngine()
+        for i in range(3):
+            engine.index_document(SearchDocument(
+                id=f"t:{i}", source_system="t", source_id=str(i),
+                source_label="T", title=f"Doc {i}", resource_type="t",
+                status="ok", preview_enabled=False,
+                updated_at="2026-07-06T00:00:00Z",
+            ))
+        resp = engine.search(SearchQuery(q=""))
+        assert resp.total == 3
+
+    def test_none_query_returns_all(self):
+        """None 关键词返回所有文档"""
+        engine = MockSearchEngine()
+        for i in range(3):
+            engine.index_document(SearchDocument(
+                id=f"t:{i}", source_system="t", source_id=str(i),
+                source_label="T", title=f"Doc {i}", resource_type="t",
+                status="ok", preview_enabled=False,
+                updated_at="2026-07-06T00:00:00Z",
+            ))
+        resp = engine.search(SearchQuery(q=None))
+        assert resp.total == 3
+
+    def test_search_response_has_total_and_items(self):
+        """SearchResponse 必有 total 和 items"""
+        resp = SearchResponse(items=[], total=0)
+        assert resp.total == 0
+        assert resp.items == []
+
+    def test_facet_structure(self):
+        """验证 Meilisearch 的 facetDistribution 结构"""
+        # 模拟 Meilisearch facet 返回结构
+        mock_facets = {
+            "source_system": {"image_2d": 10, "three_d": 5, "video": 2},
+            "status": {"ready": 15, "processing": 2},
+            "profile_key": {"movable_artifact": 8, "other": 9},
+        }
+        resp = SearchResponse(items=[], total=17, facet_distribution=mock_facets)
+        assert resp.facet_distribution is not None
+        assert "source_system" in resp.facet_distribution
+        assert resp.facet_distribution["source_system"]["image_2d"] == 10
+        assert resp.facet_distribution["status"]["ready"] == 15

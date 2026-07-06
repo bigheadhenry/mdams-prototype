@@ -272,3 +272,32 @@ def test_download_bag_returns_404_when_original_file_is_missing(monkeypatch, tmp
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Physical file not found"
+
+
+# ── PREMIS 风格事件契约 ──────────────────────────────────────
+
+
+class TestPreservationEventContract:
+    """验证输出链路关联的保存事件结构（PREMIS 启发）"""
+
+    def test_premis_event_verbs_defined(self):
+        """输出层涉及的关键事件动词已定义"""
+        expected_verbs = {"manifest_generate", "iiif_access_generate", "export_generate"}
+        from app.services.event_boundary import OUTPUT_EVENT_STEPS
+        assert set(OUTPUT_EVENT_STEPS) >= expected_verbs
+
+    def test_bagit_output_includes_preservation_metadata(self):
+        """BagIt 包包含保存相关元数据（manifest、fixity、bag-info）"""
+        # This is a contract verification: BagIt output must have:
+        # 1. manifest-sha256.txt (fixity)
+        # 2. bagit.txt (BagIt protocol version)
+        # 3. bag-info.txt (origin metadata)
+        # These are already verified in test_download_bag_contract_includes_tag_files_and_stored_fixity
+        pass  # Contract documented; actual assertion lives in existing test above
+
+    def test_output_event_steps_chain(self):
+        """输出层事件链：申请通过 → 导出交付包 → BagIt"""
+        from app.services.event_boundary import APPLICATION_EVENT_STEPS
+        assert "delivery_export" in APPLICATION_EVENT_STEPS
+        from app.services.event_boundary import OUTPUT_EVENT_STEPS
+        assert "export_generate" in OUTPUT_EVENT_STEPS
