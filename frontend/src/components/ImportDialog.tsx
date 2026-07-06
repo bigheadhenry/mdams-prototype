@@ -1,11 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Badge,
   Button,
   Card,
   Checkbox,
   DatePicker,
-  Divider,
   Image,
   Input,
   Modal,
@@ -27,15 +25,11 @@ import {
   FileTextOutlined,
   ImportOutlined,
   InboxOutlined,
-  MinusCircleFilled,
-  PlusOutlined,
   SearchOutlined,
-  UploadOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { toSnakeCaseArray } from '../utils/snakeCase';
 import type {
   ImportSelectionItem,
   LookupImageItem,
@@ -43,7 +37,7 @@ import type {
   ParsedImportRow,
 } from '../types/assets';
 
-const { Text, Title, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 const { Dragger } = Upload;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;

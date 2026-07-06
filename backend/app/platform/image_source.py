@@ -178,21 +178,21 @@ def list_unified_resources_filtered(
         asset_preview_enabled = is_iiif_ready(asset)
         if preview_enabled is not None and preview_enabled != asset_preview_enabled:
             continue
-        
+
         # Extract resolution and format from metadata
         tech = layers.get("technical") or {}
         width = tech.get("width") or ""
         height = tech.get("height") or ""
         resolution = f"{width}x{height}" if width and height else None
         fmt = (asset.mime_type or "").split("/")[-1].upper() if asset.mime_type else None
-        
+
         # Extract era from profile fields
         profile_fields = (layers.get("profile") or {}).get("fields") or {}
         era = profile_fields.get("era") or ""
         object_level = profile_fields.get("object_level") or ""
         main_person = profile_fields.get("main_person") or ""
         main_location = profile_fields.get("main_location") or ""
-        
+
         resources.append(
             UnifiedResourceSummary(
                 id=_platform_id(asset.id),

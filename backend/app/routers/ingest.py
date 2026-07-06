@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from PIL import Image
@@ -27,12 +28,31 @@ router = APIRouter(
 )
 
 
+def _sanitize_filename(filename: str | None) -> str:
+    """Sanitize a filename to prevent path traversal attacks.
+
+    - Strips directory components (``os.path.basename``).
+    - Removes null bytes and ``..`` sequences.
+    - Replaces characters that are unsafe for filesystems.
+    - Falls back to ``upload.bin`` when the result is empty or reserved.
+    """
+    name = os.path.basename(filename or "")
+    # Remove null bytes and path traversal sequences
+    name = name.replace("\x00", "").replace("..", "")
+    # Keep only alphanumeric, dash, underscore, dot
+    name = re.sub(r"[^\w.\-]", "_", name)
+    name = name.strip("_. ")
+    if not name or name in {".", ".."}:
+        return "upload.bin"
+    return name
+
+
 @router.post("/sip", response_model=IngestSipResponse)
 async def ingest_sip(
     file: UploadFile = File(...),
     manifest: str = Form(...),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(require_permission("image.upload")),
+    _user: CurrentUser = Depends(require_permission("image.upload")),
 ):
     """
     Receive SIP (Submission Information Package) with BagIt-like verification.
@@ -54,7 +74,8 @@ async def ingest_sip(
         raise HTTPException(status_code=400, detail="Invalid JSON manifest")
 
     sha256_hash = hashlib.sha256()
-    file_location = os.path.join(config.UPLOAD_DIR, file.filename)
+    safe_filename = _sanitize_filename(file.filename)
+    file_location = os.path.join(config.UPLOAD_DIR, safe_filename)
     temp_location = file_location + ".tmp"
 
     try:
@@ -102,7 +123,7 @@ async def ingest_sip(
                 print(f"Error extracting dimensions with ExifTool: {exc}")
 
         file_group = exif_metadata.get("File", {})
-        image_file_name = file.filename
+        image_file_name = safe_filename
         normalized_visibility_scope = str(client_metadata.get("visibility_scope") or "open").strip().lower()
         if normalized_visibility_scope not in {"open", "owner_only"}:
             normalized_visibility_scope = "open"
@@ -113,7 +134,7 @@ async def ingest_sip(
             collection_object_id = None
 
         final_metadata = build_metadata_layers(
-            asset_filename=file.filename,
+            asset_filename=safe_filename,
             asset_file_path=file_location,
             asset_file_size=file_size,
             asset_mime_type=file.content_type,
@@ -127,7 +148,7 @@ async def ingest_sip(
                 "fixity_sha256": server_hash,
                 "checksum": server_hash,
                 "checksum_algorithm": "SHA256",
-                "original_file_name": file.filename,
+                "original_file_name": safe_filename,
                 "image_file_name": image_file_name,
                 "file_size": file_size,
                 "format_name": file_group.get("FileType") or file.content_type,
@@ -147,7 +168,7 @@ async def ingest_sip(
         )
 
         db_asset = Asset(
-            filename=file.filename,
+            filename=safe_filename,
             file_path=file_location,
             file_size=file_size,
             mime_type=file.content_type,

@@ -30,20 +30,20 @@ logger = logging.getLogger(__name__)
 
 def _migrate_if_new() -> None:
     """Apply Alembic migrations on first startup (empty DB).
-    
+
     Keeps the legacy `_ensure_sqlite_schema_compatibility()` approach as a
     fallback for environments where Alembic is unavailable (e.g. test runners
     without the dev dependency installed).
     """
     inspector = inspect(engine)
     existing_tables = inspector.get_table_names()
-    
+
     if existing_tables:
         # Database already has tables — schema migration is Alembic's job now.
         # The old inline _ensure_sqlite_schema_compatibility() has been removed
         # in favor of proper Alembic migrations.
         return
-    
+
     # New database: let Alembic create the full schema.
     try:
         from alembic.config import Config

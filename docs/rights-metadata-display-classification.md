@@ -137,10 +137,10 @@ Rights 层定义于 `RIGHTS_FIELDS`（8 字段）：
 格式：「© {copyright_owner} · {简短用途声明}」
 
 例：
-  copyright_owner="故宫博物院", allowed_usage="学术研究"  
+  copyright_owner="故宫博物院", allowed_usage="学术研究"
   → "© 故宫博物院 · 本资源仅供学术研究使用"
 
-  copyright_owner="故宫博物院", license="CC0"  
+  copyright_owner="故宫博物院", license="CC0"
   → "© 故宫博物院 · 本资源属于公共领域"
 ```
 
@@ -150,7 +150,7 @@ Rights 层定义于 `RIGHTS_FIELDS`（8 字段）：
 格式：「{著作权人/机构} · 摄影：{photographer}」（从 management 层取 photographer）
 
 例：
-  copyright_owner="故宫博物院", photographer="张莹"  
+  copyright_owner="故宫博物院", photographer="张莹"
   → "故宫博物院 · 摄影：张莹"
 
 回退链：copyright_owner → rights_holder → "故宫博物院"

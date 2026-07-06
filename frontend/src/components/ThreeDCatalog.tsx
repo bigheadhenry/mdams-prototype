@@ -238,11 +238,15 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
   };
 
   const handleDelete = async (id: number) => {
-    await axios.delete(`/api/three-d/resources/${id}`);
-    message.success('已删除');
-    setDetailOpen(false);
-    setDetail(null);
-    onRefresh();
+    try {
+      await axios.delete(`/api/three-d/resources/${id}`);
+      message.success('已删除');
+      setDetailOpen(false);
+      setDetail(null);
+      onRefresh();
+    } catch {
+      message.error('删除失败，请重试');
+    }
   };
 
   const handleRegenPreview = async (id: number) => {
@@ -259,6 +263,7 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
 
   /* ─── 批量操作 ─── */
   const batchSetWebPreview = async (enabled: boolean) => {
+    let failures = 0;
     for (const key of selectedRowKeys) {
       const group = groupedItems.find((g) => g.key === key);
       if (!group) continue;
@@ -269,9 +274,15 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
           is_web_preview: enabled,
           web_preview_status: enabled ? 'ready' : 'disabled',
         });
-      } catch { /* skip */ }
+      } catch {
+        failures++;
+      }
     }
-    message.success('批量更新完成');
+    if (failures > 0) {
+      message.warning(`批量更新完成，但有 ${failures} 项失败`);
+    } else {
+      message.success('批量更新完成');
+    }
     setSelectedRowKeys([]);
     onRefresh();
   };

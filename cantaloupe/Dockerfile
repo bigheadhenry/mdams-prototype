@@ -38,5 +38,5 @@ RUN mkdir -p /var/lib/cantaloupe/images \
 # Expose port
 EXPOSE 8182
 
-# Start Cantaloupe
-CMD ["java", "-Dcantaloupe.config=/etc/cantaloupe.properties", "-jar", "cantaloupe-5.0.6.jar"]
+# Start Cantaloupe (use shell form so $JAVA_OPTS is expanded at runtime)
+CMD ["sh", "-c", "java $JAVA_OPTS -Dcantaloupe.config=/etc/cantaloupe.properties -jar cantaloupe-5.0.6.jar"]

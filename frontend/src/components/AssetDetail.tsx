@@ -106,8 +106,6 @@ const renderRightsPanel = (rights?: RightsDisplay | null) => {
   if (!rights) return null;
 
   const isOpen = rights.copyright_status === '公共领域';
-  const isRestricted = rights.copyright_status === '部分权利保留' || rights.allow_derivatives === false;
-
   return (
     <Card
       title={

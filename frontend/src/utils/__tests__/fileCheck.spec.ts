@@ -24,6 +24,12 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+const asPsdResult = (value: unknown): ReturnType<typeof readPsd> =>
+  value as ReturnType<typeof readPsd>;
+
+const asTiffResult = (value: unknown): ReturnType<typeof UTIF.decode> =>
+  value as ReturnType<typeof UTIF.decode>;
+
 describe('checkFileLayers', () => {
   // ─── File Size Check ───
   describe('file size validation', () => {
@@ -80,14 +86,14 @@ describe('checkFileLayers', () => {
   // ─── PSD/PSB ───
   describe('PSD/PSB files', () => {
     it('returns hasLayers: true when psd has multiple layers (>1)', async () => {
-      vi.mocked(readPsd).mockReturnValue({
+      vi.mocked(readPsd).mockReturnValue(asPsdResult({
         children: [
           { name: 'Background' },
           { name: 'Layer 2' },
         ],
         width: 1920,
         height: 1080,
-      } as any);
+      }));
 
       const file = createMockFile('design.psd', 1024);
       const result = await checkFileLayers(file);
@@ -98,11 +104,11 @@ describe('checkFileLayers', () => {
     });
 
     it('returns hasLayers: false when psd has only 1 layer', async () => {
-      vi.mocked(readPsd).mockReturnValue({
+      vi.mocked(readPsd).mockReturnValue(asPsdResult({
         children: [{ name: 'Background' }],
         width: 1920,
         height: 1080,
-      } as any);
+      }));
 
       const file = createMockFile('design.psd', 1024);
       const result = await checkFileLayers(file);
@@ -110,11 +116,11 @@ describe('checkFileLayers', () => {
     });
 
     it('returns hasLayers: false when psd has 0 layers (empty children)', async () => {
-      vi.mocked(readPsd).mockReturnValue({
+      vi.mocked(readPsd).mockReturnValue(asPsdResult({
         children: [],
         width: 1920,
         height: 1080,
-      } as any);
+      }));
 
       const file = createMockFile('design.psd', 1024);
       const result = await checkFileLayers(file);
@@ -122,10 +128,10 @@ describe('checkFileLayers', () => {
     });
 
     it('returns hasLayers: false when psd children is undefined', async () => {
-      vi.mocked(readPsd).mockReturnValue({
+      vi.mocked(readPsd).mockReturnValue(asPsdResult({
         width: 1920,
         height: 1080,
-      } as any);
+      }));
 
       const file = createMockFile('design.psd', 1024);
       const result = await checkFileLayers(file);
@@ -143,11 +149,11 @@ describe('checkFileLayers', () => {
     });
 
     it('processes .psb files same as .psd', async () => {
-      vi.mocked(readPsd).mockReturnValue({
+      vi.mocked(readPsd).mockReturnValue(asPsdResult({
         children: [{ name: 'Background' }, { name: 'Layer 1' }, { name: 'Layer 2' }],
         width: 1920,
         height: 1080,
-      } as any);
+      }));
 
       const file = createMockFile('large.psb', 1024);
       const result = await checkFileLayers(file);
@@ -161,7 +167,7 @@ describe('checkFileLayers', () => {
   // ─── TIFF ───
   describe('TIFF files', () => {
     it('returns hasLayers: true for multi-page TIFF', async () => {
-      vi.mocked(UTIF.decode).mockReturnValue([{ t37724: undefined }, { t37724: undefined }] as any);
+      vi.mocked(UTIF.decode).mockReturnValue(asTiffResult([{ t37724: undefined }, { t37724: undefined }]));
 
       const file = createMockFile('multipage.tif', 1024);
       const result = await checkFileLayers(file);
@@ -172,7 +178,7 @@ describe('checkFileLayers', () => {
     });
 
     it('returns hasLayers: true for single-page TIFF with Photoshop layers tag 37724', async () => {
-      vi.mocked(UTIF.decode).mockReturnValue([{ t37724: new ArrayBuffer(10) }] as any);
+      vi.mocked(UTIF.decode).mockReturnValue(asTiffResult([{ t37724: new ArrayBuffer(10) }]));
 
       const file = createMockFile('photoshop.tiff', 1024);
       const result = await checkFileLayers(file);
@@ -183,7 +189,7 @@ describe('checkFileLayers', () => {
     });
 
     it('returns hasLayers: false for single-page TIFF without layers', async () => {
-      vi.mocked(UTIF.decode).mockReturnValue([{}] as any);
+      vi.mocked(UTIF.decode).mockReturnValue(asTiffResult([{}]));
 
       const file = createMockFile('flat.tif', 1024);
       const result = await checkFileLayers(file);
@@ -201,7 +207,7 @@ describe('checkFileLayers', () => {
     });
 
     it('returns hasLayers: false when UTIF.decode returns null/undefined IFDs', async () => {
-      vi.mocked(UTIF.decode).mockReturnValue(null as any);
+      vi.mocked(UTIF.decode).mockReturnValue(asTiffResult(null));
 
       const file = createMockFile('empty.tif', 1024);
       const result = await checkFileLayers(file);
@@ -220,11 +226,11 @@ describe('checkFileLayers', () => {
   // ─── Case Insensitivity ───
   describe('case insensitivity', () => {
     it('detects .PSD (uppercase) as PSD file', async () => {
-      vi.mocked(readPsd).mockReturnValue({
+      vi.mocked(readPsd).mockReturnValue(asPsdResult({
         children: [{ name: 'Background' }, { name: 'Layer 1' }],
         width: 1920,
         height: 1080,
-      } as any);
+      }));
 
       const file = createMockFile('DESIGN.PSD', 1024);
       const result = await checkFileLayers(file);
@@ -233,11 +239,11 @@ describe('checkFileLayers', () => {
     });
 
     it('detects .Psd (mixed case) as PSD file', async () => {
-      vi.mocked(readPsd).mockReturnValue({
+      vi.mocked(readPsd).mockReturnValue(asPsdResult({
         children: [],
         width: 1920,
         height: 1080,
-      } as any);
+      }));
 
       const file = createMockFile('design.Psd', 1024);
       const result = await checkFileLayers(file);
@@ -246,7 +252,7 @@ describe('checkFileLayers', () => {
     });
 
     it('detects .TIF (uppercase) as TIFF file', async () => {
-      vi.mocked(UTIF.decode).mockReturnValue([{}, {}] as any);
+      vi.mocked(UTIF.decode).mockReturnValue(asTiffResult([{}, {}]));
 
       const file = createMockFile('SCAN.TIF', 1024);
       const result = await checkFileLayers(file);
@@ -255,7 +261,7 @@ describe('checkFileLayers', () => {
     });
 
     it('detects .TIFF (uppercase) as TIFF file', async () => {
-      vi.mocked(UTIF.decode).mockReturnValue([{ t37724: new ArrayBuffer(8) }] as any);
+      vi.mocked(UTIF.decode).mockReturnValue(asTiffResult([{ t37724: new ArrayBuffer(8) }]));
 
       const file = createMockFile('PHOTOSHOP.TIFF', 1024);
       const result = await checkFileLayers(file);
@@ -264,11 +270,11 @@ describe('checkFileLayers', () => {
     });
 
     it('detects .PSB (uppercase) as PSB file', async () => {
-      vi.mocked(readPsd).mockReturnValue({
+      vi.mocked(readPsd).mockReturnValue(asPsdResult({
         children: [{ name: 'Background' }],
         width: 1920,
         height: 1080,
-      } as any);
+      }));
 
       const file = createMockFile('LARGE.PSB', 1024);
       const result = await checkFileLayers(file);

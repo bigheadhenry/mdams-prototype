@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import pickle
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -202,6 +201,40 @@ def _get_runtime() -> _InsightFaceRuntime:
         return runtime
 
 
+def _load_embeddings_safe(path: Path) -> dict[str, Any]:
+    """Load face embeddings from a safe format.
+
+    Supports ``.npz`` (numpy safe format) and ``.json``.
+    Rejects raw pickle files to prevent arbitrary code execution.
+    """
+    suffix = path.suffix.lower()
+    if suffix == ".json":
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    if suffix == ".npz":
+        try:
+            import numpy as np
+        except ImportError as exc:
+            raise LocalFaceRecognitionError("numpy is required to load .npz embeddings") from exc
+        data = np.load(str(path), allow_pickle=False)
+        result: dict[str, Any] = {}
+        for key in data.files:
+            result[str(key)] = data[key]
+        return result
+
+    # Fallback: try to treat as JSON (safe)
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    raise LocalFaceRecognitionError(
+        f"Unsafe embeddings format at {path}. "
+        "Convert .pkl files to .npz (numpy.savez_compressed) or .json before use. "
+        "Pickle is rejected to prevent arbitrary code execution."
+    )
+
+
 def _build_index_snapshot(index_dir: Path) -> _FaceIndexSnapshot:
     meta_path = index_dir / "meta.json"
     embeddings_path = index_dir / "embeddings.pkl"
@@ -216,8 +249,9 @@ def _build_index_snapshot(index_dir: Path) -> _FaceIndexSnapshot:
 
     if embeddings_path.exists():
         try:
-            with embeddings_path.open("rb") as file_obj:
-                embeddings = pickle.load(file_obj)
+            embeddings = _load_embeddings_safe(embeddings_path)
+        except LocalFaceRecognitionError:
+            raise
         except Exception as exc:
             raise LocalFaceRecognitionError(f"Failed to load face embeddings from {embeddings_path}: {exc}") from exc
     else:

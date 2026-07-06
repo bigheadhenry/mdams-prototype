@@ -1,9 +1,9 @@
 /**
  * 驼峰命名转下划线命名（用于前端 → 后端 API 数据契约对齐）
- * 
+ *
  * 后端 Cart API 使用 snake_case（如 source_system, object_number）
  * 前端 TypeScript 类型使用 camelCase（如 sourceSystem, objectNumber）
- * 
+ *
  * 此工具函数在调用后端 API 前转换字段名。
  */
 

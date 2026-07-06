@@ -1,7 +1,7 @@
 """initial schema
 
 Revision ID: 001dea3060cf
-Revises: 
+Revises:
 Create Date: 2026-06-23 12:25:35.105014
 
 """

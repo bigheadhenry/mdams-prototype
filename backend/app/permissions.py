@@ -206,10 +206,10 @@ def get_current_user(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session token")
         return _build_current_user_from_db_user(user)
 
-    if config.MDAMS_DEMO_MODE and x_mdams_user:
+    if x_mdams_user and (config.LEGACY_HEADER_AUTH_ENABLED or config.MDAMS_DEMO_MODE):
         logger.warning(
-            "DEMO MODE: X-MDAMS-User header accepted for user=%s. "
-            "Set MDAMS_DEMO_MODE=0 in production.",
+            "Legacy/demo X-MDAMS-User header accepted for user=%s. "
+            "Set LEGACY_HEADER_AUTH_ENABLED=0 and MDAMS_DEMO_MODE=0 in production.",
             x_mdams_user,
         )
         legacy_scope = _parse_collection_scope(x_mdams_collection_scope)
