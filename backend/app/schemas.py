@@ -489,6 +489,16 @@ class ApplicationListItem(BaseModel):
     exported_by: str | None = Field(None, description="Display name of the exporter")
 
 
+class ApplicationAuditLogEntry(BaseModel):
+    id: int
+    action: str
+    from_status: str | None = None
+    to_status: str | None = None
+    actor_display_name: str | None = None
+    review_note: str | None = None
+    created_at: datetime
+
+
 class ApplicationDetailResponse(BaseModel):
     id: int
     application_no: str
@@ -508,16 +518,6 @@ class ApplicationDetailResponse(BaseModel):
     audit_logs: list["ApplicationAuditLogEntry"] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class ApplicationAuditLogEntry(BaseModel):
-    id: int
-    action: str
-    from_status: str | None = None
-    to_status: str | None = None
-    actor_display_name: str | None = None
-    review_note: str | None = None
-    created_at: datetime
 
 
 class ThreeDCollectionObjectOut(BaseModel):

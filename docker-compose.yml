@@ -93,6 +93,8 @@ services:
       - "${FRONTEND_PORT}:80"
     volumes:
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Mount dist directly so npm run build changes are live without rebuild
+      - ./frontend/dist:/usr/share/nginx/html
     depends_on:
       - backend
       - cantaloupe
