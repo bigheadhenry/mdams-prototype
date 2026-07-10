@@ -33,9 +33,15 @@ MDAMS Prototype 是一个面向馆内业务场景的数字资源管理原型仓�
 - 模型 / 点云 / 倾斜摄影等角色区分
 - Web 查看摘要与对象详情
 
+### 视频资源
+
+- 视频资源列表与详情
+- inline stream 在线播放
+- 统一平台多模态来源接入
+
 ### 统一平台
 
-- 统一来源注册
+- 统一来源注册（二维、三维、视频）
 - 统一资源目录
 - 统一资源详情
 - 按状态、类型、profile、预览能力筛选
@@ -74,8 +80,9 @@ mdams-prototype/
 |- frontend/       React 前端、Playwright 测试、静态资源
 |- docs/           项目正式文档主目录
 |- cantaloupe/     Cantaloupe 构建与相关配置
-|- reference/      参考资源包与导入样例
 |- uploads/        本地开发默认挂载目录
+|- memory/         项目记忆与设计决策记录
+|- tasks/          任务板与当前任务跟踪
 |- docker-compose.yml
 |- .env.example
 ```
@@ -102,7 +109,7 @@ Copy-Item .env.example .env
 
 - `HOST_MUSEUM_PATH` 是宿主机目录，会被挂载到容器内 `/app/uploads`
 - `API_PUBLIC_URL` 和 `CANTALOUPE_PUBLIC_URL` 必须是浏览器可访问的地址
-- 如果你希望浏览器统一走前端代理，`CANTALOUPE_PUBLIC_URL` 本地建议使用 `http://localhost:3000/iiif/2`
+- 如果你希望浏览器统一走前端代理，图像预览推荐走 `/api/iiif/{asset_id}/service/...` 代理路径（由前端 Nginx 转发到后端再访问 Cantaloupe）
 
 ### 2. 启动容器
 
@@ -184,8 +191,9 @@ python -m pytest backend\tests
 - `platform`
 - `three-d`
 - `ai`
+- `video`
 
-这意味着项目当前已经明确覆盖了登录权限、二维资产、图像记录、统一平台、三维资源、利用申请和 AI 辅助 Mirador 面板等模块，而不是仅仅停留在文件上传阶段。
+这意味着项目当前已经明确覆盖了登录权限、二维资产、图像记录、统一平台、三维资源、视频资源、利用申请和 AI 辅助 Mirador 面板等模块，而不是仅仅停留在文件上传阶段。
 
 ## 文档入口
 

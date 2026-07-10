@@ -1,4 +1,7 @@
-# Windows 安装 Docker Desktop 指南
+# Windows 安装 Docker Desktop 指南 — 历史存档
+
+> ⚠️ **本文档已归档为迁移提示，不再作为当前部署入口。**<br>
+> 当前部署入口请见：[docs/05-部署与运维/SETUP_AND_DEPLOYMENT.md](../05-部署与运维/SETUP_AND_DEPLOYMENT.md)
 
 本指南将帮助您在 Windows 开发机上安装 Docker Desktop，以便下载并导出镜像传输给实验室服务器。
 

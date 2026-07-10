@@ -1,4 +1,8 @@
-# MDAMS 开发与部署工作流指南 (Workflow Guide)
+# MDAMS 开发与部署工作流指南 (Workflow Guide) — 历史存档
+
+> ⚠️ **本文档已归档，不再作为当前工作流入口。**<br>
+> 当前部署入口请见：[docs/05-部署与运维/SETUP_AND_DEPLOYMENT.md](../05-部署与运维/SETUP_AND_DEPLOYMENT.md)<br>
+> Git 部署指南请见：[docs/05-部署与运维/GIT_DEPLOY_GUIDE.md](../05-部署与运维/GIT_DEPLOY_GUIDE.md)
 
 本文档详细说明了如何在 MDAMS 项目中进行日常开发、代码管理以及自动化部署。本项目采用了 **Git Push to Deploy** 模式，实现了类似 Heroku 的开发体验。
 

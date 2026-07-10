@@ -1,10 +1,14 @@
-# MEAM Prototype 系统架构与功能说明文档
+# MDAMS Prototype 系统架构与功能说明文档（历史存档）
 
-本文档详细描述了 MEAM (Museum Enterprise Asset Management) 原型系统的技术架构、核心功能及设计理念。该系统专为实验室环境（N100 服务器 + QNAP NAS）设计，旨在验证混合存储架构下的数字资产管理与 IIIF 高清图像服务能力。
+> ⚠️ **本文档已归档，不再作为当前事实入口。**<br>
+> 当前系统架构事实入口请见：[docs/02-架构设计/SYSTEM_ARCHITECTURE.md](../02-架构设计/SYSTEM_ARCHITECTURE.md)<br>
+> 部署请见：[docs/05-部署与运维/SETUP_AND_DEPLOYMENT.md](../05-部署与运维/SETUP_AND_DEPLOYMENT.md)
+
+本文档详细描述了 MDAMS (Museum Digital Asset Management System) 原型系统的技术架构、核心功能及设计理念。该系统专为实验室环境（N100 服务器 + QNAP NAS）设计，旨在验证混合存储架构下的数字资产管理与 IIIF 高清图像服务能力。
 
 ## 1. 系统概览 (System Overview)
 
-MEAM Prototype 是一个轻量级的数字资产管理系统，核心能力在于对高分辨率文物图像的存储、管理与 IIIF 标准化展示。系统采用微服务架构，前后端分离，针对低功耗服务器（Intel N100）进行了专门的性能优化。
+MDAMS Prototype 是一个轻量级的数字资产管理系统，核心能力在于对高分辨率文物图像的存储、管理与 IIIF 标准化展示。系统采用微服务架构，前后端分离，针对低功耗服务器（Intel N100）进行了专门的性能优化。
 
 ### 1.1 核心价值
 *   **IIIF 原生支持**: 遵循 IIIF Presentation API 3.0 标准，支持跨机构图像互操作。
@@ -94,21 +98,21 @@ graph TD
 *   **应用服务器**: Ubuntu 24.04 (Docker Rootless), Intel N100, 16GB RAM.
 *   **存储服务器**: 支持 NFS v4 的 NAS 设备。
 
-### 4.2 目录结构
+### 4.2 目录结构（历史参考）
 ```text
 /meam-prototype
 ├── backend/            # Python API 服务代码
 ├── frontend/           # React 前端代码
+├── docs/               # 项目正式文档主目录
 ├── cantaloupe/         # 图像服务器配置与构建文件
 ├── docker-compose.yml  # 容器编排定义
 ├── deploy.sh           # 一键部署脚本
-└── DEPLOYMENT.md       # 部署操作手册
+└── DEPLOYMENT.md       # 部署操作手册（已迁移至 docs/）
 ```
 
 ### 4.3 端口映射
 *   **3000**: Web 前端访问入口。
 *   **8000**: 后端 API 文档 (Swagger UI)。
-*   **8081**: FileBrowser (文件系统直接管理)。
 *   **8182**: Cantaloupe 管理控制台。
 
 ## 5. 扩展性设计 (Future Roadmap)

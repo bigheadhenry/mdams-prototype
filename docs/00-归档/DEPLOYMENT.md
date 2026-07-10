@@ -1,4 +1,8 @@
-# MDAMS 部署指南 (Deployment Guide)
+# MDAMS 部署指南 (Deployment Guide) — 历史存档
+
+> ⚠️ **本文档已归档为迁移提示，不再作为当前部署入口。**<br>
+> 当前部署入口请见：[docs/05-部署与运维/SETUP_AND_DEPLOYMENT.md](../05-部署与运维/SETUP_AND_DEPLOYMENT.md)<br>
+> 环境变量说明请见：[docs/05-部署与运维/ENVIRONMENT_VARIABLES.md](../05-部署与运维/ENVIRONMENT_VARIABLES.md)
 
 本指南专门针对 **N100 实验室服务器 (192.168.5.13)** 与 **QNAP NAS (192.168.5.16)** 的混合架构环境。
 
@@ -49,7 +53,6 @@ chmod +x deploy.sh
 | :--- | :--- | :--- | :--- |
 | **Web 前端** | 3000 | `http://192.168.5.13:3000` | 主界面，资产管理与预览 |
 | **后端 API** | 8000 | `http://192.168.5.13:8000/docs` | Swagger API 文档 |
-| **FileBrowser** | 8081 | `http://192.168.5.13:8081` | 文件直接管理 (无验证模式) |
 | **Cantaloupe** | 8182 | `http://192.168.5.13:8182` | IIIF 图像服务控制台 |
 
 ## 4. 性能优化说明 (Performance Optimization)
