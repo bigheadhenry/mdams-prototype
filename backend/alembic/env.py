@@ -26,7 +26,7 @@ from app import models  # noqa: E402, F401 — force model registration
 target_metadata = Base.metadata
 
 # Override sqlalchemy.url in config with our app's DATABASE_URL
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
 
 
 def run_migrations_offline() -> None:

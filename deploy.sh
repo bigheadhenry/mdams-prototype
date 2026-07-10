@@ -34,10 +34,14 @@ RETRY_COUNT=0
 
 check_health() {
     local service="$1"
+    local container_id
     local state
-    state=$(docker compose ps --format "table {{.Service}}\t{{.Status}}" 2>/dev/null | grep "^${service}\s" | awk '{print $2}')
-    echo "$state" | grep -q "(healthy)" && return 0
-    return 1
+
+    container_id=$(docker compose ps -q "$service" 2>/dev/null)
+    [ -n "$container_id" ] || return 1
+
+    state=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)
+    [ "$state" = "healthy" ]
 }
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do

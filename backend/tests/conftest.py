@@ -14,7 +14,16 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-DEFAULT_POSTGRES_DATABASE_URL = "postgresql://meam:***@localhost:5432/meam_db"
+DEFAULT_POSTGRES_DATABASE_URL = "postgresql://meam:meam_secret@localhost:5432/meam_db"
+
+
+def pytest_addoption(parser) -> None:
+    parser.addoption(
+        "--allow-missing-services",
+        action="store_true",
+        default=False,
+        help="Skip integration tests when PostgreSQL or migrations are unavailable.",
+    )
 
 
 def _render_url(url) -> str:
@@ -123,9 +132,6 @@ def _resolve_test_database_url() -> str:
     base_url = _detect_reachable_database_url(base_url)
 
     parsed = make_url(base_url)
-    host = parsed.host or "localhost"
-    if host in {"db", "postgres", "postgresql"}:
-        parsed = parsed.set(host="localhost")
 
     database_name = parsed.database or "meam_db"
     if not database_name.endswith("_test"):
@@ -171,7 +177,7 @@ def _run_alembic_migrations(database_url: str) -> None:
     from alembic import command
 
     alembic_cfg = Config(str(BACKEND_ROOT / "alembic.ini"))
-    alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+    alembic_cfg.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
     command.upgrade(alembic_cfg, "head")
 
 
@@ -187,6 +193,7 @@ def _truncate_all_tables(connection) -> None:
 TEST_DATABASE_URL = _resolve_test_database_url()
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ.setdefault("MDAMS_DEMO_MODE", "1")
+os.environ["AUTH_DEFAULT_PASSWORD"] = "mdams-test-password"
 
 from app import config as app_config  # noqa: E402
 from app.database import Base  # noqa: E402
@@ -205,8 +212,14 @@ def test_upload_dir(tmp_path, monkeypatch):
     return upload_dir
 
 
+def _handle_missing_test_service(pytestconfig, message: str) -> None:
+    if pytestconfig.getoption("--allow-missing-services"):
+        pytest.skip(message)
+    pytest.fail(f"{message} Use --allow-missing-services only for unit-only local runs.")
+
+
 @pytest.fixture(scope="session")
-def db_engine():
+def db_engine(pytestconfig):
     engine = None
     try:
         _ensure_postgres_database_exists(TEST_DATABASE_URL)
@@ -216,7 +229,7 @@ def db_engine():
     except Exception as exc:
         if engine is not None:
             engine.dispose()
-        pytest.skip(f"PostgreSQL test database unavailable: {exc}")
+        _handle_missing_test_service(pytestconfig, f"PostgreSQL test database unavailable: {exc}")
 
     # Bring the test DB schema up to date via real migrations instead of
     # Base.metadata.create_all, so tests exercise the same schema path as prod.
@@ -225,7 +238,7 @@ def db_engine():
     except Exception as exc:
         if engine is not None:
             engine.dispose()
-        pytest.skip(f"Alembic migration failed for test database: {exc}")
+        _handle_missing_test_service(pytestconfig, f"Alembic migration failed for test database: {exc}")
 
     try:
         yield engine

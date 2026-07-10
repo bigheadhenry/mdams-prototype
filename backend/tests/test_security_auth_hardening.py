@@ -27,10 +27,8 @@ class TestDefaultPassword:
         assert hasattr(config, "AUTH_DEFAULT_PASSWORD")
 
     def test_default_password_value_in_dev(self):
-        """H-1: Default password exists for development convenience."""
-        # The default value 'mdams123' is acceptable for dev/test
-        # Production should override via .env
-        assert config.AUTH_DEFAULT_PASSWORD is not None
+        """H-1: Tests inject a password without relying on a production default."""
+        assert config.AUTH_DEFAULT_PASSWORD == "mdams-test-password"
 
     def test_seed_skips_when_password_empty(self, monkeypatch):
         """H-1: seed_auth_data should skip when password is empty."""
