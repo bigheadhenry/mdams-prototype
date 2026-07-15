@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterable
+from datetime import datetime
 
 from app.models import Asset
 from app.schemas import (
@@ -44,6 +45,17 @@ TIMELINE_STATUS_LABELS = {
 }
 
 
+def _parse_datetime(value: object) -> datetime | None:
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str) and value:
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    return None
+
+
 def _has_any_value(metadata: dict[str, object], keys: Iterable[str]) -> bool:
     return any(metadata.get(key) not in (None, "") for key in keys)
 
@@ -60,6 +72,9 @@ def _build_file_record(
     is_original: bool | None = None,
     same_as_primary: bool | None = None,
     derivation_method: str | None = None,
+    sha256: str | None = None,
+    fixity_status: str | None = None,
+    last_verified_at: datetime | None = None,
 ) -> AssetFileRecord:
     return AssetFileRecord(
         role=role,
@@ -72,6 +87,9 @@ def _build_file_record(
         is_original=is_original,
         same_as_primary=same_as_primary,
         derivation_method=derivation_method,
+        sha256=sha256,
+        fixity_status=fixity_status,
+        last_verified_at=last_verified_at,
     )
 
 
@@ -244,6 +262,9 @@ def build_asset_detail_response(asset: Asset) -> AssetDetailResponse:
         is_current=not has_distinct_access_copy,
         is_original=True,
         same_as_primary=not has_distinct_access_copy,
+        sha256=str(technical.get("fixity_sha256") or "") or None,
+        fixity_status=str(technical.get("fixity_status") or "pending"),
+        last_verified_at=_parse_datetime(technical.get("last_verified_at")),
     )
 
     derivatives: list[AssetFileRecord] = []

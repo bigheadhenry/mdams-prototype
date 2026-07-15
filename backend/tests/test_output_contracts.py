@@ -237,7 +237,10 @@ def test_three_d_zip_skips_files_outside_resource_dir(tmp_path):
     with ZipFile(zip_path) as zip_file:
         names = set(zip_file.namelist())
 
-    assert names == {"model/model.glb"}
+    assert names == {"model/model.glb", "manifest-sha256.txt"}
+    with ZipFile(zip_path) as zip_file:
+        checksum_manifest = zip_file.read("manifest-sha256.txt").decode("utf-8")
+    assert "model/model.glb" in checksum_manifest
 
 
 def test_download_bag_returns_404_when_original_file_is_missing(monkeypatch, tmp_path):

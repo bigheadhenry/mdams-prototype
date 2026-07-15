@@ -203,6 +203,9 @@ export interface FileRecord {
   is_original?: boolean;
   same_as_primary?: boolean;
   derivation_method?: string | null;
+  sha256?: string | null;
+  fixity_status?: string | null;
+  last_verified_at?: string | null;
 }
 
 export interface TimelineEntry {
@@ -296,6 +299,8 @@ export interface AssetTechnicalMetadata {
   width?: number;
   height?: number;
   fixity_sha256?: string;
+  fixity_status?: string;
+  last_verified_at?: string;
   ingest_method?: string;
   conversion_method?: string;
   original_file_path?: string;
@@ -505,6 +510,7 @@ export interface AdvancedSearchParams {
 
 export interface ThreeDAssetSummary {
   id: number;
+  three_d_object_id: number;
   collection_object_id?: number | null;
   resource_group?: string | null;
   filename: string;
@@ -515,6 +521,8 @@ export interface ThreeDAssetSummary {
   primary_file_role?: string | null;
   file_roles?: string[];
   version_label?: string;
+  representation_type?: string;
+  publication_status?: string;
   version_order?: number;
   is_current?: boolean;
   is_web_preview?: boolean;
@@ -530,6 +538,7 @@ export interface ThreeDAssetSummary {
   storage_tier?: string;
   preservation_status?: string;
   preservation_note?: string | null;
+  fixity_status?: string;
   preview_data?: ThreeDPreviewData | null;
   created_at: string;
   process_message?: string | null;
@@ -563,6 +572,7 @@ export interface ThreeDMetadataLayers {
 
 export interface ThreeDDetailResponse {
   id: number;
+  three_d_object_id: number;
   identifier: string;
   title: string;
   resource_type: string;
@@ -594,6 +604,9 @@ export interface ThreeDDetailResponse {
       sort_order?: number;
       download_url?: string | null;
       preview_url?: string | null;
+      sha256?: string | null;
+      fixity_status?: string | null;
+      last_verified_at?: string | null;
     };
     files: Array<{
       id?: number | null;
@@ -608,6 +621,9 @@ export interface ThreeDDetailResponse {
       sort_order?: number;
       download_url?: string | null;
       preview_url?: string | null;
+      sha256?: string | null;
+      fixity_status?: string | null;
+      last_verified_at?: string | null;
     }>;
     groups: Array<{
       role: string;
@@ -653,6 +669,8 @@ export interface ThreeDDetailResponse {
     supported_roles?: string[];
   } | null;
   version_label?: string;
+  representation_type?: string;
+  publication_status?: string;
   version_order?: number;
   is_current?: boolean;
   is_web_preview?: boolean;
@@ -684,6 +702,7 @@ export interface ThreeDDetailResponse {
     occurred_at: string;
     metadata_info?: Record<string, unknown>;
   }>;
+  publication_transitions: string[];
 }
 
 export interface ThreeDRepresentationSummary {

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>三维数据资源模块 · 第二阶段开发结果</title>
+  <style>
+    :root{--bg:#07111f;--panel:#0d1b2d;--line:#25405c;--text:#edf6ff;--muted:#9fb4c8;--cyan:#49d7d0;--green:#72e6a5;--gold:#ffcf70;--blue:#67a9ff}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% 0,#123c55 0,transparent 32%),var(--bg);color:var(--text);font:15px/1.65 system-ui,"Microsoft YaHei",sans-serif}
+    main{max-width:1100px;margin:auto;padding:48px 24px 72px}header{padding:36px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(135deg,rgba(73,215,208,.13),rgba(13,27,45,.92));box-shadow:0 24px 70px #0005}
+    .eyebrow{color:var(--cyan);font-weight:700;letter-spacing:.12em;text-transform:uppercase}h1{font-size:clamp(30px,5vw,54px);line-height:1.1;margin:.35em 0}.lead{font-size:18px;color:#c8d9e8;max-width:820px}.status{display:inline-flex;gap:9px;align-items:center;margin-top:16px;padding:8px 14px;border-radius:999px;background:#123424;color:var(--green);font-weight:700}.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green)}
+    section{margin-top:24px;padding:28px;border:1px solid var(--line);border-radius:18px;background:rgba(13,27,45,.88)}h2{margin:0 0 18px;font-size:23px}h3{margin:0 0 8px;color:var(--cyan)}p{margin:.5em 0;color:#d5e2ed}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{padding:18px;border-radius:14px;background:#101f32;border:1px solid #263e58}.metric{font-size:32px;font-weight:800;color:var(--green)}.label{color:var(--muted)}
+    .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:center}.node{padding:18px;text-align:center;border:1px solid #315270;border-radius:14px;background:#10243a}.arrow{color:var(--cyan);font-size:25px}.tag{display:inline-block;margin:4px;padding:5px 10px;border:1px solid #315270;border-radius:999px;color:#cce4f7;background:#10243a}code{color:var(--gold)}
+    table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line)}th{color:var(--cyan)}.ok{color:var(--green);font-weight:700}.warn{color:var(--gold)}ul{padding-left:20px;color:#d5e2ed}.gate{border-color:#376a67;background:linear-gradient(135deg,#0f2d30,#0d1b2d)}footer{margin-top:24px;color:var(--muted);text-align:center}@media(max-width:760px){.grid{grid-template-columns:1fr}.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}header,section{padding:22px}}
+  </style>
+</head>
+<body><main>
+  <header>
+    <div class="eyebrow">3D Resource Module · Stage 02</div>
+    <h1>数字对象与多表示模型<br>开发结果说明</h1>
+    <p class="lead">三维资源不再以单个文件或松散分组作为最高层实体。系统现在用一个稳定的“三维数字对象”归集原始母版、网页展示、移动轻量、科研细节与其他派生表示。</p>
+    <div class="status"><span class="dot"></span>第二项已完成并通过专项审计</div>
+  </header>
+
+  <section><h2>交付摘要</h2><div class="grid">
+    <div class="card"><div class="metric">1 : N</div><div class="label">数字对象与表示的归属关系</div></div>
+    <div class="card"><div class="metric">5</div><div class="label">受控表示类型</div></div>
+    <div class="card"><div class="metric">12 / 12</div><div class="label">三维数据库集成测试通过</div></div>
+  </div></section>
+
+  <section><h2>模型关系</h2><div class="flow">
+    <div class="node"><h3>馆藏对象</h3><p>可选业务关联</p></div><div class="arrow">→</div>
+    <div class="node"><h3>ThreeDDigitalObject</h3><p>稳定对象标识与项目语境</p></div><div class="arrow">→</div>
+    <div class="node"><h3>ThreeDAsset</h3><p>一个具体格式/版本表示</p></div>
+  </div><p>统一平台的聚合键已切换到 <code>three_d_object_id</code>；旧的 <code>resource_group</code> 被保留为兼容信息，不再承担唯一对象身份。</p></section>
+
+  <section><h2>受控字段</h2>
+    <h3>表示类型 representation_type</h3>
+    <p><span class="tag">original_master</span><span class="tag">web_display</span><span class="tag">mobile_lightweight</span><span class="tag">research_detail</span><span class="tag">derivative</span></p>
+    <h3>发布状态 publication_status</h3>
+    <p><span class="tag">draft</span><span class="tag">validating</span><span class="tag">approved</span><span class="tag">published</span><span class="tag">withdrawn</span><span class="tag">rejected</span></p>
+    <p>两组字段均有 ORM 契约、Pydantic 接口契约和 PostgreSQL CHECK 约束，防止非法值绕过应用层写入。</p>
+  </section>
+
+  <section><h2>迁移与兼容策略</h2><table>
+    <tr><th>场景</th><th>处理方式</th><th>结果</th></tr>
+    <tr><td>旧资源分组</td><td>按馆藏对象 + resource_group 回填数字对象</td><td class="ok">无损归集</td></tr>
+    <tr><td>旧版本标签</td><td>original/master、web、mobile、research 等确定性映射</td><td class="ok">自动分类</td></tr>
+    <tr><td>旧网页预览</td><td>ready 且已启用的表示回填为 published</td><td class="ok">保持展示行为</td></tr>
+    <tr><td>未分组资源</td><td>使用 asset-id 构造独立兼容组</td><td class="ok">避免错误合并</td></tr>
+  </table></section>
+
+  <section><h2>接口与界面变化</h2><ul>
+    <li>新增 <code>GET /api/three-d/digital-objects</code> 对象目录接口。</li>
+    <li>上传、列表、详情、元数据字典和统一平台记录均输出对象 ID、表示类型和发布状态。</li>
+    <li>资源列表支持按表示类型过滤，PATCH 支持受控修改表示类型。</li>
+    <li>入库向导增加表示类型选择；管理页按数字对象聚合，目录优先展示显式表示类型。</li>
+  </ul></section>
+
+  <section><h2>测试与审计结论</h2><table>
+    <tr><th>检查</th><th>结果</th></tr>
+    <tr><td>工作流 + 模型 + 字典契约测试</td><td class="ok">38 passed</td></tr>
+    <tr><td>全新 PostgreSQL 数据库完整 Alembic 迁移</td><td class="ok">head = a1b2c3d4e5f6</td></tr>
+    <tr><td>三维子系统、生产记录、事件边界集成</td><td class="ok">12 passed</td></tr>
+    <tr><td>前端单元测试</td><td class="ok">71 passed</td></tr>
+    <tr><td>前端 ESLint / production build</td><td class="ok">通过</td></tr>
+    <tr><td>Python compileall / git diff --check</td><td class="ok">通过</td></tr>
+  </table>
+  <p class="warn">补充透明说明：启用 PostgreSQL 后运行全后端套件得到 275 passed、4 skipped、26 failed；失败集中在既存申请、二维图像、旧 ingest 和统一平台测试，均未触及本次三维改动。三维专项数据库测试全部通过，这些基线问题未被扩展到当前阶段范围。</p></section>
+
+  <section class="gate"><h2>下一开发门：第三项</h2><h3>原子化发布 / 撤回 / 默认预览动作</h3><p>下一阶段将把第一项冻结的状态机真正接入事务动作：验证 → 审批 → 发布 → 撤回，并保证同一数字对象只有一个有效默认网页表示。按照约定，本报告交付后暂停，等待确认再开始第三项。</p></section>
+  <footer>生成日期：2026-07-11 · MDAMS 三维数据资源模块</footer>
+</main></body></html>

@@ -16,6 +16,9 @@ THREE_D_METADATA_DICTIONARY = ThreeDMetadataDictionaryResponse(
             fields=[
                 ThreeDMetadataFieldDefinition(key='title', label='三维对象名称', required=True, layer='core', description='三维资源对象的显示名称'),
                 ThreeDMetadataFieldDefinition(key='resource_group', label='资源组', required=True, layer='core', description='同一数字对象的版本集合标识'),
+                ThreeDMetadataFieldDefinition(key='three_d_object_id', label='三维数字对象ID', required=True, layer='core', description='稳定的三维数字对象外键'),
+                ThreeDMetadataFieldDefinition(key='representation_type', label='表现类型', required=True, layer='core', description='original_master / web_display / mobile_lightweight / research_detail / derivative'),
+                ThreeDMetadataFieldDefinition(key='publication_status', label='发布状态', required=True, layer='core', description='draft / validating / approved / published / withdrawn / rejected'),
                 ThreeDMetadataFieldDefinition(key='version_label', label='版本号', required=True, layer='core', description='original / v1 / v2 等版本标签'),
                 ThreeDMetadataFieldDefinition(key='version_order', label='版本顺序', required=True, layer='core', description='版本排序整数'),
                 ThreeDMetadataFieldDefinition(key='is_web_preview', label='允许 Web 展示', required=True, layer='core', description='是否允许作为 Web 展示版本'),

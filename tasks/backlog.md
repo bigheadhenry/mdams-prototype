@@ -2,7 +2,8 @@
 
 ## Next
 - [ ] 设计跨子系统事件边界在 detail / test 层的优先落地方案
-- [ ] 为三维最小 profile 建立工作流级 contract tests
+- [x] 为三维最小 profile 建立工作流级 contract tests
+- [x] 建立三维数字对象与多表示数据模型，并完成旧资源迁移兼容
 - [ ] 继续把现有研究文档和真实实现样本互相链接，减少“只看文档、看不到证据”的断层
 
 ## Later

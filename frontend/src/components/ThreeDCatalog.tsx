@@ -17,6 +17,7 @@ import {
   Tag,
   Typography,
   message,
+  Modal,
 } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import {
@@ -70,11 +71,18 @@ const REPRESENTATION_TYPE_LABELS: Record<string, string> = {
   research_detail: '高精度研究级',
   derivative: '其他派生',
 };
+const PUBLICATION_STATUS_LABELS: Record<string, string> = {
+  draft: '草稿', validating: '验证中', approved: '已审核', published: '已发布', withdrawn: '已撤回', rejected: '已驳回',
+};
+const FIXITY_STATUS_LABELS: Record<string, string> = {
+  pending: '待校验', verified: '校验通过', recorded: '已记录', needs_review: '需复核', missing: '文件缺失', mismatch: '校验不一致',
+};
 
 /* ─── 小工具 ─── */
-type RepresentationLike = Pick<ThreeDAssetSummary, 'version_label' | 'is_web_preview' | 'web_preview_status'>;
+type RepresentationLike = Pick<ThreeDAssetSummary, 'representation_type' | 'version_label' | 'is_web_preview' | 'web_preview_status'>;
 
 const getRepresentationType = (record: RepresentationLike) => {
+  if (record.representation_type) return record.representation_type;
   const v = (record.version_label || '').toLowerCase();
   if (v.includes('original') || v.includes('master')) return 'original_master';
   if (v.includes('mobile') || v.includes('light')) return 'mobile_lightweight';
@@ -114,6 +122,12 @@ const WEB_PREVIEW_FILTERS = [
   { value: 'pending', label: '准备中' },
   { value: 'disabled', label: '未启用' },
 ];
+const PUBLICATION_FILTERS = Object.entries(PUBLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }));
+const FIXITY_FILTERS = [
+  { value: 'verified', label: '校验通过' },
+  { value: 'pending', label: '待校验' },
+  { value: 'needs_review', label: '需复核' },
+];
 
 /* ─── Props ─── */
 interface ThreeDCatalogProps {
@@ -121,6 +135,7 @@ interface ThreeDCatalogProps {
   loading: boolean;
   onRefresh: () => void;
   onIngest?: () => void;
+  canReview?: boolean;
 }
 
 /* ─── 元数据表格(字段化) ─── */
@@ -161,12 +176,14 @@ const renderMetadataValue = (value: unknown, depth: number = 0): React.ReactNode
 };
 
 /* ═══════════════════════════ 组件 ═══════════════════════════ */
-const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, onRefresh, onIngest }) => {
-  const [searchText, setSearchText] = useState('');
+const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, onRefresh, onIngest, canReview = false }) => {
+  const [searchText, setSearchText] = useState(() => sessionStorage.getItem('mdams.3d.search') || '');
   const [filterStatus, setFilterStatus] = useState<string | undefined>();
   const [filterProfile, setFilterProfile] = useState<string | undefined>();
   const [filterStorageTier, setFilterStorageTier] = useState<string | undefined>();
   const [filterWebPreview, setFilterWebPreview] = useState<string | undefined>();
+  const [filterPublication, setFilterPublication] = useState<string | undefined>(() => sessionStorage.getItem('mdams.3d.publication') || undefined);
+  const [filterFixity, setFilterFixity] = useState<string | undefined>(() => sessionStorage.getItem('mdams.3d.fixity') || undefined);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   /* 详情 Drawer */
@@ -178,7 +195,14 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
 
   /* 分页 */
   const [pageSize, setPageSize] = useState(20);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => Number(sessionStorage.getItem('mdams.3d.page') || 1));
+
+  useEffect(() => {
+    sessionStorage.setItem('mdams.3d.search', searchText);
+    sessionStorage.setItem('mdams.3d.publication', filterPublication || '');
+    sessionStorage.setItem('mdams.3d.fixity', filterFixity || '');
+    sessionStorage.setItem('mdams.3d.page', String(currentPage));
+  }, [searchText, filterPublication, filterFixity, currentPage]);
 
   const filteredGroups = useMemo(() => {
     let result = groupedItems;
@@ -195,8 +219,10 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
     if (filterProfile) result = result.filter((g) => g.profileLabel?.toLowerCase() === filterProfile);
     if (filterStorageTier) result = result.filter((g) => g.storageTier === filterStorageTier);
     if (filterWebPreview) result = result.filter((g) => g.webPreviewVersion?.web_preview_status === filterWebPreview);
+    if (filterPublication) result = result.filter((g) => g.versions.some((v) => v.publication_status === filterPublication));
+    if (filterFixity) result = result.filter((g) => g.versions.some((v) => (v.fixity_status || 'pending') === filterFixity));
     return result;
-  }, [groupedItems, searchText, filterStatus, filterProfile, filterStorageTier, filterWebPreview]);
+  }, [groupedItems, searchText, filterStatus, filterProfile, filterStorageTier, filterWebPreview, filterPublication, filterFixity]);
 
   const paginatedGroups = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -238,14 +264,47 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
   };
 
   const handleDelete = async (id: number) => {
+    Modal.confirm({
+      title: '确认删除该三维表现？',
+      content: '资源文件、预览和生产记录将一并删除，此操作不可撤销。',
+      okText: '删除', cancelText: '取消', okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await axios.delete(`/api/three-d/resources/${id}`);
+          message.success('已删除');
+          setDetailOpen(false);
+          setDetail(null);
+          onRefresh();
+        } catch {
+          message.error('删除失败，请重试');
+        }
+      },
+    });
+  };
+
+  const handleTransition = async (targetStatus: string) => {
+    if (!detail) return;
     try {
-      await axios.delete(`/api/three-d/resources/${id}`);
-      message.success('已删除');
-      setDetailOpen(false);
-      setDetail(null);
+      const res = await axios.post<ThreeDDetailResponse>(`/api/three-d/resources/${detail.id}/publication-transition`, { target_status: targetStatus });
+      setDetail(res.data);
+      message.success(`状态已更新为${PUBLICATION_STATUS_LABELS[targetStatus] || targetStatus}`);
+      onRefresh();
+    } catch (error) {
+      const payload = axios.isAxiosError(error) ? error.response?.data?.detail : null;
+      const issue = payload?.issues?.[0]?.message;
+      message.error(issue || '状态转换失败');
+    }
+  };
+
+  const handleVerifyFixity = async () => {
+    if (!detail) return;
+    try {
+      const res = await axios.post(`/api/three-d/resources/${detail.id}/verify-fixity`);
+      message.success(res.data.status === 'verified' ? '完整性校验通过' : '校验完成，存在需复核文件');
+      await openDetail(detail.id);
       onRefresh();
     } catch {
-      message.error('删除失败，请重试');
+      message.error('完整性校验失败');
     }
   };
 
@@ -435,6 +494,12 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
   /* ─── Detail 快捷动作 ─── */
   const detailActions = detail ? (
     <Space wrap style={{ marginBottom: 16 }}>
+      {detail.publication_transitions.map((target) => (
+        <Button key={target} type={target === 'published' ? 'primary' : 'default'} disabled={['approved', 'rejected', 'published', 'withdrawn'].includes(target) && !canReview} onClick={() => void handleTransition(target)}>
+          {PUBLICATION_STATUS_LABELS[target] || target}
+        </Button>
+      ))}
+      <Button icon={<SyncOutlined />} onClick={() => void handleVerifyFixity()}>校验完整性</Button>
       <Button icon={<SyncOutlined />} onClick={() => handleRegenPreview(detail.id)}>重生成预览</Button>
       <Button icon={<EditOutlined />} onClick={() => { setEditingField('title'); setEditValue(detail.title); }}>
         编辑标题
@@ -469,6 +534,10 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
                 value={filterStorageTier} onChange={(v) => { setFilterStorageTier(v); setCurrentPage(1); }} />
               <Select placeholder="Web 展示" allowClear style={{ width: 120 }} options={WEB_PREVIEW_FILTERS}
                 value={filterWebPreview} onChange={(v) => { setFilterWebPreview(v); setCurrentPage(1); }} />
+              <Select placeholder="发布状态" allowClear style={{ width: 120 }} options={PUBLICATION_FILTERS}
+                value={filterPublication} onChange={(v) => { setFilterPublication(v); setCurrentPage(1); }} />
+              <Select placeholder="完整性" allowClear style={{ width: 120 }} options={FIXITY_FILTERS}
+                value={filterFixity} onChange={(v) => { setFilterFixity(v); setCurrentPage(1); }} />
             </Space>
           </Col>
           <Col>
@@ -600,6 +669,11 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
               <Descriptions.Item label="主文件">{detail.file.filename}</Descriptions.Item>
               <Descriptions.Item label="模板">{detail.profile_label || '-'}</Descriptions.Item>
               <Descriptions.Item label="状态">{getRecordStatusLabel(detail.status)}</Descriptions.Item>
+              <Descriptions.Item label="发布状态">
+                <Tag color={detail.publication_status === 'published' ? 'green' : detail.publication_status === 'rejected' ? 'red' : 'blue'}>
+                  {PUBLICATION_STATUS_LABELS[detail.publication_status || 'draft'] || detail.publication_status}
+                </Tag>
+              </Descriptions.Item>
               <Descriptions.Item label="保存层">{getStorageTierLabel(detail.preservation.storage_tier)}</Descriptions.Item>
               <Descriptions.Item label="保存状态">{getPreservationStatusLabel(detail.preservation.preservation_status)}</Descriptions.Item>
               <Descriptions.Item label="构成">{detail.structure.summary}</Descriptions.Item>
@@ -647,6 +721,8 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
                   { title: '文件名', dataIndex: 'actual_filename', key: 'fn', render: (v: string) => <Paragraph copyable style={{ marginBottom: 0 }}>{v}</Paragraph> },
                   { title: '大小', dataIndex: 'file_size', key: 'fs', render: (v: number) => `${(v / 1024 / 1024).toFixed(2)} MB` },
                   { title: '主文件', dataIndex: 'is_primary', key: 'ip', render: (v: boolean) => v ? <Tag color="green">是</Tag> : <Tag>否</Tag> },
+                  { title: '完整性', dataIndex: 'fixity_status', key: 'fix', render: (v: string | null) => <Tag color={v === 'verified' || v === 'recorded' ? 'green' : v === 'mismatch' || v === 'missing' ? 'red' : 'gold'}>{FIXITY_STATUS_LABELS[v || 'pending'] || v}</Tag> },
+                  { title: 'SHA256', dataIndex: 'sha256', key: 'sha', ellipsis: true, render: (v: string | null) => v ? <Paragraph copyable code style={{ marginBottom: 0, maxWidth: 160 }}>{v}</Paragraph> : '-' },
                 ]}
                 dataSource={detail.structure.files}
               />
@@ -674,6 +750,7 @@ const ThreeDCatalog: React.FC<ThreeDCatalogProps> = ({ groupedItems, loading, on
                   { title: '状态', dataIndex: 'status', key: 'sta', render: (v: string) => getRecordStatusLabel(v) },
                   { title: '执行人', dataIndex: 'actor', key: 'act', render: (v: string | null) => v || '-' },
                   { title: '时间', dataIndex: 'occurred_at', key: 'time' },
+                  { title: '说明', dataIndex: 'description', key: 'desc', render: (v: string | null) => v || '-' },
                 ]}
               />
             </Card>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Descriptions, Divider, List, Space, Spin, Tag, Typography } from 'antd';
-import { ArrowLeftOutlined, DownloadOutlined, EyeOutlined, LinkOutlined, InfoCircleOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Descriptions, Divider, List, Space, Spin, Tag, Typography, message } from 'antd';
+import { ArrowLeftOutlined, DownloadOutlined, EyeOutlined, LinkOutlined, InfoCircleOutlined, LockOutlined, SafetyCertificateOutlined, UnlockOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { getFieldLabel } from '../utils/metadataLabels';
 import type {
@@ -85,6 +85,15 @@ const renderFileRecord = (record: AssetDetailFileRecord, fallbackTitle: string) 
     {record.derivation_method && (
       <Descriptions.Item label="衍生方式">{record.derivation_method}</Descriptions.Item>
     )}
+    <Descriptions.Item label="完整性状态">
+      <Tag color={record.fixity_status === 'verified' || record.fixity_status === 'recorded' ? 'green' : record.fixity_status === 'mismatch' || record.fixity_status === 'missing' ? 'red' : 'gold'}>
+        {record.fixity_status || '待校验'}
+      </Tag>
+    </Descriptions.Item>
+    <Descriptions.Item label="SHA256">
+      {record.sha256 ? <Paragraph copyable code style={{ marginBottom: 0 }}>{record.sha256}</Paragraph> : '-'}
+    </Descriptions.Item>
+    <Descriptions.Item label="最近校验">{record.last_verified_at || '-'}</Descriptions.Item>
   </Descriptions>
 );
 
@@ -178,6 +187,7 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
   const [detail, setDetail] = useState<AssetDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   const fetchDetail = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -218,6 +228,22 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
     () => detail?.access_paths.manifest?.url || detail?.access.manifest_url,
     [detail],
   );
+
+  const verifyFixity = async () => {
+    setVerifying(true);
+    try {
+      const response = await axios.post(`/api/assets/${assetId}/verify-fixity`);
+      if (response.data.status === 'verified' || response.data.status === 'recorded') {
+        message.success('完整性校验通过');
+        void fetchDetail(true);
+      } else {
+        message.warning(`完整性校验结果：${response.data.message}`);
+        void fetchDetail(true);
+      }
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   if (loading) return <Spin tip="正在加载资源详情..." />;
 
@@ -462,6 +488,9 @@ const AssetDetail: React.FC<AssetDetailProps> = ({ assetId, onBack, onPreview })
             }}
           >
             下载 BagIt 包
+          </Button>
+          <Button icon={<SafetyCertificateOutlined />} loading={verifying} onClick={() => void verifyFixity()}>
+            校验完整性
           </Button>
         </Space>
       </Card>

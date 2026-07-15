@@ -1,6 +1,6 @@
 import pytest
 
-from app.models import ThreeDAsset
+from app.models import ThreeDAsset, ThreeDDigitalObject
 from app.services.three_d_production import seed_three_d_production_records
 
 
@@ -8,7 +8,17 @@ pytestmark = [pytest.mark.unit, pytest.mark.integration]
 
 
 def test_seed_three_d_production_records_creates_ordered_events(db_session):
+    digital_object = ThreeDDigitalObject(
+        object_key="test:production:sample",
+        title="Sample 3D Object",
+        lifecycle_status="draft",
+    )
+    db_session.add(digital_object)
+    db_session.flush()
     asset = ThreeDAsset(
+        three_d_object=digital_object,
+        representation_type="web_display",
+        publication_status="published",
         filename="sample.glb",
         file_path="/tmp/sample.glb",
         file_size=1024,

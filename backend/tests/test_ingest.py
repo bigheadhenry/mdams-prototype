@@ -59,7 +59,7 @@ def test_ingest_sip_persists_asset_and_returns_fixity(monkeypatch, db_session, t
             file=UploadFile(file=BytesIO(payload), filename="ingest.png"),
             manifest=json.dumps(manifest),
             db=db_session,
-            current_user=INGEST_OPERATOR,
+                _user=INGEST_OPERATOR,
         )
 
     response = asyncio.run(run())
@@ -98,7 +98,7 @@ def test_ingest_sip_rejects_bad_fixity(monkeypatch, db_session, test_upload_dir)
             file=UploadFile(file=BytesIO(payload), filename="broken.png"),
             manifest=json.dumps(manifest),
             db=db_session,
-            current_user=INGEST_OPERATOR,
+                _user=INGEST_OPERATOR,
         )
 
     with pytest.raises(HTTPException) as exc_info:
@@ -132,7 +132,7 @@ def test_ingest_sip_queues_large_tiff_for_iiif_access_derivative(monkeypatch, db
             file=UploadFile(file=BytesIO(payload), filename="large.tif"),
             manifest=json.dumps(manifest),
             db=db_session,
-            current_user=INGEST_OPERATOR,
+                _user=INGEST_OPERATOR,
         )
 
     response = asyncio.run(run())
@@ -170,7 +170,7 @@ def test_ingest_sip_queues_psb_for_mandatory_iiif_access_derivative(monkeypatch,
             file=UploadFile(file=BytesIO(payload), filename="master.psb"),
             manifest=json.dumps(manifest),
             db=db_session,
-            current_user=INGEST_OPERATOR,
+                _user=INGEST_OPERATOR,
         )
 
     response = asyncio.run(run())

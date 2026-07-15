@@ -60,6 +60,8 @@ const ImageRecordDetail: React.FC<ImageRecordDetailProps> = ({
   const management = (record.metadata_info.management as Record<string, unknown> | undefined) || {};
   const profile = record.metadata_info.profile;
   const profileFields = (profile?.fields as Record<string, unknown> | undefined) || {};
+  const rawMetadata = (record.metadata_info.raw_metadata as Record<string, unknown> | undefined) || {};
+  const auditTrail = Array.isArray(rawMetadata.audit_trail) ? rawMetadata.audit_trail as Array<Record<string, unknown>> : [];
   const pendingUpload = record.pending_upload || null;
 
   return (
@@ -118,6 +120,25 @@ const ImageRecordDetail: React.FC<ImageRecordDetailProps> = ({
           {record.asset ? `${record.asset.filename || `Asset #${record.asset.asset_id}`} (${record.asset.status || 'unknown'})` : 'No active binding'}
         </Descriptions.Item>
       </Descriptions>
+
+      <Divider />
+      <Title level={5}>记录与文件处理轨迹</Title>
+      {auditTrail.length ? (
+        <List
+          bordered
+          size="small"
+          dataSource={[...auditTrail].reverse()}
+          renderItem={(item) => (
+            <List.Item>
+              <Space direction="vertical" size={0}>
+                <Space><Tag>{String(item.action || 'event')}</Tag><Text strong>{String(item.actor || item.user_id || 'system')}</Text></Space>
+                <Text type="secondary">{String(item.at || '-')}</Text>
+                {item.note ? <Text>{String(item.note)}</Text> : null}
+              </Space>
+            </List.Item>
+          )}
+        />
+      ) : <Alert type="info" showIcon message="暂无审计事件" />}
 
       {(canUpload || canMatch)
       && (record.status === 'ready_for_upload' || record.status === 'uploaded_pending_validation' || pendingUpload) ? (

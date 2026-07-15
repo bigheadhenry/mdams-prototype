@@ -38,6 +38,7 @@ import {
 import axios from 'axios';
 import MiradorViewer from './MiradorViewer';
 import AssetDetail from './components/AssetDetail';
+import AssetOperations from './components/AssetOperations';
 import ApplicationCart from './components/ApplicationCart';
 import ApplicationManagement from './components/ApplicationManagement';
 import ImageRecordWorkbench from './components/ImageRecordWorkbench';
@@ -755,7 +756,7 @@ const App: React.FC = () => {
                 assetId={selectedAssetId}
                 onBack={() => {
                   setSelectedAssetId(null);
-                  setSelectedKey('1');
+                  setSelectedKey('2');
                   void fetchAssets(true);
                 }}
                 onPreview={(manifestUrl) => {
@@ -792,9 +793,12 @@ const App: React.FC = () => {
                 {selectedKey === '1' ? renderDashboard() : null}
 
                 {selectedKey === '2' && canViewImages ? (
-                  <div data-testid="assets-table" className="mdams-table-dense">
-                    <Table dataSource={assets} columns={assetColumns} rowKey="id" loading={loading} />
-                  </div>
+                  <>
+                    <AssetOperations assetIds={assets.map((asset) => asset.id)} canEdit={authContext.permissions.includes('image.edit') || authContext.permissions.includes('system.manage')} onRefresh={() => void fetchAssets(true)} />
+                    <div data-testid="assets-table" className="mdams-table-dense">
+                      <Table dataSource={assets} columns={assetColumns} rowKey="id" loading={loading} />
+                    </div>
+                  </>
                 ) : null}
 
                 {selectedKey === '3' && canCreateApplications ? (
@@ -840,7 +844,7 @@ const App: React.FC = () => {
                   />
                 ) : null}
 
-                {selectedKey === '7' && canView3D ? <ThreeDManagement /> : null}
+                {selectedKey === '7' && canView3D ? <ThreeDManagement permissions={authContext?.permissions || []} /> : null}
 
                 {selectedKey === '8' && canManageApplications ? (
                   <ApplicationManagement

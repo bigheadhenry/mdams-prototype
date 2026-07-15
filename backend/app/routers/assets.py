@@ -1,14 +1,16 @@
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from PIL import Image
 from sqlalchemy.orm import Session
 
 from .. import config
 from ..database import get_db
-from ..models import Asset
+from ..models import Asset, ImageRecord
 from ..permissions import CurrentUser, can_access_visibility_scope, ensure_current_user, require_permission
 from ..schemas import AssetDetailResponse, AssetOut
 from ..services.asset_detail import build_asset_detail_response
@@ -20,6 +22,9 @@ from ..services.iiif_access import (
 )
 from ..services.metadata_layers import build_metadata_layers, get_original_file_path
 from ..services.preview_images import ensure_preview_image
+from ..services.fixity import calculate_sha256, verify_path
+from ..services.resource_access import assert_asset_visible
+from ..services.resource_events import record_resource_event
 from ..tasks import generate_iiif_access_derivative
 
 router = APIRouter(tags=["assets"])
@@ -80,6 +85,7 @@ async def upload_file(
             buffer.write(content)
 
     file_size = os.path.getsize(file_location)
+    fixity_sha256 = calculate_sha256(file_location)
     width, height = 0, 0
     try:
         with Image.open(file_location) as img:
@@ -114,6 +120,9 @@ async def upload_file(
                 "image_file_name": os.path.basename(file_location),
                 "file_size": file_size,
                 "format_name": file.content_type,
+                "fixity_sha256": fixity_sha256,
+                "fixity_status": "verified",
+                "last_verified_at": datetime.now(timezone.utc).isoformat(),
                 "visibility_scope": normalized_visibility_scope,
                 "collection_object_id": normalized_collection_object_id,
             },
@@ -135,6 +144,17 @@ async def upload_file(
     db.add(db_asset)
     db.commit()
     db.refresh(db_asset)
+    record_resource_event(
+        db,
+        source_system="image_2d",
+        source_id=db_asset.id,
+        event_type="ingest",
+        status="completed",
+        actor=ensure_current_user(_user),
+        description="2D asset uploaded and baseline checksum recorded",
+        evidence=fixity_sha256,
+    )
+    db.commit()
 
     if db_asset.status == "processing":
         generate_iiif_access_derivative.delay(db_asset.id, file_location)
@@ -234,9 +254,10 @@ def list_assets(
 def delete_asset(
     asset_id: int,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("image.delete")),
+    user: CurrentUser = Depends(require_permission("image.delete")),
 ):
     asset = _get_asset_or_404(asset_id, db)
+    assert_asset_visible(asset, user)
 
     try:
         removable_paths = {
@@ -260,6 +281,115 @@ def delete_asset(
     db.commit()
 
     return {"status": "success", "message": f"Asset {asset_id} deleted"}
+
+
+def _asset_technical(asset: Asset) -> dict[str, object]:
+    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    technical = metadata.get("technical") if isinstance(metadata, dict) else {}
+    return dict(technical) if isinstance(technical, dict) else {}
+
+
+@router.get("/assets/operations/summary")
+def get_asset_operations_summary(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.view")),
+):
+    assets = [asset for asset in db.query(Asset).all() if _is_asset_visible_to_user(asset, user)]
+    can_list_all_records = user.has_permission("image.record.list")
+    can_view_ready_records = user.has_permission("image.record.view_ready_for_upload")
+    hashes: dict[str, int] = {}
+    for asset in assets:
+        checksum = str(_asset_technical(asset).get("fixity_sha256") or "")
+        if checksum:
+            hashes[checksum] = hashes.get(checksum, 0) + 1
+    return {
+        "total": len(assets),
+        "processing": sum(asset.status == "processing" for asset in assets),
+        "failed": sum(asset.status == "error" for asset in assets),
+        "iiif_not_ready": sum(not bool(get_asset_iiif_access_file_path(asset, require_exists=True)) for asset in assets),
+        "fixity_attention": sum(str(_asset_technical(asset).get("fixity_status") or "pending") not in {"verified", "recorded"} for asset in assets),
+        "ready_for_upload": (
+            db.query(ImageRecord).filter(ImageRecord.status == "ready_for_upload").count()
+            if can_list_all_records or can_view_ready_records
+            else 0
+        ),
+        "pending_validation": (
+            db.query(ImageRecord).filter(ImageRecord.status == "uploaded_pending_validation").count()
+            if can_list_all_records
+            else 0
+        ),
+        "duplicate_files": sum(count - 1 for count in hashes.values() if count > 1),
+    }
+
+
+@router.post("/assets/{asset_id}/verify-fixity")
+def verify_asset_fixity(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.edit")),
+):
+    asset = _get_asset_or_404(asset_id, db)
+    assert_asset_visible(asset, user)
+    technical = _asset_technical(asset)
+    path = get_asset_original_file_path(asset) or asset.file_path
+    outcome = verify_path(path, str(technical.get("fixity_sha256") or "") or None)
+    technical["fixity_sha256"] = outcome.expected_sha256
+    technical["fixity_status"] = outcome.status
+    technical["last_verified_at"] = outcome.verified_at.isoformat()
+    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    metadata["technical"] = technical
+    asset.metadata_info = metadata
+    record_resource_event(
+        db,
+        source_system="image_2d",
+        source_id=asset.id,
+        event_type="preserve",
+        status=outcome.status,
+        actor=user,
+        description=outcome.message,
+        evidence=outcome.actual_sha256,
+    )
+    db.commit()
+    return {
+        "asset_id": asset.id,
+        "expected_sha256": outcome.expected_sha256,
+        "actual_sha256": outcome.actual_sha256,
+        "status": outcome.status,
+        "verified_at": outcome.verified_at,
+        "message": outcome.message,
+    }
+
+
+@router.post("/assets/operations/verify-fixity")
+def verify_assets_fixity_batch(
+    asset_ids: list[int] = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.edit")),
+):
+    results = []
+    for asset_id in asset_ids:
+        results.append(verify_asset_fixity(asset_id, db, user))
+    return {"results": results}
+
+
+@router.post("/assets/operations/regenerate-derivatives")
+def regenerate_asset_derivatives_batch(
+    asset_ids: list[int] = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("image.edit")),
+):
+    queued = []
+    for asset_id in asset_ids:
+        asset = _get_asset_or_404(asset_id, db)
+        assert_asset_visible(asset, user)
+        original_path = get_asset_original_file_path(asset)
+        if not original_path:
+            continue
+        mark_asset_derivative_pending(asset)
+        generate_iiif_access_derivative.delay(asset.id, original_path)
+        queued.append(asset.id)
+    db.commit()
+    return {"queued_asset_ids": queued}
 
 
 @router.get("/assets/{asset_id}", response_model=AssetDetailResponse)

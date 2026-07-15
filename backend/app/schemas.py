@@ -32,6 +32,9 @@ class AssetFileRecord(BaseModel):
     is_original: bool | None = None
     same_as_primary: bool | None = None
     derivation_method: str | None = None
+    sha256: str | None = None
+    fixity_status: str | None = None
+    last_verified_at: datetime | None = None
 
 
 class AssetLifecycleEntry(BaseModel):
@@ -530,6 +533,22 @@ class ThreeDCollectionObjectOut(BaseModel):
     keywords: str | None = None
 
 
+class ThreeDDigitalObjectOut(BaseModel):
+    id: int
+    object_key: str
+    collection_object_id: int | None = None
+    legacy_resource_group: str | None = None
+    title: str
+    project_code: str | None = None
+    capture_batch: str | None = None
+    responsible_department: str | None = None
+    lifecycle_status: str = "draft"
+    representation_count: int = 0
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ThreeDProductionRecordOut(BaseModel):
     id: int
     stage: str
@@ -550,6 +569,7 @@ class ThreeDPreservationSummary(BaseModel):
 
 class ThreeDAssetOut(BaseModel):
     id: int
+    three_d_object_id: int
     collection_object_id: int | None = None
     resource_group: str | None = None
     filename: str
@@ -560,6 +580,8 @@ class ThreeDAssetOut(BaseModel):
     primary_file_role: str | None = None
     file_roles: list[str] = Field(default_factory=list)
     version_label: str = "original"
+    representation_type: str = "derivative"
+    publication_status: str = "draft"
     version_order: int = 0
     is_current: bool = True
     is_web_preview: bool = False
@@ -575,6 +597,7 @@ class ThreeDAssetOut(BaseModel):
     storage_tier: str = "archive"
     preservation_status: str = "pending"
     preservation_note: str | None = None
+    fixity_status: str = "pending"
     preview_data: dict[str, Any] | None = None
     created_at: datetime
     process_message: str | None = None
@@ -598,6 +621,36 @@ class ThreeDFileRecord(ThreeDFileSummary):
     sort_order: int = 0
     download_url: str | None = None
     preview_url: str | None = None
+    sha256: str | None = None
+    fixity_status: str | None = None
+    last_verified_at: datetime | None = None
+
+
+class ValidationIssue(BaseModel):
+    code: str
+    field: str
+    message: str
+
+
+class ThreeDPublicationTransitionRequest(BaseModel):
+    target_status: str
+    note: str | None = None
+
+
+class ThreeDFixityFileResult(BaseModel):
+    file_id: int
+    filename: str
+    expected_sha256: str | None = None
+    actual_sha256: str | None = None
+    status: str
+    verified_at: datetime
+    message: str
+
+
+class ThreeDFixityResponse(BaseModel):
+    resource_id: int
+    status: str
+    files: list[ThreeDFixityFileResult] = Field(default_factory=list)
 
 
 class ThreeDFileGroupSummary(BaseModel):
@@ -642,6 +695,7 @@ class ThreeDViewerSummary(BaseModel):
 
 class ThreeDDetailResponse(BaseModel):
     id: int
+    three_d_object_id: int
     identifier: str
     title: str
     resource_type: str
@@ -659,6 +713,8 @@ class ThreeDDetailResponse(BaseModel):
     technical_metadata: dict[str, Any]
     viewer: ThreeDViewerSummary | None = None
     version_label: str = "original"
+    representation_type: str = "derivative"
+    publication_status: str = "draft"
     version_order: int = 0
     is_current: bool = True
     is_web_preview: bool = False
@@ -668,6 +724,7 @@ class ThreeDDetailResponse(BaseModel):
     collection_object: ThreeDCollectionObjectOut | None = None
     preservation: ThreeDPreservationSummary
     production_records: list[ThreeDProductionRecordOut] = Field(default_factory=list)
+    publication_transitions: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 

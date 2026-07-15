@@ -550,6 +550,29 @@ async function bootstrapCommonApi(page, authContext = systemAdminAuthContext) {
     await route.fulfill({ json: visibleAssets });
   });
 
+  await page.route('**/api/assets/operations/summary', async (route) => {
+    await route.fulfill({ json: { total: visibleAssets.length, processing: 0, failed: 0, iiif_not_ready: 0, fixity_attention: 0, ready_for_upload: 0, pending_validation: 0, duplicate_files: 0 } });
+  });
+
+  await page.route('**/api/three-d/**', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/api/three-d/collection-objects')) {
+      await route.fulfill({ json: [] });
+      return;
+    }
+    if (url.pathname.endsWith('/api/three-d/resources')) {
+      await route.fulfill({ json: [{
+        id: 31, three_d_object_id: 7, resource_group: '测试三维对象', filename: 'model.glb', title: '测试三维对象',
+        file_size: 1024, file_count: 1, file_roles: ['model'], version_label: 'v1', representation_type: 'web_display',
+        publication_status: 'validating', version_order: 1, is_current: true, is_web_preview: true, web_preview_status: 'ready',
+        status: 'ready', resource_type: 'three_d_model', storage_tier: 'archive', preservation_status: 'pending', fixity_status: 'verified',
+        created_at: '2026-07-14T00:00:00Z', preview_data: null,
+      }] });
+      return;
+    }
+    await route.fulfill({ status: 404, json: { detail: 'not mocked' } });
+  });
+
   await page.route('**/api/assets/*/preview**', async (route) => {
     await route.fulfill({
       contentType: 'image/svg+xml',
@@ -777,6 +800,14 @@ test.describe('Dashboard permissions', () => {
     await page.getByTestId('platform-unified-detail-1').click();
     await expect(page.getByTestId('unified-resource-detail')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'test_image.jpg' })).toBeVisible();
+  });
+
+  test('system admin can open 3D catalog with publication and fixity filters', async ({ page }) => {
+    await page.getByTestId('menu-7').click();
+    await page.getByRole('tab', { name: /数字对象目录/ }).click();
+    await expect(page.getByText('发布状态', { exact: true })).toBeVisible();
+    await expect(page.getByText('完整性', { exact: true })).toBeVisible();
+    await expect(page.locator('strong:visible', { hasText: '测试三维对象' }).first()).toBeVisible();
   });
 
   test('system admin can add a unified resource to the application cart and submit', async ({ page }) => {

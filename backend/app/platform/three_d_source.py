@@ -15,6 +15,7 @@ from ..schemas import (
 )
 from ..services.three_d_detail import build_three_d_detail_response
 from ..services.three_d_metadata import PROFILE_DEFINITIONS, SOURCE_LABEL, SOURCE_SYSTEM, build_three_d_metadata_layers
+from ..services.three_d_objects import infer_representation_type
 from .base import PlatformSourceAdapter
 from .registry import registry
 
@@ -72,6 +73,14 @@ def _object_actions(
             url=f"/api/three-d/resources/{preview_asset_id}/download" if preview_asset_id is not None else None,
             enabled=preview_asset_id is not None,
         ),
+        UnifiedResourceAction(
+            key="verify_fixity",
+            label="校验文件完整性",
+            kind="action",
+            target="source",
+            url=f"/api/three-d/resources/{preview_asset_id}/verify-fixity" if preview_asset_id is not None else None,
+            enabled=preview_asset_id is not None,
+        ),
     ]
 
 
@@ -106,6 +115,13 @@ def _resource_actions(asset_id: int, *, preview_enabled: bool) -> list[UnifiedRe
             kind="download",
             target="source",
             url=f"/api/three-d/resources/{asset_id}/download",
+        ),
+        UnifiedResourceAction(
+            key="verify_fixity",
+            label="校验文件完整性",
+            kind="action",
+            target="source",
+            url=f"/api/three-d/resources/{asset_id}/verify-fixity",
         ),
     ]
 
@@ -146,30 +162,17 @@ def _asset_preview_enabled(asset: ThreeDAsset, layers: dict[str, object]) -> boo
 
 def _object_key(asset: ThreeDAsset) -> tuple[int | None, str]:
     group = (asset.resource_group or "").strip() or f"asset-{asset.id}"
-    return asset.collection_object_id, group
+    return (asset.three_d_object_id, "") if asset.three_d_object_id is not None else (None, group)
 
 
 def _representation_type(asset: ThreeDAsset, layers: dict[str, object]) -> str:
-    for section_key in ("core", "management", "profile", "raw_metadata"):
-        section = layers.get(section_key)
-        if isinstance(section, dict):
-            value = section.get("representation_type")
-            if value:
-                return str(value)
-            fields = section.get("fields")
-            if isinstance(fields, dict) and fields.get("representation_type"):
-                return str(fields["representation_type"])
-
-    version = (asset.version_label or "").lower()
-    if "original" in version or "master" in version:
-        return "original_master"
-    if "mobile" in version or "light" in version:
-        return "mobile_lightweight"
-    if "detail" in version or "research" in version or "high" in version:
-        return "research_detail"
-    if "web" in version or bool(asset.is_web_preview and asset.web_preview_status == "ready"):
-        return "web_display"
-    return "derivative"
+    return infer_representation_type(
+        explicit=asset.representation_type,
+        metadata=layers,
+        version_label=asset.version_label,
+        is_web_preview=bool(asset.is_web_preview),
+        web_preview_status=asset.web_preview_status,
+    )
 
 
 REPRESENTATION_TYPE_LABELS = {
@@ -221,6 +224,8 @@ def _choose_default_preview_asset(assets: list[ThreeDAsset]) -> ThreeDAsset | No
 
 def _object_title(assets: list[ThreeDAsset], layers_by_id: dict[int, dict[str, object]]) -> str:
     first_asset = assets[0]
+    if first_asset.three_d_object and first_asset.three_d_object.title:
+        return first_asset.three_d_object.title
     collection_object = first_asset.collection_object
     if collection_object and collection_object.object_name:
         object_name = collection_object.object_name
@@ -421,12 +426,19 @@ def list_unified_resources(
 
 
 def _assets_for_object(anchor_asset: ThreeDAsset, db: Session) -> list[ThreeDAsset]:
-    collection_object_id, group = _object_key(anchor_asset)
+    digital_object_id, group = _object_key(anchor_asset)
+    if digital_object_id is not None:
+        return (
+            db.query(ThreeDAsset)
+            .filter(ThreeDAsset.three_d_object_id == digital_object_id)
+            .order_by(ThreeDAsset.version_order.asc(), ThreeDAsset.created_at.asc(), ThreeDAsset.id.asc())
+            .all()
+        )
     query = db.query(ThreeDAsset).filter(ThreeDAsset.resource_group == group)
-    if collection_object_id is None:
+    if anchor_asset.collection_object_id is None:
         query = query.filter(ThreeDAsset.collection_object_id.is_(None))
     else:
-        query = query.filter(ThreeDAsset.collection_object_id == collection_object_id)
+        query = query.filter(ThreeDAsset.collection_object_id == anchor_asset.collection_object_id)
     return query.order_by(ThreeDAsset.version_order.asc(), ThreeDAsset.created_at.asc(), ThreeDAsset.id.asc()).all()
 
 

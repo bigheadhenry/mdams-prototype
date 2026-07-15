@@ -32,6 +32,7 @@ export type PermissionName =
   | 'three_d.view'
   | 'three_d.edit'
   | 'three_d.upload'
+  | 'three_d.review'
   | 'video.view'
   | 'video.delete'
   | 'platform.view'

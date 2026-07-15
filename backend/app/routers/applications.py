@@ -55,6 +55,56 @@ def _to_list_item(application: Application) -> ApplicationListItem:
     )
 
 
+def _audit_actor(application: Application, actions: set[str]) -> str | None:
+    matching = [
+        log.actor_display_name
+        for log in application.audit_logs
+        if log.action in actions and log.actor_display_name
+    ]
+    return matching[-1] if matching else None
+
+
+def _to_detail_response(application: Application) -> ApplicationDetailResponse:
+    """Map ORM user relationships to the public display-name contract."""
+    return ApplicationDetailResponse(
+        id=application.id,
+        application_no=application.application_no,
+        requester_name=application.requester_name,
+        requester_org=application.requester_org,
+        contact_email=application.contact_email,
+        purpose=application.purpose,
+        usage_scope=application.usage_scope,
+        status=application.status,
+        review_note=application.review_note,
+        created_at=application.created_at,
+        submitted_at=application.submitted_at,
+        reviewed_at=application.reviewed_at,
+        reviewed_by=(
+            application.reviewed_by.display_name
+            if application.reviewed_by
+            else _audit_actor(application, {"approved", "rejected"})
+        ),
+        exported_by=(
+            application.exported_by.display_name
+            if application.exported_by
+            else _audit_actor(application, {"exported"})
+        ),
+        items=application.items,
+        audit_logs=[
+            {
+                "id": log.id,
+                "action": log.action,
+                "from_status": log.from_status,
+                "to_status": log.to_status,
+                "actor_display_name": log.actor_display_name,
+                "review_note": log.review_note,
+                "created_at": log.created_at,
+            }
+            for log in application.audit_logs
+        ],
+    )
+
+
 def _get_application_or_404(application_id: int, db: Session) -> Application:
     application = (
         db.query(Application)
@@ -104,6 +154,7 @@ def create_application(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("application.create")),
 ):
+    current_user = ensure_current_user(current_user)
     if not payload.items:
         raise HTTPException(status_code=400, detail="Application must include at least one item")
 
@@ -164,7 +215,7 @@ def create_application(
     db.commit()
     db.refresh(application)
     application = _get_application_or_404(application.id, db)
-    return application
+    return _to_detail_response(application)
 
 
 @router.get("/applications", response_model=list[ApplicationListItem])
@@ -194,7 +245,7 @@ def get_application(
 ):
     user = ensure_current_user(user)
     application = _get_application_or_404(application_id, db)
-    return application
+    return _to_detail_response(application)
 
 
 @router.post("/applications/{application_id}/approve", response_model=ApplicationDetailResponse)
@@ -204,6 +255,7 @@ def approve_application(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("application.review")),
 ):
+    current_user = ensure_current_user(current_user)
     application = _get_application_or_404(application_id, db)
     if application.status != "submitted":
         raise HTTPException(status_code=409, detail="Only submitted applications can be approved")
@@ -225,7 +277,7 @@ def approve_application(
     )
     db.commit()
     db.refresh(application)
-    return _get_application_or_404(application_id, db)
+    return _to_detail_response(_get_application_or_404(application_id, db))
 
 
 @router.post("/applications/{application_id}/reject", response_model=ApplicationDetailResponse)
@@ -235,6 +287,7 @@ def reject_application(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("application.review")),
 ):
+    current_user = ensure_current_user(current_user)
     application = _get_application_or_404(application_id, db)
     if application.status != "submitted":
         raise HTTPException(status_code=409, detail="Only submitted applications can be rejected")
@@ -256,7 +309,7 @@ def reject_application(
     )
     db.commit()
     db.refresh(application)
-    return _get_application_or_404(application_id, db)
+    return _to_detail_response(_get_application_or_404(application_id, db))
 
 
 @router.get("/applications/{application_id}/export")
@@ -266,11 +319,12 @@ def export_application(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("application.export")),
 ):
+    current_user = ensure_current_user(current_user)
     application = _get_application_or_404(application_id, db)
     if application.status != "approved":
         raise HTTPException(status_code=400, detail="Only approved applications can be exported")
 
-    temp_dir, zip_path, zip_filename = build_application_export_package(application)
+    temp_dir, zip_path, zip_filename = build_application_export_package(application, db, current_user)
     background_tasks.add_task(shutil.rmtree, temp_dir)
 
     application.status = "fulfilled"

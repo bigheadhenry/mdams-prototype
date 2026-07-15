@@ -16,6 +16,9 @@ def test_three_d_metadata_dictionary_exposes_core_and_domain_sections():
     core_fields = {field.key: field for field in dictionary.sections[0].fields}
     assert core_fields["title"].required is True
     assert core_fields["resource_group"].required is True
+    assert core_fields["three_d_object_id"].required is True
+    assert core_fields["representation_type"].required is True
+    assert core_fields["publication_status"].required is True
     assert core_fields["web_preview_status"].layer == "core"
 
     collection_fields = {field.key for field in dictionary.sections[1].fields}

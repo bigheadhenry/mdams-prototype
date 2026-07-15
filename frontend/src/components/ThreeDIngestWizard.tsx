@@ -333,6 +333,17 @@ const ThreeDIngestWizard: React.FC<ThreeDIngestWizardProps> = ({
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={8}>
+                  <Form.Item label="表现类型" name="representation_type" initialValue="derivative">
+                    <Select options={[
+                      { value: 'original_master', label: '原始保存级' },
+                      { value: 'web_display', label: 'Web 展示级' },
+                      { value: 'mobile_lightweight', label: '移动轻量级' },
+                      { value: 'research_detail', label: '高精度研究级' },
+                      { value: 'derivative', label: '其他派生' },
+                    ]} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
                   <Form.Item label="表现版本号" name="version_label" initialValue="original">
                     <Input placeholder="original / v1 / v2" />
                   </Form.Item>

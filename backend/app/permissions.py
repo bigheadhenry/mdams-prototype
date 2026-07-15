@@ -43,7 +43,7 @@ ROLE_PERMISSIONS: dict[RoleName, set[PermissionName]] = {
         "image.file.upload",
         "image.file.match",
     },
-    "three_d_operator": {"dashboard.view", "three_d.view", "three_d.upload", "three_d.edit", "video.view", "platform.view"},
+    "three_d_operator": {"dashboard.view", "three_d.view", "three_d.upload", "three_d.edit", "three_d.review", "video.view", "platform.view"},
     "application_reviewer": {
         "dashboard.view",
         "image.view",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Sequence
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
@@ -11,18 +11,36 @@ from sqlalchemy.orm import Session
 
 from .. import config
 from ..database import get_db
-from ..models import ThreeDAsset, ThreeDAssetFile, ThreeDCollectionObject
+from ..models import ThreeDAsset, ThreeDAssetFile, ThreeDCollectionObject, ThreeDDigitalObject
 from ..permissions import CurrentUser, can_access_visibility_scope, ensure_current_user, require_permission
 from ..schemas import (
     ThreeDAssetOut,
     ThreeDCollectionObjectOut,
+    ThreeDDigitalObjectOut,
     ThreeDDetailResponse,
     ThreeDMetadataDictionaryResponse,
+    ThreeDFixityFileResult,
+    ThreeDFixityResponse,
+    ThreeDPublicationTransitionRequest,
     ThreeDViewerSummary,
 )
 from ..services.three_d_dictionary import build_three_d_metadata_dictionary
 from ..services.three_d_detail import build_three_d_detail_response, build_three_d_viewer_summary
 from ..services.three_d_metadata import PROFILE_DEFINITIONS, build_three_d_metadata_layers
+from ..services.three_d_objects import (
+    get_or_create_digital_object,
+    infer_representation_type,
+    normalize_publication_status,
+)
+from ..services.three_d_workflow import (
+    REPRESENTATION_TYPES,
+    can_transition_publication_status,
+    validate_display_contract,
+    validate_registration_contract,
+)
+from ..services.fixity import verify_path
+from ..services.resource_access import assert_three_d_asset_visible, can_view_three_d_asset
+from ..services.resource_events import record_resource_event
 from ..services.three_d_production import seed_three_d_production_records
 from ..services.three_d_preview import build_three_d_preview_data
 from ..services.three_d_storage import (
@@ -101,6 +119,23 @@ def _normalize_optional_int(value: object | None) -> int | None:
         return int(str(value).strip())
     except Exception:
         return None
+
+
+def _normalize_optional_bool(value: object | None) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    default_value = getattr(value, "default", None)
+    if isinstance(default_value, bool):
+        return default_value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+    return None
 
 
 def _collection_keywords_text(*values: str | None) -> str | None:
@@ -218,8 +253,11 @@ def _serialize_three_d_asset(asset: ThreeDAsset) -> ThreeDAssetOut:
     primary_file_role = None
     if isinstance(technical, dict):
         primary_file_role = technical.get("primary_file_role")
+    fixity_states = {str(item.fixity_status or "pending") for item in asset.files}
+    fixity_status = "needs_review" if fixity_states & {"missing", "mismatch"} else "verified" if fixity_states and fixity_states <= {"verified", "recorded"} else "pending"
     return ThreeDAssetOut(
         id=asset.id,
+        three_d_object_id=asset.three_d_object_id,
         collection_object_id=asset.collection_object_id,
         resource_group=asset.resource_group,
         filename=asset.filename,
@@ -230,6 +268,8 @@ def _serialize_three_d_asset(asset: ThreeDAsset) -> ThreeDAssetOut:
         primary_file_role=str(primary_file_role) if primary_file_role else None,
         file_roles=file_roles,
         version_label=str(core.get("version_label") or asset.version_label or "original"),
+        representation_type=asset.representation_type,
+        publication_status=asset.publication_status,
         version_order=int(core.get("version_order") or asset.version_order or 0),
         is_current=bool(core.get("is_current")) if core.get("is_current") is not None else bool(asset.is_current),
         is_web_preview=bool(core.get("is_web_preview")) if core.get("is_web_preview") is not None else bool(asset.is_web_preview),
@@ -245,6 +285,7 @@ def _serialize_three_d_asset(asset: ThreeDAsset) -> ThreeDAssetOut:
         storage_tier=str(getattr(asset, "storage_tier", None) or "archive"),
         preservation_status=str(getattr(asset, "preservation_status", None) or "pending"),
         preservation_note=str(getattr(asset, "preservation_note", None) or "") or None,
+        fixity_status=fixity_status,
         preview_data=raw_metadata.get("preview_data") if isinstance(raw_metadata, dict) and isinstance(raw_metadata.get("preview_data"), dict) else None,
         created_at=asset.created_at,
         process_message=asset.process_message,
@@ -335,8 +376,9 @@ def list_three_d_collection_objects(
     q: str | None = None,
     limit: int = 50,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.view")),
+    user: CurrentUser = Depends(require_permission("three_d.view")),
 ):
+    user = ensure_current_user(user)
     query = db.query(ThreeDCollectionObject)
     normalized_q = _normalize_optional_text(q)
     if normalized_q:
@@ -350,6 +392,11 @@ def list_three_d_collection_objects(
             | ThreeDCollectionObject.keywords.ilike(like_query)
         )
     objects = query.order_by(ThreeDCollectionObject.created_at.desc(), ThreeDCollectionObject.id.desc()).limit(limit).all()
+    if not (user.has_permission("three_d.edit") or user.has_permission("three_d.upload")):
+        objects = [
+            item for item in objects
+            if item.id in user.collection_scope or any(can_view_three_d_asset(asset, user) for asset in item.assets)
+        ]
     return [
         ThreeDCollectionObjectOut(
             id=item.id,
@@ -368,9 +415,12 @@ def list_three_d_collection_objects(
 def get_three_d_collection_object(
     object_id: int,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.view")),
+    user: CurrentUser = Depends(require_permission("three_d.view")),
 ):
+    user = ensure_current_user(user)
     item = _get_collection_object_or_404(db, object_id)
+    if not (user.has_permission("three_d.edit") or user.has_permission("three_d.upload") or item.id in user.collection_scope or any(can_view_three_d_asset(asset, user) for asset in item.assets)):
+        raise HTTPException(status_code=403, detail="Collection object is outside the current user's visibility scope")
     return ThreeDCollectionObjectOut(
         id=item.id,
         object_number=item.object_number,
@@ -380,6 +430,31 @@ def get_three_d_collection_object(
         summary=item.summary,
         keywords=item.keywords,
     )
+
+
+@router.get("/digital-objects", response_model=list[ThreeDDigitalObjectOut])
+def list_three_d_digital_objects(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("three_d.view")),
+):
+    objects = db.query(ThreeDDigitalObject).order_by(ThreeDDigitalObject.created_at.desc()).all()
+    objects = [item for item in objects if any(can_view_three_d_asset(asset, user) for asset in item.representations)]
+    return [
+        ThreeDDigitalObjectOut(
+            id=item.id,
+            object_key=item.object_key,
+            collection_object_id=item.collection_object_id,
+            legacy_resource_group=item.legacy_resource_group,
+            title=item.title,
+            project_code=item.project_code,
+            capture_batch=item.capture_batch,
+            responsible_department=item.responsible_department,
+            lifecycle_status=item.lifecycle_status,
+            representation_count=len(item.representations or []),
+            created_at=item.created_at,
+        )
+        for item in objects
+    ]
 
 
 @router.post("/upload", response_model=ThreeDAssetOut)
@@ -401,6 +476,8 @@ async def upload_three_d_resource(
     object_summary: str | None = Form(None),
     object_keywords: str | None = Form(None),
     resource_group: str | None = Form(None),
+    representation_type: str | None = Form(None),
+    publication_status: str | None = Form(None),
     version_label: str | None = Form("original"),
     version_order: int | None = Form(0),
     is_current: bool | None = Form(True),
@@ -501,9 +578,40 @@ async def upload_three_d_resource(
             keywords=normalized_object_keywords,
         )
 
-    db_asset = ThreeDAsset(
+    normalized_resource_group = _normalize_optional_text(resource_group) or title or resource_title
+    normalized_resource_group = normalized_resource_group.strip()
+    normalized_version_label = _normalize_optional_text(version_label) or "original"
+    normalized_is_current = _normalize_optional_bool(is_current)
+    normalized_is_web_preview = _normalize_optional_bool(is_web_preview)
+    normalized_web_preview_status = _normalize_optional_text(web_preview_status) or "disabled"
+    normalized_representation_type = infer_representation_type(
+        explicit=representation_type,
+        version_label=normalized_version_label,
+        is_web_preview=normalized_is_web_preview is True,
+        web_preview_status=normalized_web_preview_status,
+    )
+    requested_publication_status = _normalize_optional_text(publication_status)
+    normalized_publication_status = normalize_publication_status(
+        requested_publication_status,
+        preview_ready=bool(normalized_is_web_preview and normalized_web_preview_status == "ready"),
+    )
+    if requested_publication_status and normalized_publication_status != "draft":
+        raise HTTPException(status_code=422, detail={"issues": [{"code": "upload_must_start_draft", "field": "publication_status", "message": "New 3D representations must enter the workflow as draft."}]})
+    normalized_publication_status = "draft"
+    digital_object = get_or_create_digital_object(
+        db,
         collection_object=collection_object,
-        resource_group=resource_group or title or resource_title,
+        resource_group=normalized_resource_group,
+        title=normalized_object_name or resource_title,
+        project_code=project_name,
+        capture_batch=capture_time,
+        responsible_department=normalized_collection_unit,
+    )
+
+    db_asset = ThreeDAsset(
+        three_d_object=digital_object,
+        collection_object=collection_object,
+        resource_group=normalized_resource_group,
         filename=str(primary_filename),
         file_path="",
         file_size=0,
@@ -511,12 +619,14 @@ async def upload_three_d_resource(
         status="processing",
         resource_type=resource_type,
         process_message="三维资源正在入库处理中",
-        version_label=(version_label or "original").strip() or "original",
-        version_order=int(version_order or 0),
-        is_current=bool(is_current) if is_current is not None else True,
-        is_web_preview=bool(is_web_preview) if is_web_preview is not None else False,
-        web_preview_status=(web_preview_status or "disabled").strip() or "disabled",
-        web_preview_reason=web_preview_reason,
+        version_label=normalized_version_label,
+        representation_type=normalized_representation_type,
+        publication_status=normalized_publication_status,
+        version_order=_normalize_optional_int(version_order) or 0,
+        is_current=True if normalized_is_current is None else normalized_is_current,
+        is_web_preview=False if normalized_is_web_preview is None else normalized_is_web_preview,
+        web_preview_status=normalized_web_preview_status,
+        web_preview_reason=_normalize_optional_text(web_preview_reason),
         storage_tier=normalized_storage_tier,
         preservation_status=normalized_preservation_status,
         preservation_note=_normalize_optional_text(preservation_note),
@@ -579,6 +689,9 @@ async def upload_three_d_resource(
             "lod_count": lod_count,
             "capture_time": capture_time,
             "resource_group": db_asset.resource_group,
+            "three_d_object_id": db_asset.three_d_object_id,
+            "representation_type": db_asset.representation_type,
+            "publication_status": db_asset.publication_status,
             "version_label": db_asset.version_label,
             "version_order": db_asset.version_order,
             "is_current": db_asset.is_current,
@@ -622,12 +735,12 @@ async def upload_three_d_resource(
     db_asset.resource_type = resource_type
     db_asset.process_message = "三维资源已上传并完成基础登记"
     db_asset.metadata_info = metadata_layers
-    db_asset.version_label = (version_label or "original").strip() or "original"
-    db_asset.version_order = int(version_order or 0)
-    db_asset.is_current = bool(is_current) if is_current is not None else True
-    db_asset.is_web_preview = bool(is_web_preview) if is_web_preview is not None else False
-    db_asset.web_preview_status = (web_preview_status or "disabled").strip() or "disabled"
-    db_asset.web_preview_reason = web_preview_reason
+    db_asset.version_label = normalized_version_label
+    db_asset.version_order = _normalize_optional_int(version_order) or 0
+    db_asset.is_current = True if normalized_is_current is None else normalized_is_current
+    db_asset.is_web_preview = False if normalized_is_web_preview is None else normalized_is_web_preview
+    db_asset.web_preview_status = normalized_web_preview_status
+    db_asset.web_preview_reason = _normalize_optional_text(web_preview_reason)
     db.add(db_asset)
 
     db.query(ThreeDAssetFile).filter(ThreeDAssetFile.asset_id == db_asset.id).delete()
@@ -644,6 +757,9 @@ async def upload_three_d_resource(
                 mime_type=file_record.get("mime_type"),
                 sort_order=sort_order,
                 is_primary=bool(file_record.get("is_primary")),
+                sha256=str(file_record.get("sha256") or "") or None,
+                fixity_status=str(file_record.get("fixity_status") or "verified"),
+                last_verified_at=datetime.now(timezone.utc),
             )
         )
 
@@ -669,6 +785,7 @@ def list_three_d_resources(
     q: str | None = None,
     status: str | None = None,
     resource_type: str | None = None,
+    representation_type: str | None = None,
     profile_key: str | None = None,
     storage_tier: str | None = None,
     web_preview_status: str | None = None,
@@ -694,6 +811,10 @@ def list_three_d_resources(
     if normalized_resource_type:
         query = query.filter(ThreeDAsset.resource_type == normalized_resource_type)
 
+    normalized_representation_type = _normalize_optional_text(representation_type)
+    if normalized_representation_type:
+        query = query.filter(ThreeDAsset.representation_type == normalized_representation_type)
+
     normalized_storage_tier = _normalize_optional_text(storage_tier)
     if normalized_storage_tier:
         query = query.filter(ThreeDAsset.storage_tier == normalized_storage_tier)
@@ -703,19 +824,7 @@ def list_three_d_resources(
         query = query.filter(ThreeDAsset.web_preview_status == normalized_web_preview_status)
 
     assets = query.order_by(ThreeDAsset.created_at.desc(), ThreeDAsset.id.desc()).offset(skip).limit(limit).all()
-    visible_assets = []
-    for asset in assets:
-        visibility_scope = None
-        metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
-        core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
-        if isinstance(core, dict):
-            visibility_scope = core.get("visibility_scope")
-        if can_access_visibility_scope(
-            user,
-            visibility_scope=visibility_scope if isinstance(visibility_scope, str) else "open",
-            collection_object_id=asset.collection_object_id,
-        ):
-            visible_assets.append(asset)
+    visible_assets = [asset for asset in assets if can_view_three_d_asset(asset, user)]
     return [_serialize_three_d_asset(asset) for asset in visible_assets]
 
 
@@ -723,9 +832,10 @@ def list_three_d_resources(
 def get_three_d_resource(
     resource_id: int,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.view")),
+    user: CurrentUser = Depends(require_permission("three_d.view")),
 ):
     asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
     return build_three_d_detail_response(asset)
 
 
@@ -733,9 +843,10 @@ def get_three_d_resource(
 def get_three_d_resource_viewer(
     resource_id: int,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.view")),
+    user: CurrentUser = Depends(require_permission("three_d.view")),
 ):
     asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
     detail = build_three_d_detail_response(asset)
     return build_three_d_viewer_summary(
         asset=asset,
@@ -748,9 +859,10 @@ def get_three_d_resource_viewer(
 def download_three_d_resource(
     resource_id: int,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.view")),
+    user: CurrentUser = Depends(require_permission("three_d.view")),
 ):
     asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
     resource_dir = _resource_dir(asset.id)
     file_records = list(asset.files or [])
     if not file_records:
@@ -770,9 +882,10 @@ def download_three_d_resource_file(
     resource_id: int,
     file_id: int,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.view")),
+    user: CurrentUser = Depends(require_permission("three_d.view")),
 ):
     asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
     file_record = next((record for record in asset.files if record.id == file_id), None)
     if file_record is None:
         raise HTTPException(status_code=404, detail="3D file not found")
@@ -791,9 +904,10 @@ def get_three_d_resource_preview(
     resource_id: int,
     preview_name: str,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.view")),
+    user: CurrentUser = Depends(require_permission("three_d.view")),
 ):
-    _get_resource_or_404(resource_id, db)
+    asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
     safe_name = Path(preview_name).name
     preview_path = _resource_dir(resource_id) / "previews" / safe_name
     if not preview_path.exists() or not preview_path.is_file():
@@ -808,13 +922,139 @@ def get_three_d_resource_preview(
 def delete_three_d_resource(
     resource_id: int,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.edit")),
+    user: CurrentUser = Depends(require_permission("three_d.edit")),
 ):
     asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
     remove_resource_tree(_resource_dir(asset.id))
     db.delete(asset)
     db.commit()
     return {"status": "success", "message": f"3D resource {resource_id} deleted"}
+
+
+def _workflow_record(asset: ThreeDAsset, *, publication_status: str | None = None) -> dict[str, object]:
+    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    core = metadata.get("core") if isinstance(metadata.get("core"), dict) else {}
+    return {
+        "title": core.get("title") or asset.filename,
+        "resource_group": asset.resource_group,
+        "version_label": asset.version_label,
+        "representation_type": asset.representation_type,
+        "publication_status": publication_status or asset.publication_status,
+        "storage_tier": asset.storage_tier,
+        "status": asset.status,
+        "is_web_preview": asset.is_web_preview,
+        "web_preview_status": asset.web_preview_status,
+    }
+
+
+def _file_contract_records(asset: ThreeDAsset) -> list[dict[str, object]]:
+    return [
+        {
+            "role": item.role,
+            "filename": item.filename,
+            "actual_filename": item.actual_filename,
+            "file_path": item.file_path,
+        }
+        for item in asset.files
+    ]
+
+
+@router.post("/resources/{resource_id}/publication-transition", response_model=ThreeDDetailResponse)
+def transition_three_d_publication(
+    resource_id: int,
+    payload: ThreeDPublicationTransitionRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("three_d.edit")),
+):
+    asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
+    current_status = (asset.publication_status or "draft").strip().lower()
+    target_status = payload.target_status.strip().lower()
+    if not can_transition_publication_status(current_status, target_status):
+        raise HTTPException(
+            status_code=422,
+            detail={"issues": [{"code": "invalid_publication_transition", "field": "target_status", "message": f"Cannot transition from {current_status} to {target_status}."}]},
+        )
+    if target_status in {"approved", "rejected", "published", "withdrawn"} and not user.has_permission("three_d.review"):
+        raise HTTPException(status_code=403, detail="Missing permission: three_d.review")
+
+    validation = validate_registration_contract(_workflow_record(asset, publication_status=target_status))
+    if target_status == "published":
+        validation = validate_display_contract(
+            _workflow_record(asset, publication_status=target_status),
+            _file_contract_records(asset),
+        )
+    if not validation.valid:
+        raise HTTPException(
+            status_code=422,
+            detail={"issues": [{"code": issue.code, "field": issue.field, "message": issue.message} for issue in validation.issues]},
+        )
+
+    asset.publication_status = target_status
+    metadata = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+    core = metadata.get("core") if isinstance(metadata.get("core"), dict) else {}
+    core["publication_status"] = target_status
+    metadata["core"] = core
+    asset.metadata_info = metadata
+    if asset.three_d_object is not None:
+        asset.three_d_object.lifecycle_status = target_status
+    record_resource_event(
+        db,
+        source_system="three_d",
+        source_id=asset.id,
+        event_type="publish" if target_status in {"published", "withdrawn"} else "review",
+        status=target_status,
+        actor=user,
+        description=payload.note or f"Publication status changed from {current_status} to {target_status}",
+        metadata={"from_status": current_status, "to_status": target_status},
+        three_d_asset_id=asset.id,
+    )
+    db.commit()
+    db.refresh(asset)
+    return build_three_d_detail_response(asset)
+
+
+@router.post("/resources/{resource_id}/verify-fixity", response_model=ThreeDFixityResponse)
+def verify_three_d_fixity(
+    resource_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_permission("three_d.edit")),
+):
+    asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
+    results: list[ThreeDFixityFileResult] = []
+    for item in asset.files:
+        outcome = verify_path(item.file_path, item.sha256)
+        item.sha256 = outcome.expected_sha256
+        item.fixity_status = outcome.status
+        item.last_verified_at = outcome.verified_at
+        results.append(
+            ThreeDFixityFileResult(
+                file_id=item.id,
+                filename=item.actual_filename or item.filename,
+                expected_sha256=outcome.expected_sha256,
+                actual_sha256=outcome.actual_sha256,
+                status=outcome.status,
+                verified_at=outcome.verified_at,
+                message=outcome.message,
+            )
+        )
+    aggregate_status = "verified" if results and all(item.status in {"verified", "recorded"} for item in results) else "needs_review"
+    asset.preservation_status = aggregate_status
+    record_resource_event(
+        db,
+        source_system="three_d",
+        source_id=asset.id,
+        event_type="preserve",
+        status=aggregate_status,
+        actor=user,
+        description="3D resource fixity verification completed",
+        metadata={"files": [item.model_dump(mode="json") for item in results]},
+        three_d_asset_id=asset.id,
+    )
+    db.commit()
+    return ThreeDFixityResponse(resource_id=asset.id, status=aggregate_status, files=results)
 
 
 @router.patch("/resources/{resource_id}", response_model=ThreeDAssetOut)
@@ -823,6 +1063,7 @@ def patch_three_d_resource(
     title: str | None = Body(None),
     resource_group: str | None = Body(None),
     version_label: str | None = Body(None),
+    representation_type: str | None = Body(None),
     is_current: bool | None = Body(None),
     is_web_preview: bool | None = Body(None),
     web_preview_status: str | None = Body(None),
@@ -832,9 +1073,10 @@ def patch_three_d_resource(
     preservation_note: str | None = Body(None),
     status: str | None = Body(None),
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.edit")),
+    user: CurrentUser = Depends(require_permission("three_d.edit")),
 ):
     asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
 
     if title is not None:
         metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
@@ -862,6 +1104,19 @@ def patch_three_d_resource(
         if not isinstance(core, dict):
             core = {}
         core["version_label"] = normalized_vl
+        metadata_info["core"] = core
+        asset.metadata_info = metadata_info
+
+    if representation_type is not None:
+        normalized_rt = representation_type.strip().lower()
+        if normalized_rt not in REPRESENTATION_TYPES:
+            raise HTTPException(status_code=422, detail="Unsupported 3D representation type")
+        asset.representation_type = normalized_rt
+        metadata_info = asset.metadata_info if isinstance(asset.metadata_info, dict) else {}
+        core = metadata_info.get("core") if isinstance(metadata_info, dict) else {}
+        if not isinstance(core, dict):
+            core = {}
+        core["representation_type"] = normalized_rt
         metadata_info["core"] = core
         asset.metadata_info = metadata_info
 
@@ -930,11 +1185,12 @@ def patch_three_d_resource(
 def regenerate_three_d_preview(
     resource_id: int,
     db: Session = Depends(get_db),
-    _user=Depends(require_permission("three_d.edit")),
+    user: CurrentUser = Depends(require_permission("three_d.edit")),
 ):
     from pathlib import Path as _Path
 
     asset = _get_resource_or_404(resource_id, db)
+    assert_three_d_asset_visible(asset, user)
     resource_dir = _resource_dir(asset.id)
     if not resource_dir.exists():
         raise HTTPException(status_code=404, detail="Resource directory not found")

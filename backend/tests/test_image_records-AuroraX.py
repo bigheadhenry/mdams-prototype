@@ -256,7 +256,7 @@ def test_sheet_create_and_item_create_inherit_sheet_metadata(db_session):
     assert created_item.metadata_info["management"]["image_category"] == "movable_artifact"
 
 
-def test_photographer_can_open_assigned_sheet_item_before_ready_for_upload(db_session):
+def test_photographer_cannot_open_assigned_sheet_item_before_ready_for_upload(db_session):
     seed_auth_data(db_session)
     metadata_user = _metadata_entry_user()
     photographer_user = _photographer_user()
@@ -289,16 +289,15 @@ def test_photographer_can_open_assigned_sheet_item_before_ready_for_upload(db_se
         db=db_session,
         user=photographer_user,
     )
-    visible_item = image_records_router.get_image_record(
-        record_id=created_item.id,
-        db=db_session,
-        user=photographer_user,
-    )
-
     assert visible_sheet.id == created_sheet.id
-    assert [item.id for item in visible_sheet.items] == [created_item.id]
-    assert visible_item.id == created_item.id
-    assert visible_item.status == "draft"
+    assert visible_sheet.items == []
+    with pytest.raises(HTTPException) as exc:
+        image_records_router.get_image_record(
+            record_id=created_item.id,
+            db=db_session,
+            user=photographer_user,
+        )
+    assert exc.value.status_code == 403
 
 
 def test_photographer_general_list_includes_assigned_upload_queue_records(db_session):

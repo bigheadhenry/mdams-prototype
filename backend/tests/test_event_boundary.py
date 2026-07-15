@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from datetime import datetime, timezone
 
-from app.models import Asset, ThreeDAsset
+from app.models import Asset, ThreeDAsset, ThreeDDigitalObject
 from app.services.asset_detail import build_asset_detail_response
 from app.services.event_boundary import (
     ASSET_LIFECYCLE_STEPS,
@@ -69,7 +69,17 @@ def test_asset_detail_lifecycle_steps_fit_minimal_event_boundary():
 
 
 def test_three_d_production_events_fit_minimal_event_boundary(db_session):
+    digital_object = ThreeDDigitalObject(
+        object_key="test:event-boundary:sample",
+        title="Sample 3D Object",
+        lifecycle_status="draft",
+    )
+    db_session.add(digital_object)
+    db_session.flush()
     asset = ThreeDAsset(
+        three_d_object=digital_object,
+        representation_type="web_display",
+        publication_status="published",
         filename="sample.glb",
         file_path="/tmp/sample.glb",
         file_size=1024,

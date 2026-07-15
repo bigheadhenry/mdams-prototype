@@ -7,9 +7,12 @@ from fastapi import HTTPException
 from fastapi import UploadFile
 
 from app import config as app_config
+from app.models import ResourceEvent
+from app.permissions import CurrentUser
 from app.platform import three_d_source
 from app.routers import platform as platform_router
 from app.routers import three_d as three_d_router
+from app.schemas import ThreeDPublicationTransitionRequest
 
 
 pytestmark = [pytest.mark.system, pytest.mark.integration, pytest.mark.contract]
@@ -150,6 +153,9 @@ def test_three_d_resource_subsystem_and_platform_adapter(db_session, test_upload
     assert resource.file_count == 1
     assert resource.primary_file_role == "model"
     assert resource.version_label == "original"
+    assert resource.three_d_object_id > 0
+    assert resource.representation_type == "original_master"
+    assert resource.publication_status == "draft"
     assert resource.web_preview_status == "disabled"
 
     detail = three_d_router.get_three_d_resource(resource_id=resource.id, db=db_session)
@@ -157,6 +163,9 @@ def test_three_d_resource_subsystem_and_platform_adapter(db_session, test_upload
     assert detail.profile_key == "model"
     assert detail.profile_label == "三维模型"
     assert detail.version_label == "original"
+    assert detail.three_d_object_id == resource.three_d_object_id
+    assert detail.representation_type == "original_master"
+    assert detail.publication_status == "draft"
     assert detail.web_preview_status == "disabled"
     assert detail.metadata_layers["core"]["profile_key"] == "model"
     assert detail.outputs.download_url.endswith(f"/api/three-d/resources/{uploaded.id}/download")
@@ -178,11 +187,18 @@ def test_three_d_resource_subsystem_and_platform_adapter(db_session, test_upload
     assert three_d_summary.resource_count == 1
     assert three_d_summary.entrypoint == "/api/three-d/resources"
 
-    unified_resources = platform_router.get_resources(source_system=three_d_source.SOURCE_SYSTEM, db=db_session)
+    unified_resources = platform_router.get_resources(
+        source_system=three_d_source.SOURCE_SYSTEM,
+        skip=0,
+        limit=20,
+        sort_by="updated_at",
+        sort_order="desc",
+        db=db_session,
+    ).items
     assert len(unified_resources) == 1
     unified_resource = unified_resources[0]
-    assert unified_resource.id == f"{three_d_source.SOURCE_SYSTEM}:object-{uploaded.id}"
-    assert unified_resource.source_id == f"object-{uploaded.id}"
+    assert unified_resource.id == f"{three_d_source.SOURCE_SYSTEM}:object-{uploaded.three_d_object_id}"
+    assert unified_resource.source_id == f"object-{uploaded.three_d_object_id}"
     assert unified_resource.resource_type == "three_d_digital_object"
     assert unified_resource.profile_key == "three_d_object"
     assert "三维数字对象" in unified_resource.profile_label
@@ -193,12 +209,18 @@ def test_three_d_resource_subsystem_and_platform_adapter(db_session, test_upload
         "platform_detail",
         "source_detail",
         "download",
+        "verify_fixity",
     }
     preview_action = next(action for action in unified_resource.actions if action.key == "preview")
     assert preview_action.enabled is False
     assert preview_action.target == "access_representation"
 
-    unified_detail = platform_router.get_resource(source_system=unified_resource.source_system, source_id=unified_resource.source_id, db=db_session)
+    unified_detail = platform_router.get_resource_by_source(
+        source_system=unified_resource.source_system,
+        source_id=unified_resource.source_id,
+        format=None,
+        db=db_session,
+    )
     assert unified_detail.id == unified_resource.id
     assert unified_detail.source_system == three_d_source.SOURCE_SYSTEM
     assert unified_detail.detail_url == f"/api/platform/resources/{unified_resource.source_system}/{unified_resource.source_id}"
@@ -268,7 +290,14 @@ def test_three_d_package_resource_stores_multiple_file_roles(db_session, test_up
     assert download_response.media_type == "application/zip"
     assert Path(download_response.path).exists()
 
-    unified_resources = platform_router.get_resources(source_system=three_d_source.SOURCE_SYSTEM, db=db_session)
+    unified_resources = platform_router.get_resources(
+        source_system=three_d_source.SOURCE_SYSTEM,
+        skip=0,
+        limit=20,
+        sort_by="updated_at",
+        sort_order="desc",
+        db=db_session,
+    ).items
     assert len(unified_resources) == 1
     assert unified_resources[0].profile_key == "three_d_object"
     assert unified_resources[0].resource_type == "three_d_digital_object"
@@ -350,3 +379,56 @@ def test_three_d_legacy_single_file_upload_infers_point_cloud_role(db_session, t
     assert detail.profile_key == "point_cloud"
     assert detail.resource_type == "three_d_point_cloud"
     assert detail.structure.primary_file.role == "point_cloud"
+
+
+def test_three_d_publication_fixity_and_event_flow(db_session, test_upload_dir, monkeypatch):
+    monkeypatch.setattr(app_config, "UPLOAD_DIR", str(test_upload_dir))
+    uploaded = asyncio.run(_upload_three_d_package(db_session))
+    operator = CurrentUser(
+        user_id="three_d_operator",
+        display_name="三维操作员",
+        roles={"three_d_operator"},
+        permissions={"three_d.view", "three_d.edit", "three_d.review"},
+        collection_scope=set(),
+    )
+
+    for target in ("validating", "approved", "published"):
+        detail = three_d_router.transition_three_d_publication(
+            uploaded.id,
+            ThreeDPublicationTransitionRequest(target_status=target, note=f"to {target}"),
+            db=db_session,
+            user=operator,
+        )
+        assert detail.publication_status == target
+
+    fixity = three_d_router.verify_three_d_fixity(uploaded.id, db=db_session, user=operator)
+    assert fixity.status == "verified"
+    assert all(item.status == "verified" for item in fixity.files)
+    assert db_session.query(ResourceEvent).filter(ResourceEvent.source_system == "three_d", ResourceEvent.source_id == str(uploaded.id)).count() >= 4
+
+    first_file = Path(detail.structure.files[0].file_path)
+    first_file.write_bytes(b"tampered")
+    mismatch = three_d_router.verify_three_d_fixity(uploaded.id, db=db_session, user=operator)
+    assert mismatch.status == "needs_review"
+    assert any(item.status == "mismatch" for item in mismatch.files)
+
+
+def test_three_d_entity_endpoints_enforce_collection_scope(db_session, test_upload_dir, monkeypatch):
+    monkeypatch.setattr(app_config, "UPLOAD_DIR", str(test_upload_dir))
+    uploaded = asyncio.run(_upload_three_d_sample(db_session))
+    asset = db_session.query(three_d_router.ThreeDAsset).filter_by(id=uploaded.id).one()
+    scoped_object_id = asset.collection_object_id
+    assert scoped_object_id is not None
+    metadata = dict(asset.metadata_info or {})
+    core = dict(metadata.get("core") or {})
+    core["visibility_scope"] = "owner_only"
+    metadata["core"] = core
+    asset.metadata_info = metadata
+    db_session.commit()
+
+    public_user = CurrentUser("public", "普通用户", {"resource_user"}, {"three_d.view"}, set())
+    owner_user = CurrentUser("owner", "责任人", {"collection_owner"}, {"three_d.view"}, {scoped_object_id})
+    with pytest.raises(HTTPException) as exc_info:
+        three_d_router.get_three_d_resource(uploaded.id, db=db_session, user=public_user)
+    assert exc_info.value.status_code == 403
+    assert three_d_router.get_three_d_resource(uploaded.id, db=db_session, user=owner_user).id == uploaded.id

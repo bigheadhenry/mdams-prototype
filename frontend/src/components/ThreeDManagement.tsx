@@ -16,12 +16,16 @@ import ThreeDOperations from './ThreeDOperations';
 /* ─── 数据聚合 ─── */
 const getVersionOrder = (item: ThreeDAssetSummary) => item.version_order ?? 0;
 const getGroupKey = (item: ThreeDAssetSummary) =>
-  (item.resource_group || item.title || item.filename || `resource-${item.id}`).trim();
+  `object-${item.three_d_object_id}`;
 const getGroupLabel = (item: ThreeDAssetSummary) =>
   item.resource_group?.trim() || item.title?.trim() || item.filename;
 
 /* ─── 主容器 ─── */
-const ThreeDManagement: React.FC = () => {
+interface ThreeDManagementProps {
+  permissions?: string[];
+}
+
+const ThreeDManagement: React.FC<ThreeDManagementProps> = ({ permissions = [] }) => {
   const [items, setItems] = useState<ThreeDAssetSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [collectionObjects, setCollectionObjects] = useState<ThreeDCollectionObjectSummary[]>([]);
@@ -171,6 +175,7 @@ const ThreeDManagement: React.FC = () => {
           loading={loading}
           onRefresh={refresh}
           onIngest={() => setActiveTab('ingest')}
+          canReview={permissions.includes('three_d.review') || permissions.includes('system.manage')}
         />
       ),
     },

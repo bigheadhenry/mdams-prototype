@@ -10,6 +10,8 @@ from typing import Any, Mapping, Sequence
 
 from fastapi import UploadFile
 
+from .fixity import calculate_sha256
+
 
 class ThreeDUploadValidationError(ValueError):
     """Raised when a 3D upload cannot pass the ingest boundary checks."""
@@ -250,6 +252,8 @@ async def save_three_d_uploads(
                     'mime_type': upload.content_type,
                     'sort_order': len(saved_files),
                     'is_primary': False,
+                    'sha256': calculate_sha256(stored_path),
+                    'fixity_status': 'verified',
                 }
             )
 
@@ -341,6 +345,9 @@ def build_three_d_package_manifest(
                 'file_size': file_record.get('file_size'),
                 'mime_type': file_record.get('mime_type'),
                 'is_primary': file_record.get('is_primary', False),
+                'sha256': file_record.get('sha256'),
+                'fixity_status': file_record.get('fixity_status'),
+                'last_verified_at': file_record.get('last_verified_at'),
             }
             for file_record in file_records
         ],
@@ -360,6 +367,19 @@ def build_three_d_download_zip(resource_dir: Path, zip_name: str, file_records: 
             role = normalize_three_d_role(str(file_record.get('role') or 'other'))
             archive_name = _safe_filename(str(file_record.get('actual_filename') or file_path.name), fallback_prefix='file')
             archive.write(file_path, arcname=f"{role}/{archive_name}")
+        manifest_path = resource_dir / 'manifest.json'
+        if manifest_path.exists():
+            archive.write(manifest_path, arcname='manifest.json')
+        checksum_lines = []
+        for file_record in file_records:
+            file_path = Path(str(file_record.get('file_path') or ''))
+            if not file_path.exists() or not _path_inside(resource_dir, file_path):
+                continue
+            role = normalize_three_d_role(str(file_record.get('role') or 'other'))
+            archive_name = _safe_filename(str(file_record.get('actual_filename') or file_path.name), fallback_prefix='file')
+            checksum = str(file_record.get('sha256') or calculate_sha256(file_path))
+            checksum_lines.append(f"{checksum}  {role}/{archive_name}")
+        archive.writestr('manifest-sha256.txt', '\n'.join(checksum_lines) + ('\n' if checksum_lines else ''))
     return zip_path
 
 

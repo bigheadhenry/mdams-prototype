@@ -5,8 +5,13 @@ import tempfile
 import zipfile
 
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from ..models import Application
+from ..permissions import CurrentUser
+from .delivery_providers import resolve_delivery
+from .fixity import calculate_sha256
+from .resource_events import record_resource_event
 
 
 def _build_authorization_notice(application: Application) -> str:
@@ -59,60 +64,51 @@ def _build_authorization_notice(application: Application) -> str:
 """
 
 
-def build_application_export_package(application: Application) -> tuple[str, str, str]:
+def build_application_export_package(application: Application, db: Session, actor: CurrentUser | None = None) -> tuple[str, str, str]:
     temp_dir = tempfile.mkdtemp()
     package_root = os.path.join(temp_dir, f"{application.application_no}")
     data_dir = os.path.join(package_root, "data")
     os.makedirs(data_dir, exist_ok=True)
 
     manifest_items = []
+    checksum_lines: list[str] = []
     for item in application.items:
-        asset = item.asset
-        if asset is None:
-            manifest_items.append(
-                {
-                    "application_item_id": item.id,
-                    "asset_id": None,
-                    "source_system": item.source_system,
-                    "source_id": item.source_id,
-                    "resource_type": item.resource_type,
-                    "resource_title": item.resource_title,
-                    "manifest_url": item.manifest_url,
-                    "source_label": item.source_label,
-                    "object_number": item.object_number,
-                    "requested_variant": item.requested_variant,
-                    "delivery_format": item.delivery_format,
-                    "note": item.note,
-                    "delivery_note": "This unified resource is recorded for review; no local 2D asset file was attached to this export package.",
-                }
-            )
-            continue
-
-        if not asset.file_path or not os.path.exists(asset.file_path):
-            raise HTTPException(status_code=404, detail=f"Physical file missing for asset {asset.id}")
-
-        actual_filename = os.path.basename(asset.file_path)
-        safe_name = f"{asset.id}_{actual_filename}"
-        export_path = os.path.join(data_dir, safe_name)
-        shutil.copy2(asset.file_path, export_path)
+        payload = resolve_delivery(item, db)
+        delivered_files = []
+        for delivery_file in payload.files:
+            export_path = os.path.join(package_root, delivery_file.archive_path)
+            os.makedirs(os.path.dirname(export_path), exist_ok=True)
+            shutil.copy2(delivery_file.path, export_path)
+            checksum = delivery_file.sha256 or calculate_sha256(export_path)
+            checksum_lines.append(f"{checksum}  {delivery_file.archive_path.replace(os.sep, '/')}")
+            delivered_files.append({"path": delivery_file.archive_path.replace(os.sep, "/"), "role": delivery_file.role, "sha256": checksum})
         manifest_items.append(
             {
                 "application_item_id": item.id,
-                "asset_id": asset.id,
+                "asset_id": item.asset_id,
                 "source_system": item.source_system or "image_2d",
-                "source_id": item.source_id or str(asset.id),
-                "resource_type": item.resource_type or asset.resource_type,
-                "resource_title": item.resource_title or asset.filename,
+                "source_id": item.source_id or str(item.asset_id),
+                "resource_type": item.resource_type,
+                "resource_title": item.resource_title,
                 "manifest_url": item.manifest_url,
                 "source_label": item.source_label,
                 "object_number": item.object_number,
-                "filename": asset.filename,
-                "actual_filename": actual_filename,
-                "export_filename": safe_name,
                 "requested_variant": item.requested_variant,
                 "delivery_format": item.delivery_format,
                 "note": item.note,
+                "files": delivered_files,
+                **payload.metadata,
             }
+        )
+        record_resource_event(
+            db,
+            source_system=item.source_system or "image_2d",
+            source_id=item.source_id or item.asset_id or item.id,
+            event_type="export",
+            status="completed",
+            actor=actor,
+            description=f"Delivered through application {application.application_no}",
+            metadata={"application_id": application.id, "file_count": len(delivered_files)},
         )
 
     # Write application metadata
@@ -147,6 +143,9 @@ def build_application_export_package(application: Application) -> tuple[str, str
             f"本交付包包含批准交付的数字资源文件及授权说明。\n"
             f"详细授权条款请参阅「授权说明.md」。\n"
         )
+
+    with open(os.path.join(package_root, "manifest-sha256.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(checksum_lines) + ("\n" if checksum_lines else ""))
 
     # Create ZIP
     zip_path = os.path.join(temp_dir, f"{application.application_no}.zip")

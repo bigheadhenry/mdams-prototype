@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, JSON, String
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -250,8 +250,20 @@ class ApplicationAuditLog(Base):
 
 class ThreeDAsset(Base):
     __tablename__ = "three_d_assets"
+    __table_args__ = (
+        CheckConstraint(
+            "representation_type IN ('original_master', 'web_display', 'mobile_lightweight', "
+            "'research_detail', 'derivative')",
+            name="ck_three_d_assets_representation_type",
+        ),
+        CheckConstraint(
+            "publication_status IN ('draft', 'validating', 'approved', 'published', 'withdrawn', 'rejected')",
+            name="ck_three_d_assets_publication_status",
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
+    three_d_object_id = Column(Integer, ForeignKey("three_d_digital_objects.id", ondelete="CASCADE"), index=True, nullable=False)
     collection_object_id = Column(Integer, ForeignKey("three_d_collection_objects.id", ondelete="SET NULL"), index=True, nullable=True)
     resource_group = Column(String, index=True, nullable=True)
     filename = Column(String, index=True)
@@ -263,6 +275,8 @@ class ThreeDAsset(Base):
     resource_type = Column(String, default="three_d_model")
     process_message = Column(String, nullable=True)
     version_label = Column(String, default="original")
+    representation_type = Column(String, default="derivative", index=True, nullable=False)
+    publication_status = Column(String, default="draft", index=True, nullable=False)
     version_order = Column(Integer, default=0)
     is_current = Column(Boolean, default=True)
     is_web_preview = Column(Boolean, default=False)
@@ -276,6 +290,7 @@ class ThreeDAsset(Base):
     status = Column(String, default="processing")
 
     collection_object = relationship("ThreeDCollectionObject", back_populates="assets")
+    three_d_object = relationship("ThreeDDigitalObject", back_populates="representations")
     files = relationship(
         "ThreeDAssetFile",
         back_populates="asset",
@@ -302,6 +317,9 @@ class ThreeDAssetFile(Base):
     file_path = Column(String)
     file_size = Column(Integer)
     mime_type = Column(String)
+    sha256 = Column(String, index=True, nullable=True)
+    fixity_status = Column(String, default="pending", index=True)
+    last_verified_at = Column(DateTime(timezone=True), nullable=True)
     sort_order = Column(Integer, default=0)
     is_primary = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -323,6 +341,32 @@ class ThreeDCollectionObject(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     assets = relationship("ThreeDAsset", back_populates="collection_object")
+    digital_objects = relationship("ThreeDDigitalObject", back_populates="collection_object")
+
+
+class ThreeDDigitalObject(Base):
+    __tablename__ = "three_d_digital_objects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    object_key = Column(String, unique=True, index=True, nullable=False)
+    collection_object_id = Column(Integer, ForeignKey("three_d_collection_objects.id", ondelete="SET NULL"), index=True, nullable=True)
+    legacy_resource_group = Column(String, index=True, nullable=True)
+    title = Column(String, index=True, nullable=False)
+    project_code = Column(String, index=True, nullable=True)
+    capture_batch = Column(String, index=True, nullable=True)
+    responsible_department = Column(String, index=True, nullable=True)
+    lifecycle_status = Column(String, default="draft", index=True, nullable=False)
+    metadata_info = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    collection_object = relationship("ThreeDCollectionObject", back_populates="digital_objects")
+    representations = relationship(
+        "ThreeDAsset",
+        back_populates="three_d_object",
+        cascade="all, delete-orphan",
+        order_by="ThreeDAsset.version_order",
+    )
 
 
 class ThreeDProductionRecord(Base):
@@ -340,6 +384,22 @@ class ThreeDProductionRecord(Base):
     occurred_at = Column(DateTime(timezone=True), server_default=func.now())
 
     asset = relationship("ThreeDAsset", back_populates="production_records")
+
+
+class ResourceEvent(Base):
+    __tablename__ = "resource_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_system = Column(String, index=True, nullable=False)
+    source_id = Column(String, index=True, nullable=False)
+    event_type = Column(String, index=True, nullable=False)
+    status = Column(String, index=True, nullable=False)
+    actor_user_id = Column(String, index=True, nullable=True)
+    actor_display_name = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    evidence = Column(String, nullable=True)
+    metadata_info = Column(JSON, nullable=True)
+    occurred_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
 class VideoAsset(Base):

@@ -39,6 +39,7 @@ from ..services.image_record_validation import (
     validate_bound_image_record,
     validate_image_record_for_submit,
 )
+from ..services.resource_events import record_resource_event
 from ..services.iiif_access import (
     get_asset_iiif_access_file_path,
     mark_asset_derivative_pending,
@@ -153,7 +154,7 @@ def _record_raw_metadata(record: ImageRecord) -> dict[str, Any]:
     return dict(raw_metadata) if isinstance(raw_metadata, dict) else {}
 
 
-def _append_audit_entry(record: ImageRecord, action: str, actor: CurrentUser, note: str | None = None) -> None:
+def _append_audit_entry(record: ImageRecord, action: str, actor: CurrentUser, note: str | None = None, db: Session | None = None) -> None:
     layers = dict(_record_layers(record))
     raw_metadata = layers.get("raw_metadata")
     if not isinstance(raw_metadata, dict):
@@ -177,6 +178,18 @@ def _append_audit_entry(record: ImageRecord, action: str, actor: CurrentUser, no
     raw_metadata["audit_trail"] = audit_trail
     layers["raw_metadata"] = raw_metadata
     record.metadata_info = layers
+    if db is not None and record.id is not None:
+        event_type = "bind" if action in {"asset_bound", "asset_replaced"} else "review" if action in {"submitted", "returned"} else "ingest"
+        record_resource_event(
+            db,
+            source_system="image_record",
+            source_id=record.id,
+            event_type=event_type,
+            status=record.status,
+            actor=actor,
+            description=note or action,
+            metadata={"action": action, "record_no": record.record_no},
+        )
 
 
 def _find_user_entity(db: Session, actor: CurrentUser) -> User | None:
@@ -391,15 +404,16 @@ def _matches_query(record: ImageRecord, normalized_query: str | None) -> bool:
 def _duplicate_assets_for_hash(db: Session, sha256: str) -> list[Asset]:
     if not sha256:
         return []
-    # Use PostgreSQL JSONB query to filter at the database level
-    # instead of loading all assets into memory and checking in Python.
+    # SQLAlchemy 2 exposes backend-portable JSON scalar extraction through
+    # as_string(); the legacy .astext accessor is not available on current
+    # PostgreSQL JSON comparators.
     tech = Asset.metadata_info["technical"]
     return (
         db.query(Asset)
         .filter(
             or_(
-                tech["fixity_sha256"].astext == sha256,
-                tech["checksum"].astext == sha256,
+                tech["fixity_sha256"].as_string() == sha256,
+                tech["checksum"].as_string() == sha256,
             )
         )
         .order_by(Asset.id.asc())
@@ -1366,7 +1380,7 @@ def create_image_record(
     if not _clean_optional_text(payload.record_no):
         record.record_no = f"IR-{datetime.now(timezone.utc):%Y%m%d}-{record.id:06d}"
     _apply_record_payload(record, payload, db, user)
-    _append_audit_entry(record, "draft_created", user)
+    _append_audit_entry(record, "draft_created", user, db=db)
 
     db.commit()
     db.refresh(record)
@@ -1416,7 +1430,7 @@ def update_image_record(
 ):
     record = _get_image_record_or_404(record_id, db)
     _apply_record_payload(record, payload, db, user)
-    _append_audit_entry(record, "draft_updated", user)
+    _append_audit_entry(record, "draft_updated", user, db=db)
     db.commit()
     db.refresh(record)
     return _serialize_image_record_detail(record, db)
@@ -1456,7 +1470,7 @@ def submit_image_record(
     layers["management"] = management
     record.metadata_info = layers
 
-    _append_audit_entry(record, "submitted", user, payload.note if payload else None)
+    _append_audit_entry(record, "submitted", user, payload.note if payload else None, db=db)
     db.commit()
     db.refresh(record)
     return _serialize_image_record_detail(record, db)
@@ -1487,7 +1501,7 @@ def return_image_record(
     layers["management"] = management
     record.metadata_info = layers
 
-    _append_audit_entry(record, "returned", user, payload.note if payload else None)
+    _append_audit_entry(record, "returned", user, payload.note if payload else None, db=db)
     db.commit()
     db.refresh(record)
     return _serialize_image_record_detail(record, db)
@@ -1519,7 +1533,7 @@ async def upload_temp_image_for_record(
 
     pending_upload = _build_pending_upload_payload(record, file, temp_path, file_size, db, user)
     _set_pending_upload(record, pending_upload)
-    _append_audit_entry(record, "temp_upload_created", user, filename)
+    _append_audit_entry(record, "temp_upload_created", user, filename, db=db)
 
     db.commit()
     db.refresh(record)
@@ -1571,7 +1585,7 @@ def confirm_bind_image_record(
     _set_binding_validation(record, validation)
     _set_face_recognition_pending(record, db_asset)
     _set_pending_upload(record, None)
-    _append_audit_entry(record, "asset_bound", user, payload.note)
+    _append_audit_entry(record, "asset_bound", user, payload.note, db=db)
 
     db.commit()
     db.refresh(record)
@@ -1629,7 +1643,7 @@ def confirm_replace_image_record_asset(
     _set_binding_validation(record, validation)
     _set_face_recognition_pending(record, db_asset)
     _set_pending_upload(record, None)
-    _append_audit_entry(record, "asset_replaced", user, payload.note or f"replaced_asset_id={replaced_asset.id}")
+    _append_audit_entry(record, "asset_replaced", user, payload.note or f"replaced_asset_id={replaced_asset.id}", db=db)
 
     db.commit()
     db.refresh(record)

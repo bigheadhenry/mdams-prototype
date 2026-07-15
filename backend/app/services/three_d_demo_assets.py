@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,8 @@ from sqlalchemy.orm import Session
 from .. import config
 from ..models import ThreeDAsset, ThreeDAssetFile, ThreeDCollectionObject, ThreeDProductionRecord
 from .three_d_metadata import build_three_d_metadata_layers
+from .three_d_objects import get_or_create_digital_object, infer_representation_type, normalize_publication_status
+from .fixity import calculate_sha256
 from .three_d_preview import build_three_d_preview_data
 from .three_d_production import seed_three_d_production_records
 from .three_d_storage import build_three_d_package_manifest, three_d_role_label
@@ -392,6 +395,9 @@ def _metadata_for_sample(
         "title": sample.title,
         "three_d_profile": sample.profile_key,
         "resource_group": sample.resource_group,
+        "three_d_object_id": asset.three_d_object_id,
+        "representation_type": asset.representation_type,
+        "publication_status": asset.publication_status,
         "version_label": sample.version_label,
         "version_order": sample.version_order,
         "is_current": sample.is_current,
@@ -455,6 +461,22 @@ def seed_demo_three_d_assets(db: Session) -> None:
     """Register bundled previewable and package-style 3D samples."""
     for sample in DEMO_THREE_D_ASSETS:
         collection_object = _get_or_create_collection_object(db, sample)
+        representation_type = infer_representation_type(
+            version_label=sample.version_label,
+            is_web_preview=sample.is_web_preview,
+            web_preview_status=sample.web_preview_status,
+        )
+        publication_status = normalize_publication_status(
+            None,
+            preview_ready=bool(sample.is_web_preview and sample.web_preview_status == "ready"),
+        )
+        digital_object = get_or_create_digital_object(
+            db,
+            collection_object=collection_object,
+            resource_group=sample.resource_group,
+            title=sample.object_name or sample.title,
+            responsible_department=sample.collection_unit,
+        )
         asset = (
             db.query(ThreeDAsset)
             .filter(
@@ -465,6 +487,7 @@ def seed_demo_three_d_assets(db: Session) -> None:
         )
         if asset is None:
             asset = ThreeDAsset(
+                three_d_object=digital_object,
                 collection_object=collection_object,
                 resource_group=sample.resource_group,
                 filename=sample.files[0].actual_filename or sample.files[0].filename,
@@ -474,6 +497,8 @@ def seed_demo_three_d_assets(db: Session) -> None:
                 status="ready",
                 resource_type=sample.resource_type,
                 version_label=sample.version_label,
+                representation_type=representation_type,
+                publication_status=publication_status,
                 version_order=sample.version_order,
                 is_current=sample.is_current,
                 is_web_preview=sample.is_web_preview,
@@ -488,6 +513,7 @@ def seed_demo_three_d_assets(db: Session) -> None:
             db.add(asset)
             db.flush()
         else:
+            asset.three_d_object = digital_object
             asset.collection_object = collection_object
 
         file_records = _copy_demo_files(asset, sample)
@@ -516,6 +542,8 @@ def seed_demo_three_d_assets(db: Session) -> None:
         asset.resource_type = sample.resource_type
         asset.process_message = "服务启动时登记的三维演示资源"
         asset.version_label = sample.version_label
+        asset.representation_type = representation_type
+        asset.publication_status = publication_status
         asset.version_order = sample.version_order
         asset.is_current = sample.is_current
         asset.is_web_preview = sample.is_web_preview
@@ -540,6 +568,9 @@ def seed_demo_three_d_assets(db: Session) -> None:
                     mime_type=str(file_record["mime_type"]),
                     sort_order=int(file_record["sort_order"]),
                     is_primary=bool(file_record["is_primary"]),
+                    sha256=calculate_sha256(str(file_record["file_path"])),
+                    fixity_status="verified",
+                    last_verified_at=datetime.now(timezone.utc),
                 )
             )
 

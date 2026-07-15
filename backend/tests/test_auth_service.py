@@ -2,6 +2,7 @@ import pytest
 
 from app.models import Role, User
 from app.services.auth import (
+    DEFAULT_USERS,
     DEFAULT_PASSWORD,
     authenticate_user,
     create_user_session,
@@ -33,7 +34,8 @@ def test_seed_auth_data_creates_roles_and_users(db_session):
 
     user = db_session.query(User).filter(User.username == "resource_user").first()
     assert user is not None
-    assert user.display_name == "Resource User"
+    expected = next(item for item in DEFAULT_USERS if item["username"] == "resource_user")
+    assert user.display_name == expected["display_name"]
 
 
 def test_authenticate_seeded_user_and_session(db_session):

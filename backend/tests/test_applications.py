@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi import BackgroundTasks
 
-from app.models import Asset, ApplicationAuditLog
+from app.models import Asset, ApplicationAuditLog, ResourceEvent, ThreeDAsset, ThreeDAssetFile, ThreeDDigitalObject
 from app.permissions import CurrentUser
 from app.routers import applications as applications_router
 from app.schemas import ApplicationApproveRequest, ApplicationCreateItemRequest, ApplicationCreateRequest
@@ -231,3 +231,79 @@ def test_export_application_marks_fulfilled(tmp_path, db_session):
 
         readme_files = [n for n in namelist if n.endswith("README.txt")]
         assert len(readme_files) == 1
+
+
+def test_mixed_image_and_three_d_application_delivers_physical_files(tmp_path, db_session):
+    image_path = tmp_path / "image.tif"
+    image_path.write_bytes(b"image-master")
+    image = Asset(
+        filename=image_path.name,
+        file_path=str(image_path),
+        file_size=image_path.stat().st_size,
+        mime_type="image/tiff",
+        status="ready",
+        resource_type="image_2d_cultural_object",
+        metadata_info={"core": {"title": "二维原件"}, "technical": {"original_file_path": str(image_path)}},
+    )
+    digital_object = ThreeDDigitalObject(object_key="delivery-object", title="三维对象", lifecycle_status="published")
+    db_session.add_all([image, digital_object])
+    db_session.flush()
+    model_path = tmp_path / "model.glb"
+    model_path.write_bytes(b"glTF-delivery")
+    representation = ThreeDAsset(
+        three_d_object_id=digital_object.id,
+        filename=model_path.name,
+        file_path=str(tmp_path / "manifest.json"),
+        file_size=model_path.stat().st_size,
+        mime_type="model/gltf-binary",
+        status="ready",
+        resource_type="three_d_model",
+        version_label="v1",
+        representation_type="web_display",
+        publication_status="published",
+        is_current=True,
+        is_web_preview=True,
+        web_preview_status="ready",
+        metadata_info={"core": {"title": "三维表现"}},
+    )
+    db_session.add(representation)
+    db_session.flush()
+    db_session.add(
+        ThreeDAssetFile(
+            asset_id=representation.id,
+            role="model",
+            role_label="模型",
+            filename=model_path.name,
+            actual_filename=model_path.name,
+            file_path=str(model_path),
+            file_size=model_path.stat().st_size,
+            mime_type="model/gltf-binary",
+            is_primary=True,
+        )
+    )
+    db_session.commit()
+
+    created = applications_router.create_application(
+        ApplicationCreateRequest(
+            requester_name="混合资源申请人",
+            purpose="展览",
+            items=[
+                ApplicationCreateItemRequest(asset_id=image.id, source_system="image_2d", source_id=str(image.id), requested_variant="current"),
+                ApplicationCreateItemRequest(source_system="three_d", source_id=str(representation.id), resource_type="three_d_model", delivery_format="3d_package"),
+            ],
+        ),
+        db=db_session,
+        current_user=CREATOR,
+    )
+    applications_router.approve_application(created.id, ApplicationApproveRequest(review_note="通过"), db=db_session, current_user=REVIEWER)
+    response = applications_router.export_application(created.id, BackgroundTasks(), db=db_session, current_user=REVIEWER)
+
+    with zipfile.ZipFile(response.path) as package:
+        names = package.namelist()
+        assert any("data/image_2d/" in name and name.endswith("image.tif") for name in names)
+        assert any("data/three_d/" in name and name.endswith("model.glb") for name in names)
+        checksum_name = next(name for name in names if name.endswith("manifest-sha256.txt"))
+        checksum_text = package.read(checksum_name).decode("utf-8")
+        assert "image.tif" in checksum_text
+        assert "model.glb" in checksum_text
+    assert db_session.query(ResourceEvent).filter(ResourceEvent.event_type == "export").count() == 2

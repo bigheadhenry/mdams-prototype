@@ -78,6 +78,7 @@ def test_platform_resource_directory_maps_image_subsystem(db_session, test_uploa
         "source_detail",
         "download",
         "export_bagit",
+        "verify_fixity",
     }
     assert next(action for action in resource.actions if action.key == "preview").enabled is True
     assert next(action for action in resource.actions if action.key == "platform_detail").target == "platform"

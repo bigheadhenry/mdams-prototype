@@ -20,6 +20,7 @@ from ..schemas import (
 )
 from .three_d_metadata import RESOURCE_TYPE_LABELS, build_three_d_metadata_layers
 from .three_d_storage import summarize_three_d_files
+from .three_d_workflow import PUBLICATION_TRANSITIONS
 
 
 def _to_file_record(record: Any, *, asset_id: int, is_primary: bool = False) -> ThreeDFileRecord:
@@ -37,6 +38,9 @@ def _to_file_record(record: Any, *, asset_id: int, is_primary: bool = False) -> 
         sort_order=int(getattr(record, 'sort_order', 0) or 0),
         download_url=f'/api/three-d/resources/{asset_id}/files/{file_id}' if file_id is not None else None,
         preview_url=f'/api/three-d/resources/{asset_id}/files/{file_id}' if file_id is not None else None,
+        sha256=getattr(record, 'sha256', None),
+        fixity_status=getattr(record, 'fixity_status', None),
+        last_verified_at=getattr(record, 'last_verified_at', None),
     )
 
 
@@ -133,6 +137,7 @@ def build_three_d_detail_response(asset: ThreeDAsset) -> ThreeDDetailResponse:
 
     return ThreeDDetailResponse(
         id=asset.id,
+        three_d_object_id=asset.three_d_object_id,
         identifier=f'three-d-{asset.id}',
         title=str(metadata_layers['core'].get('title') or asset.filename),
         resource_type=asset.resource_type or 'three_d_model',
@@ -176,6 +181,7 @@ def build_three_d_detail_response(asset: ThreeDAsset) -> ThreeDDetailResponse:
             preservation_note=asset.preservation_note,
         ),
         production_records=[_to_production_record_out(record) for record in asset.production_records],
+        publication_transitions=sorted(PUBLICATION_TRANSITIONS.get(asset.publication_status or 'draft', frozenset())),
         metadata_layers=metadata_layers,
         access=ThreeDAccessSummary(
             preview_enabled=bool(asset.is_web_preview and asset.web_preview_status == 'ready'),
@@ -191,6 +197,8 @@ def build_three_d_detail_response(asset: ThreeDAsset) -> ThreeDDetailResponse:
         technical_metadata=technical,
         viewer=viewer,
         version_label=asset.version_label or 'original',
+        representation_type=asset.representation_type or 'derivative',
+        publication_status=asset.publication_status or 'draft',
         version_order=asset.version_order or 0,
         is_current=bool(asset.is_current),
         is_web_preview=bool(asset.is_web_preview),

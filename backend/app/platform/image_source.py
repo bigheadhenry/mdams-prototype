@@ -70,6 +70,13 @@ def _resource_actions(asset_id: int, *, preview_enabled: bool) -> list[UnifiedRe
             target="export_package",
             url=f"/api/assets/{asset_id}/download-bag",
         ),
+        UnifiedResourceAction(
+            key="verify_fixity",
+            label="校验文件完整性",
+            kind="action",
+            target="source",
+            url=f"/api/assets/{asset_id}/verify-fixity",
+        ),
     ]
 
 
