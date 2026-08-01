@@ -1,477 +1,477 @@
-# ������־
+# 工作日志
 
-## ����
+## 规则
 
-1. ÿ����Ŀ�������޸ġ��ع����޸������ñ��������׷�Ӽ�¼��
-2. ÿ����¼���ٰ������ڡ��޸ķ�Χ��������ݡ���֤����ͱ�ע��
-3. ֻ׷�ӣ����ظ���ʷ���������������һ��������˵������
-4. ���롢�ĵ������ԡ�����ͽű���������Ŀ�����������©��
-5. һ�ι������������������޸ģ�������ɶ�����¼������д��һ��Ρ�
+1. 每次项目开发、修改、重构、修复或配置变更，必须追加记录。
+2. 每条记录至少包含日期、修改范围、变更内容、验证结果和备注。
+3. 只追加，不回改历史；如需更正，另起一条“更正说明”。
+4. 代码、文档、测试、部署和脚本都属于项目变更，不能遗漏。
+5. 一次工作如果包含多个独立修改，尽量拆成多条记录，避免写成一大段。
 
-## ��¼��ʽ
+## 记录格式
 
 ```text
 YYYY-MM-DD
-- �޸ķ�Χ��...
-- ������ݣ�...
-- ��֤�����...
-- ��ע��...
+- 修改范围：...
+- 变更内容：...
+- 验证结果：...
+- 备注：...
 ```
 
-## ������¼
-
-### 2026-03-27 - ͳһ��ԴĿ¼ profile ����
-- �޸ķ�Χ��ƽ̨ͳһ��ԴĿ¼��ǰ��Ŀ¼ҳ��ͳһ��ԴժҪ���ع���ԡ�
-- ������ݣ����� `profile_key/profile_label`��������� `profile_key` ��ѯ�������� profile ���ˣ�ǰ������ Profile ����ɸѡ�������б�����ʾ profile ��ǩ��
-- ��֤�����`python -m pytest backend\tests -q` ͨ����`11 passed`��`npm run lint` ͨ����`npm run build` ͨ����`npm run test` ͨ����`15 passed`��
-- ��ע��ͳһĿ¼�ӡ����ؼ��ּ������ƽ������ɰ����� profile ��������
-
-### 2026-03-27 - ƽ̨��Դ����ģ����ע���
-- �޸ķ�Χ��ƽ̨��Դ������Դע�����������Դ��������ƽ̨·�ɡ�
-- ������ݣ����� `PlatformSourceAdapter`��`PlatformSourceRegistry` ��ģ����Դ����������άӰ����Դ��Ϊע��ʽ��������ƽ̨·�ɸ�Ϊͨ��ע���������Դ����Դ��
-- ��֤�����`python -m py_compile` ͨ����`python -m pytest backend\tests -q` ͨ����`11 passed`��
-- ��ע������������Դʱ��ֻ��ʵ����������ע�ἴ�ɽ���ͳһĿ¼��ͳһ���顣
-
-### 2026-03-27 - ��ά���ݹ�����ϵͳ
-- �޸ķ�Χ����ά����ģ�͡���ά�ϴ������顢��ά����ҳ��ͳһƽ̨���롢�ع���ԡ�
-- ������ݣ�������ά��Դ������ά����·�ɣ�֧���ϴ����б������顢���غ�ɾ����������άԪ���ݷֲ㹹����������Ӧ��ǰ������ 3D Data ������ڡ�
-- ��֤�����`python -m pytest backend\tests -q` ͨ����`12 passed`��`python -m py_compile` ͨ����`npm run lint` ͨ����`npm run build` ͨ����`npm run test` ͨ����`15 passed`��
-- ��ע��MDAMS �ĵڶ�����ʵ��Դ��ϵͳ��ʼ���͡�
-
-### 2026-03-27 - ��ά��Դ����
-- �޸ķ�Χ����ά��Դģ�͡���ά�ϴ��ӿڡ���ά���������ά����ҳ���ع���ԡ�
-- ������ݣ�����ά��Դ�ӵ��ļ���չΪ����Դ��¼ + ���ļ���¼���ṹ��֧��ģ�͡����ơ���б��Ӱͼ��ֱ𱣴棻����ҳ�����ؽӿ�ͬ��չʾ�ļ����ɲ�֧����Դ�����ء�
-- ��֤�����`python -m pytest backend\tests -q` ͨ����`13 passed`��`python -m py_compile` ͨ����`npm run lint` ͨ����`npm run build` ͨ����`npm run test` ͨ����`15 passed`��
-- ��ע����ά��ϵͳ��ʼ֧����������Դ���������塣
-
-### 2026-03-27 - ��ά�ļ�Ԥ��
-- �޸ķ�Χ����ά����ӿڡ���ά�ļ����ʽӿڡ�ǰ����ά����ҳ����ά��ϵͳ�ع���ԡ�
-- ������ݣ�Ϊ��ά��Դ�������ļ������ʽӿڣ�������Ӧ����ÿ���ļ��� `download_url/preview_url`��ǰ������ҳ����ͼ��Ԥ��������б��Ӱͼ���ֱ������Ԥ����
-- ��֤�����`python -m pytest backend\tests -q` ͨ����`13 passed`��`python -m py_compile` ͨ����`npm run lint` ͨ����`npm run build` ͨ����`npm run test` ͨ����`15 passed`��
-- ��ע����ά��Դ�Ѿ߱��������ɲ鿴��������
-
-### 2026-03-27 - ��ά�汾�� Web չʾ״̬
-- �޸ķ�Χ����ά����ģ�͡���ά������Ӧ����ά�ϴ��ӿڡ�ǰ����ά����ҳ��ƽ̨����������ά��ϵͳ�ع���ԡ�
-- ������ݣ�Ϊ��ά��Դ���� `resource_group`��`version_label`��`version_order`��`is_current`��`is_web_preview`��`web_preview_status`��`web_preview_reason` ���ֶΣ��ϴ�ʱ��¼��汾�ź� Web չʾ״̬��
-- ��֤�����`python -m pytest backend\tests -q` ͨ����`13 passed`��`python -m py_compile` ͨ����`npm run lint` ͨ����`npm run build` ͨ����`npm run test` ͨ����`15 passed`��
-- ��ע����ά��Դ��ʼ����ԭʼ�� / �汾�� / ��չʾ״̬��������
-
-### 2026-03-27 - ��ά���ֶ���ۺ���ͼ
-- �޸ķ�Χ����ά����ҳ��������־��
-- ������ݣ���ά��Դ�б���Ϊ�� `resource_group` �ۺ�չʾ����һ�����ֶ�����Ϊһ��汾��Դ������չ����ɲ鿴ԭʼ�桢v1��v2 �Ȱ汾��¼��
-- ��֤�����`npm run lint` ͨ����
-- ��ע�������ӽǴӵ����汾��¼�л�Ϊ�����ֶ��� + �汾�б�����
-
-### 2026-03-27 - ��ά���ֶ��������
-- �޸ķ�Χ����ά����ҳ��������־��
-- ������ݣ��ڶ��󼶾ۺ���ͼ�Ϸ����Ӹ�������չʾ���ֶ��������汾��������չʾ���������ļ������������������������ڡ�
-- ��֤�����ǰ�˹��������ͨ����
-- ��ע���ù���ҳ�ȿ��������ٽ���汾��ϸ��
-
-### 2026-03-27 - ��ά PRD ���ձ�
-- �޸ķ�Χ����ά PRD �����ĵ���������־��
-- ������ݣ����� `docs/THREE_D_PRD_ALIGNMENT.md`���� PRD ���������Ԫ���ݷֲ㡢������·��չʾ�뱣��ֲ㡢ϵͳ�ӿ���ֽ׶ν���Ҫ���뵱ǰ��ά��ϵͳʵ��������ա�
-- ��֤������ĵ�������ɣ�δ�漰��������
-- ��ע�����ĵ����ں�����ά��ϵͳ������ȱ��׷�١�
-
-### 2026-03-27 - ͬ�� GitHub
-- �޸ķ�Χ��������־���ֿ�ͬ�����̡�
-- ������ݣ�������ά PRD ���ձ������乤����־��Ȼ��ͬ����ǰ��֧�� GitHub��ͬʱ���� `.gitignore`������ Playwright ���桢���Ի���ͱ��زο���������ֿ⡣
-- ��֤������ֿ���ͬ����Զ�˷�֧��
-- ��ע��ͬ��������Դ�롢�ĵ�����ά��ϵͳ����ʵ��Ϊ�������������������
-
-### 2026-03-27 - ��ά PRD ������������·��ǿ
-- �޸ķ�Χ����ά����ģ�͡���Ʒ�����������׼Ԫ�����ֵ䡢������·��¼���������չʾ����롢�ع���ԡ�
-- ������ݣ�Ϊ��ά��Դ�����Ʒ��������ͱ�׼Ԫ�����ֵ䣻�Ѳɼ������������������洮��������·��¼���� Web չʾ״̬�볤�ڱ���״̬�ֿ�������
-- ��֤�����`python -m pytest backend\tests -q` ͨ����`13 passed`��`python -m py_compile` ͨ����
-- ��ע����ά��ϵͳ��ʼ�ӡ��汾����Դ�����ƽ������������ + ������· + ����㡱�ṹ��
-
-### 2026-03-27 - ���Էֲ�����Լ����
-- �޸ķ�Χ��pytest ���á���˲��Էֲ㡢��ά�ֵ���Լ����ά������·�����Բ����ĵ���README ��ڡ�
-- ������ݣ����� `pytest.ini`���� `unit / contract / integration / smoke / system` �ֲ㣬�������ϸ� marker��������άԪ�����ֵ���Լ���Ժ���ά������·���ԡ�
-- ��֤�����`python -m pytest backend\tests -q` ͨ����`15 passed`��`python -m py_compile` ͨ����
-- ��ע���������ܿ���Ҫ�����ٲ�һ����Լ���Ի򼯳ɲ��ԡ�
-
-### 2026-03-27 - ��ά�鿴����Լ
-- �޸ķ�Χ����ά������Ӧ����ά�鿴��·�ɡ�ǰ�� 3D ���Ͷ��塢��ά��ϵͳ�ع���ԡ�
-- ������ݣ�Ϊ��ά�������� `viewer` ��Լ��ͳһ�����Ƿ�� Web չʾ��Ԥ���ļ���Ԥ�� URL ����Ⱦ�����ͣ����� `/api/three-d/resources/{id}/viewer` ·�ɡ�
-- ��֤�����`python -m pytest backend\tests -q` ͨ����`15 passed`��`python -m py_compile` ͨ����`npm run build` ͨ����
-- ��ע����ά����չʾ����״̬�ֶ��ƽ�Ϊ��ȷ��Լ��
-
-### 2026-03-27 - ��ά Web �鿴�������ģ��
-- �޸ķ�Χ��ǰ����ά�鿴���������ά����ҳ��ǰ������������ģ����Դ��������־��
-- ������ݣ��������� `@google/model-viewer` ����ά Web �鿴���������������ά����ҳ�����䱾�� `glTF` ����ģ����Դ�������������Ԥ����֤��
-- ��֤�����`npm run build` ͨ����`npm run test` ͨ����`15 passed`��`python -m pytest backend\tests -q` ͨ����`15 passed`��
-- ��ע����ά��Դ��ʼ�߱��ɽ�����������˲鿴������
-
-### 2026-03-27 - ��ά����ģ������������
-- �޸ķ�Χ��ǰ�˲���ģ����Դ����ά����ҳ������ڡ�������־��
-- ������ݣ�������ģ����չΪ���ӽ���ʵҵ����������������ⲿ������ glTF�����ļ� GLB �͸�ϸ�� GLB ���ֳ���������̬��
-- ��֤�����`npm run build` ͨ����`npm run test` ͨ����`15 passed`��
-- ��ע�������������ں��������Բ��Ժ����ܲ��ԡ�
-
-### 2026-03-27 - ��ά��ϵͳԭ���տ�
-- �޸ķ�Χ����ά����������鿴����Լ���汾������������·������������ͳһƽ̨���롣
-- ������ݣ�����ά��ϵͳ����Ϊ����ۺϡ��汾������Web չʾ״̬���鿴����Լ��������������ԭ����̬������ȷ����Ҫ������չʾ��������Ʒ����ǿ�����ͳ��ڱ�����ϵ��
-- ��֤������ؼ���˺�ǰ�˲��Գ���ͨ����
-- ��ע����ά��ϵͳ�Ѵӡ��ܹ������ƽ������ɳ�����֤��ԭ�͡���
-
-### 2026-03-27 - ��Դ���빦��
-- �޸ķ�Χ��IIIF manifest��MiradorViewer�����복ҳ�桢�������ҳ�桢���뵥ģ�͡����뵼�����ع���ԡ�
-- ������ݣ��� Mirador �����ӡ��������뵥����ڣ��γ����복�ݸ壻�������뵥��������ģ�͡������ύ���������������������������ҳ��
-- ��֤�����`python -m pytest backend\tests\test_applications.py -q` ͨ����`python -m pytest backend\tests\test_routes_smoke.py -q` ͨ����`npm run build` ͨ����`npm run test` ͨ����`15 passed`��
-- ��ע����άӰ�������������γɡ��������복 -> �ύ���� -> ���� -> �������������ıջ���
-
-### 2026-03-28 - ���� DigicolPhotoScan �����þ�����
-- �޸ķ�Χ�����ؿ����⡢����ű���������־��
-- ������ݣ����� `backend/scripts/import_2d_images.py` ����ű������� `DigicolPhotoScan/data/images/�����þ�` Ŀ¼���������άͼƬ��Դ��
-- ��֤��������� 12 ��������Դ�����ݿ��� `assets` ��¼��Ϊ 12��
-- ��ע��Ϊ���� Mirador Ԥ�������빦���ṩ�������ݡ�
-
-### 2026-03-28 - �������� Cantaloupe ���ָ� Mirador Ԥ��
-- �޸ķ�Χ��Cantaloupe �������á�����ʱĿ¼��ǰ��˷��񡢹�����־��
-- ������ݣ����ز���ѹ Cantaloupe 5.0.6�����ɱ���ר�������ļ������� `base_uri` ��ͼƬĿ¼���Ƴ� UTF-8 BOM���������ʱ�������ָ�ǰ�ˡ���˺� Cantaloupe ����������
-- ��֤�����`/health` ������IIIF `info.json` �������أ�Mirador �������� Cantaloupe ��ȡͼ��
-- ��ע������˱��� IIIF ������·���������⡣
-
-### 2026-03-28 - �����þ���Դȫ������
-- �޸ķ�Χ����ά��Դ�⡢����ű���������־��
-- ������ݣ�ʹ�õ���ű��� `DigicolPhotoScan/data/images/�����þ�` Ŀ¼�е�ȫ�� JPG ���������ά��Դ�⡣
-- ��֤������������� 292 ������ͬǰһ�ε� 12 �������� 304 ����ά��Դ��`uploads` Ŀ¼Ҳͬ��Ϊ 304 ���ļ���
-- ��ע������������ֱ�����������Ԥ�����������̲��ԡ�
-
-### 2026-03-29 - �û�������Ȩ�޾���
-- �޸ķ�Χ���û���ɫ����ĵ���README ��ڡ�������־��
-- ������ݣ������γɵ�һ�� `docs/USER_ROLE_PERMISSION_MATRIX.md`����ȷ���ֻ�������Ա��ҵ����Ա�������û��������ά����ά�ֱ���Ȩ����Ʒ���η�Χ���ơ���Դ�ɼ���Χ��ҵ��״̬���룬�Լ���һ�� `RBAC + scope` ��ؽ��顣
-- ��֤������ĵ������δ�漰������������ԡ�
-- ��ע������ǰ�˲˵��ü�����˽ӿ�Ȩ�ޱ����Ͳ�Ʒ���η�Χ��ģ���Դ�Ϊ���ߡ�
-
-### 2026-03-29 - ǰ�˲˵��ɼ�������Ȩ�޹Ǽ�
-- �޸ķ�Χ����ɫȨ���ĵ���ǰ������ڡ�ǰ��Ȩ�޶��塢���Ȩ����������֤������·�ɡ��ؼ��ӿڱ�����Ȩ�޵�Ԫ���ԡ�README ��ڡ�������־��
-- ������ݣ����� `docs/FRONTEND_MENU_VISIBILITY_MATRIX.md`������ɫ����ϸ��Ϊ�˵��ɼ�����ǰ�˽���Ȩ�޶��塢ʾ���û��л����˵��ü���������Ȩ�޿��ƺ�����ͷ͸�����������Ȩ��ģ�����֤�����Ľӿڣ����Ѷ�ά��Դ����ά��Դ�����������ȹؼ��ӿڹҽӵ�Ȩ�������ϡ�
-- ��֤�����`python -m pytest backend\tests\test_permissions.py backend\tests\test_applications.py -q` ͨ����`6 passed`��`npm run build` ͨ����
-- ��ע����ǰ������ʾ̬Ȩ�޿�ܣ����Ѿ������ֲ�ͬ��ɫ������ͬ���ݡ�
-
-### 2026-03-29 - ��ʵ�û����¼������
-- �޸ķ�Χ���û�/��ɫ/�Ự����ģ�͡���֤������֤·�ɡ�Ȩ�޽�����ǰ�˵�¼��ڡ�ǰ����Ӧ����֤�����ġ���֤��Ȩ�޵�Ԫ���ԡ�������־��
-- ������ݣ����� users / roles / user_roles / user_sessions ����ģ�ͺ���֤���񣻲��� `/api/auth/users`��`/api/auth/login`��`/api/auth/logout`��`/api/auth/context`��ǰ������ڴ���ʾ�û��л�Ϊ��ʵ��¼�����ģ���¼��ͨ�� Bearer token ��ȡ��ɫ��Ȩ�ޡ�
-- ��֤�����`python -m pytest backend\tests\test_auth_service.py backend\tests\test_permissions.py backend\tests\test_applications.py -q` ͨ����`8 passed`��`python -m py_compile` ͨ����`npm run build` ͨ����
-- ��ע��Ĭ�������˺ŵ�ͳһ��������Ϊ `mdams123`��
-
-### 2026-03-29 - IIIF ��֤��Ӧ����֤ͳһ
-- �޸ķ�Χ����֤�����ĵ���IIIF ���ʿ��ơ���Դ�ɼ���Χ��ǰ����Դ���顢������־��
-- ������ݣ���ȷ MDAMS Ӧ����֤��Ϊ����֤��IIIF ���ʿ��ƹ���ͬһ������ϵ֮�£���ά��Դ���� `visibility_scope` �� `collection_object_id`��`collection_owner` �����η�Χ���˽�����Դ�б�������� IIIF ��ڡ�
-- ��֤��������Ŀ�����ͨ����`npm run build` ͨ����
-- ��ע������ Mirador ȡͼҲ��ͳһ�� MDAMS ��Ȩ����ڡ�
-
-### 2026-03-29 - ��¼���Ȩ�޻ع����
-- �޸ķ�Χ��ǰ�� Playwright ���ԡ�ǰ����Ӧ�á�ͳһ��ԴĿ¼��ͳһ��Դ���顣
-- ������ݣ������¼̬���ԣ�ʹ�� token ��ģ�� auth context ��֤��ͬ��ɫ�Ĳ˵��ɼ�������Դ�ɼ��ԣ����� `system_admin`��`resource_user` �� `collection_owner` �ķ��ʲ��졣
-- ��֤�����`npm run test` ͨ����`15 passed`��
-- ��ע����¼��Ĳ�������ֱ����֤Ȩ�޹�ϵ�Ƿ���ȷ��
-
-### 2026-03-29 - collection_owner ��Χ�ع����
-- �޸ķ�Χ��ǰ�� Playwright ���ԡ�ͳһ��ԴĿ¼��ͳһ��Դ���顢������־��
-- ������ݣ����� `collection_owner` �ķ�ΧȨ�޻ع飬��֤���ܿ����Լ����η�Χ�ڵ���Դ�����������������η�Χ�� `owner_only` ��Դ��
-- ��֤�����`npm run build` ͨ����`npm run test` ͨ����`21 passed`��
-- ��ע���������Խ����η�ΧȨ�������䵽ǰ�˻ع��
-
-### 2026-03-29 - ������־����ͳһ
-- �޸ķ�Χ��������־�ļ�������
-- ������ݣ����ɵ�������־��дΪͳһ���İ汾�������� UTF-8 ���뱣�棬���� Windows ���ٳ��ֲ��ɶ��ַ���
-- ��֤������������д��������ֱ�������ļ���׷�ӡ�
-- ��ע������һ�λ�����ʩ������ȷ���������й�����¼���������Ķ���
-### 2026-03-29 - README ��������
-- �޸ķ�Χ��README �ĵ���
-- ������ݣ����ݵ�ǰ��Ŀʵ��״̬����д README Ϊͳһ���İ汾�������άӰ����ϵͳ����ά���ݹ�����ϵͳ��ͳһƽ̨��Ȩ�޵�¼�������빤����־˵�������������ٿ�ʼ�������������Ҫ�ĵ���ڡ�
-- ��֤������ĵ�����д���������˹��˶ԣ��������д�����ԡ�
-- ��ע��README �����뵱ǰ�ֿ�ʵ�ֱ���һ�£�����ɰ�����͹�ʱ������
-
-### 2026-03-29 - ��ҳ������ĵ�����
-- �޸ķ�Χ��README����Ŀ״̬�����������á���һ�׶μƻ�����֤�� IIIF �����ĵ���
-- ������ݣ����ݵ�ǰ�ֿ�ʵ����д README ��ҳ˵����������Ŀ״̬������˵������һ�׶μƻ�����֤�� IIIF ���Ϸ���ͬ������ǰ״̬�������άӰ����ά���ݹ�����ͳһƽ̨��Ȩ�޵�¼���������̺Ͳ��Էֲ���������ݡ�
-- ��֤������ĵ�����д���˹��˶ԣ��������Ķ����������д�����ԡ�
-- ��ע����������ص��ǰѲֿ���ҳ�͹ؼ�����ĵ�ͳһ����ǰʵ�֣����������ʱ���������ݡ�
-
-### 2026-03-29 - �ĵ��տ�����ҳ����
-- �޸ķ�Χ��ARCHITECTURE��DEMO_FLOW��DATA_INGEST_ARCHITECTURE��WORKFLOW_GUIDE��DEPLOYMENT��INSTALL_DOCKER_WINDOWS��CONFIG_REFACTOR_PLAN��TROUBLESHOOTING��
-- ������ݣ��������ʷ�ĵ���дΪͳһ���İ汾��������ǰʵ�ָ���Ϊ��άӰ����ϵͳ����ά���ݹ�����ϵͳ��ͳһƽ̨����¼Ȩ�ޡ��������̡��������ú͹������ĵ�ǰ״̬��ͬʱ�������ĵ�����ת��鵵˵�����������ʹ�ù�ʱ������
-- ��֤������ĵ�����д���˹��˶ԣ��������Ķ����������д�����ԡ�
-- ��ע������տ���ɺ󣬲ֿ���ҳ����ظ����ĵ��Ѿ��������뵱ǰʵ�֡�
-
-### 2026-03-30 - ��ɫ - ҳ�� - �������ձ�
-- �޸ķ�Χ����ɫȨ���ĵ���ǰ��/���Ȩ��˵���Ĳ����ĵ���
-- ������ݣ����� `docs/ROLE_PAGE_ACTION_MATRIX.md`������ǰϵͳ�в�ͬ��ɫ�ɼ���ҳ�����ִ�ж�������Ϊͳһ���ձ������� system_admin��resource_user��collection_owner��application_reviewer ����ά������ɫ��
-- ��֤������ĵ�������ɣ��������˹��˶ԡ�
-- ��ע����ݱ���ֱ����Ϊ����Ȩ�޲��Ժ͹������յĻ��ߡ�
-
-### 2026-03-30 - ����ͼ������
-- �޸ķ�Χ����һ�׶μƻ��ĵ���
-- ������ݣ��� `docs/NEXT_PHASE_PLAN.md` ��������άӰ������ͼ��������ɲ��Դ������ȷ������Ҫ��������ͼ�ߴ硢��ʽ��Ԥ���ɲ��ԡ���ʱ��Ƭ�߽��ʧ�ܽ�������
-- ��֤������ĵ��Ѹ��£��������˹��˶ԡ�
-- ��ע�������ݲ���������·ʵ�֣�������Ϊ�����Ż������ƽ���
-
-### 2026-04-02 - Mirador AI �����������־��·
-- �޸ķ�Χ��Mirador ǰ����ͼ��AI ������塢��� AI ����·�ɡ�OpenAI ���á�ǰ�����Ͷ��塢��������ʾ����������־��
-- ������ݣ�Ϊ Mirador ���ҳ�����Ҳ� AI ������壬֧����Ȼ���Կ������š�ƽ�ơ����á����䴰�ڣ��Լ��ؼ��ʼ����ͶԱ�ͼ��ȷ�ϣ�������� AI ��������Դ�����ӿڣ������� OpenAI ��Ϊ��ͼ�����㣻ͬʱ����ǰ��˲�����־����¼�û����롢AI �ƻ�����ѡͼѡ��ȷ�Ϻ�ִ�н�������ں������ݡ�
-- ��֤�����`python -m py_compile backend/app/config.py backend/app/main.py backend/app/routers/ai_mirador.py` ͨ����`npm run build` ͨ����`npx eslint src/MiradorViewer.tsx src/MiradorAiPanel.tsx src/types/assets.ts src/types/mirador.d.ts --max-warnings 0` ͨ����
-- ��ע�����α���ص��ǰ� AI �������ɿ�׷�١���ȷ�ϡ��ɻطŵĽ�����·�������ɼ�����չΪ���ݿ������־��
-
-### 2026-04-02 - Mirador �Ƚ�ģʽ�붯����־��ȫ
-- �޸ķ�Χ��Mirador AI ��塢��� AI ��ͼ������������־��
-- ������ݣ���ȫ�Ƚ�ģʽ����ʵ״̬�л��߼�������������/�˳��Ƚ�ģʽ���͡��رնԱȡ����ƣ����� Mirador �� `mosaic` / `elastic` ������״̬�л������ִ�����־�ɼ�����˶ԡ��Ƚ�ģʽ������ͼģʽ�����˳��Աȡ���ָ�����˸���ȷ����ͼʶ�𣬱��ⱻ����Ϊ��ͨ��ͼ��
-- ��֤�����`python -m py_compile backend/app/config.py backend/app/main.py backend/app/routers/ai_mirador.py` ͨ����`npm run build` ͨ����`npx eslint src/MiradorViewer.tsx src/MiradorAiPanel.tsx src/types/assets.ts src/types/mirador.d.ts --max-warnings 0` ͨ����
-- ��ע�����ڱȽ�ģʽ�����ܿ��أ�������������п�����ǰģʽ��������������������־��
-
-### 2026-04-02 - Moonshot ģ�ͽ���
-- �޸ķ�Χ����� AI ���á���������ʾ����������־��
-- ������ݣ��� AI ����Ĭ���л�Ϊ Moonshot �� OpenAI ���ݷ����ַ������ `MOONSHOT_API_KEY`��`MOONSHOT_BASE_URL` �� `MOONSHOT_MODEL` ���ã������� `OPENAI_*` ��Ϊ���ݸ��ǣ�Ĭ�Ϸ����ַָ�� `https://api.moonshot.cn/v1`��Ĭ��ģ�͸�Ϊ `kimi-k2.5`��
-- ��֤����������ļ��ͻ�������ʾ���Ѹ��£���δ����ʵ API ������֤����Ϊ��ǰ����δ������Ч key��
-- ��ע��Moonshot �ĵ��� Chat API ʹ�� OpenAI ���ݷ�ʽ���룬������е����߼�����ֱ�Ӹ��á�
-
-### 2026-04-02 - Moonshot ��ͨ����֤
-- �޸ķ�Χ������ `.env`��Moonshot API ��ͨ�ԡ�������־��
-- ������ݣ��ڱ��� `C:\Users\bighe\OneDrive\AI\Codex\.env` ���� Moonshot ���ú�ֱ���� `POST /v1/chat/completions` ������С JSON ������֤ģ�ͷ���Key �ͷ��ظ�ʽ�Ƿ���á�
-- ��֤��������󷵻� `200`��ģ�� `kimi-k2.5` ���������� JSON����Ӧ����Ϊ `{"ping":"pong"}`��
-- ��ע�������֤˵�� Moonshot ��·�Ѿ����ã��������ֶ�������ˣ���Ҫȷ������ʵ�ʼ�����ͬ���Ļ���������
-
-### 2026-04-02 - ����Զ���ȡ .env
-- �޸ķ�Χ��������ü��ء�������־��
-- ������ݣ��� `backend/app/config.py` �������� `.env` �Զ������߼����������ʱ�����ȶ�ȡ��Ŀ��Ŀ¼�еı��� `.env` �ļ����ٽ������ݿ⡢Moonshot �������������á�
-- ��֤����������ļ��Ѹ��£�����ͨ��������˻��������õ�������֤���������Ƿ��Զ���Ч��
-- ��ע���������ظ� `.env` �������ֶ������������������������˳�֡�
-
-### 2026-04-02 - .env ����˳������
-- �޸ķ�Χ��������ü��ء�������־��
-- ������ݣ����� `.env` ����˳�򣬸�Ϊ�ȶ�ȡ���ϲ�Ŀ¼�е����ã��ٶ�ȡ���ӽ��ֿ�����ã�����ֿ��Ŀ¼��յ� `.env` ����ռλ���¸�Ŀ¼����δ��Ч��
-- ��֤��������µ��� `backend.app.config` ���ܹ���ȷ���� `C:\Users\bighe\OneDrive\AI\Codex\.env` ��� `MOONSHOT_API_KEY`��`has_key` ��֤Ϊ `True`��
-- ��ע����һ���ѱ������ü���·��������˳�ˣ��������ʱ����ֱ�ӳԵ�����õĻ���������
-
-### 2026-04-02 - Mirador AI ��˻ع���Բ���
-- �޸ķ�Χ��Mirador AI ��˲��ԡ�������־��
-- ������ݣ����� `backend/tests/test_ai_mirador.py`������ OpenAI / Moonshot �ƻ�ע���ĶԱ��������޺�ѡͼʱ���˵���ͨ�������Լ� `search_assets` �Ŀɼ��Թ��ˣ�����ֱ�ӵ��� AI ·�ɺ�������֤���ؼƻ�����ѡͼ��Ȩ�ޱ߽�� manifest ����·����
-- ��֤�����`python -m pytest backend\tests\test_ai_mirador.py -q` ͨ����`3 passed`��`python -m pytest backend\tests -q` ͨ����`37 passed`��
-- ��ע������������չ Mirador AI ʱ�������Ȳ�����Ļع飬�ٸĹ����߼���
-
-### 2026-04-02 - Mirador AI ǰ�˻ع���Բ���
-- �޸ķ�Χ��Mirador AI ǰ�˲��ԡ�Mirador AI ���ê�㡢�ʲ��б�Ԥ����ť��dashboard �ع���ԡ�������־��
-- ������ݣ����� `frontend/tests/mirador-ai.spec.ts`�����Ǵ��ʲ�Ԥ�������� AI ��塢�ύ��Ȼ����ָ�չʾ��ѡͼ��ȷ��̬���л���ѡĿ�ꣻͬʱΪ AI ��岹���ȶ��� `data-testid`��Ϊ�ʲ��б�Ԥ����ť�������ê�㣬������ dashboard �ع�����ظ���Ԫ���ı����ϸ�λ���⡣
-- ��֤�����`npm run test -- mirador-ai.spec.ts` ͨ����`3 passed`��`npm run test` ͨ����`24 passed`��`npm run build` ͨ����
-- ��ע����ΰ�ǰ�� AI �����ͼ��� dashboard �ع�һ���ս��ˣ���������� AI ����ʱ����ֱ���������ײ�����ڡ�
-
-### 2026-04-03 - ������������ݻָ�
-- �޸ķ�Χ��������á�Mirador ǰ�ˡ���ά����ҳ���ο���Դ���롢������־�����Իع顢���Թ���
-- ������ݣ���Ʋ����� `.env` �Զ�����˳������ǰ�� lint ���桢�ָ� Mirador �� AI ��������İ���ͬʱ�� `reference/��Դ��` ���µ��뵱ǰ SQLite �⣬�ָ� 12 ����άӰ����Դ�������������Բ�������ʱ���ݿ���� `.gitignore`��
-- ��֤�����`python -m pytest backend\tests -q` ͨ����`38 passed`��`npm run lint` ͨ����`npm run build` ͨ����`npm run test -- mirador-ai.spec.ts` ͨ����`3 passed`���ο���Դ����ű� dry-run ����ʽ�������ִ�С�
-- ��ע����ǰǰ�ˡ�no data������ĸ��������ݿ��ʲ���¼Ϊ�գ�����ͼƬ�ļ�ȱʧ���ѻָ���������������������ݿ��ظ����вο�����ű���
-
-### 2026-04-04 - Mirador IIIF ֱ�� Cantaloupe
-- �޸ķ�Χ��IIIF ·�ɡ�����Ĭ��ֵ�����⡢��������ʾ����������־��
-- ������ݣ��� manifest �е� image service �Ӻ�˴���·����Ϊֱ��ָ�� Cantaloupe ������ַ�����־ɵ� proxy ·����Ϊ������ڣ�ͬʱ�ѱ���Ĭ�� `CANTALOUPE_PUBLIC_URL` ����Ϊ `http://localhost:8182/iiif/2`����ͬ�����²��Զ����� `.env.example`��
-- ��֤�������ǰֻ�޸��� `backend/tests/test_asset_visibility.py` �ľ�·�����ԣ�������Ҫ������ `python -m pytest backend\\tests -q` ��ȷ��ȫ����˲���ͨ����
-- ��ע�����Ƕ��� `mirador-compare` �ĵ�һ���Ż���Ŀ���Ǽ������������ͼ֮����������У��� Mirador �����õ� IIIF service��
-
-### 2026-04-04 - Mirador ֱ�� Cantaloupe Ԥ���޸�
-- �޸ķ�Χ��Mirador ǰ���������ء�������־��
-- ������ݣ��� Mirador ��ͳһ����Ԥ���������˰�������ֻ�Ժ�� `api/auth` ���󸽼� `Authorization` ͷ�����ٰ����ͷ���� Cantaloupe �� IIIF �����ϣ��������Ԥ�쿨סͼƬ���ء�
-- ��֤�����`npm run build` ͨ����ǰ�˹�������ȸ��µ���ǰ�����е� Vite ��������
-- ��ע����һ����Ӧ���ͼ�Ԥ��һֱ�����������󣬸�����ֱ�� Cantaloupe ���󱻶����Ȩͷ������Ԥ�죬��������಻��ҪҲ��Ӧ�ø�ͼƬ����� token��
-
-### 2026-04-04 - �б�����ͼ����ʧЧ�޸�
-- �޸ķ�Χ������ͼ���������߼����ع���ԡ�������־��
-- ������ݣ����б�ҳ����ͼ�Ļ�����ӹ̶��� `asset-{id}.preview.jpg` �ĳɴ�Դ�ļ�ָ�Ƶ�·������Ϊ�� `asset id + Դ�ļ� mtime/size` ƥ�䣻ͬһ���ʲ�һ��Դ�ļ��仯���ͻ��Զ������µ�����ͼ�ļ�������������þɴ�ͼ��
-- ��֤��������� `backend/tests/test_preview_images.py`��`python -m pytest backend\\tests\\test_preview_images.py -q` ͨ����`1 passed`��`python -m pytest backend\\tests -q` ͨ����`39 passed`��
-- ��ע�����������㿴���ġ��б�����ͼ�ʹ�ͼ��һ�¡������⣬�����Ǿ�Ԥ������û��ʧЧ�������� Mirador ��ͼ��������
-
-### 2026-04-04 - ����ͼ����������ж�
-- �޸ķ�Χ���ʲ��б�ǰ�ˡ�����ͼ�ӿڻ���ͷ��������־��
-- ������ݣ��б�ҳ����ͼ URL ׷�� `created_at + file_size` �汾��ʶ������ `/assets/{id}/preview` ��Ӧ���� `Cache-Control: no-store`��ȷ�����������������þɵ�����ͼ��Ӧ��
-- ��֤�����ǰ�˴����Ѹ��£������Ҫ�����������Ч����һ��ˢ��ҳ��ʱ��ǿ��ȡ��ͼ��
-- ��ע����һ����ר����ԡ��Ҹ�������ͼ�߼���ҳ�滹�ǿ�����ͼ���������������������м仺��Ѿ���Ӧ��ס��
-
-### 2026-04-04 - Mirador AI ִ�в�ӹ�
-- �޸ķ�Χ��Mirador AI ��塢Mirador Viewer��ǰ�˻ع���ԡ�������־��
-- ������ݣ���д `frontend/src/MiradorAiPanel.tsx` ��ִ�в㣬�� `zoom/pan/reset/fit` ������ʵ�ӿڱ��У�飬����ֱ�� OSD viewer ִ�ж��������� `viewerApiRef.current.actions` ������ʱ���˵� Mirador �ٷ� action creator��ͬʱ�� AI �����ʽ��֪ `MiradorViewer` �� ready ״̬���� viewer δ��ɳ�ʼ��ǰ���ÿ�ݿ��ƺ�ȷ�ϰ�ť�����⡰��ť�ɵ㵫ʵ��δ�������ļ�ִ�С�
-- ��֤�����`npm run test -- mirador-ai.spec.ts` ͨ����`3 passed`��`npm run build` ͨ����
-- ��ע����һ���Ȱ����ж�����ִ�пɿ��Բ���ʵ�ˣ�Playwright ����Ҫ���Ǽƻ����ͺ�ѡͼȷ�ϣ��������Ҫ�ѡ���ʵ����/ƽ�Ƴɹ���Ҳ�����ȶ� E2E����Ҫ�ٲ������� Mirador ����̬�� viewport ����׮��
-
-### 2026-04-06 - Ӱ���¼����� IIIF ���ʲ� Phase 1 ����
-- �޸ķ�Χ��Ӱ���¼ģ����Ȩ�ޡ�Ӱ���¼·������֤����IIIF ���ʸ��������ʲ�/���/����/IIIF ·�ɡ�ǰ��¼�빤��̨��Ȩ�޲˵������Ͷ��塢�ع���ԡ��׶η����ĵ���������־��
-- ������ݣ�Χ�ơ�¼����Ա�Ƚ���¼����Ӱʦ��ͼƥ�䡱�������̣����� `ImageRecord` ��غ����ǰ�˹Ǽܣ�������¼�б�/����/����/����̨����¼�ύ���˻ء����ϴ���¼�ء���ʱ�ϴ���������ʽȷ�ϰ�/�滻��ͬʱ���� `image_record_validation` �� `iiif_access` ���񣬰�У�����ύУ����󶨺�У�����׶Σ����� PSB / �� TIFF �� IIIF ���ʲ�����������ԭ�����������ʸ���������Mirador ֻ�����ʸ������ķ��������� 4 �ݽ׶λ����ĵ����ֱ�̶���ɫ��֡�ƥ����ơ���֤����� IIIF ���ʸ�ʽ���ԡ�
-- ��֤�����`python -m pytest backend\tests\test_image_records.py backend\tests\test_iiif_access_phase1.py backend\tests\test_ingest.py backend\tests\test_derivative_policy.py backend\tests\test_metadata_layers.py -q` ͨ����`25 passed`��`npm run build` ͨ����
-- ��ע������ύ���ص��ǰ� Phase 1 ��ҵ��߽��ʵ�ֹǼ�һ���Ƶ��ֿ���������߳̿���ֱ���� 4 �� `IMAGE_*_PHASE1_PLAN.md` �ĵ�Ϊ�̶�ʵʩ���߼����ƽ���
-
-### 2026-04-06 - Ӱ���¼�ϴ���·�޸�����Ӱʦ�滻��ڻָ�
-- �޸ķ�Χ��Ӱ���¼��/�滻·�ɡ�IIIF ���ʸ�������������PSB/PSD ̽�ⶵ�ס���Ӱʦ����̨������ҳ�������ǰ�˻ع���ԡ�������־��
-- ������ݣ����� `ImageRecord` ��ȷ�ϰ����滻���̣�ʹ�临��ͳһ�� IIIF ���ʲ����жϣ���Ҫʱ�����ʲ���Ϊ `processing` ������ `generate_iiif_access_derivative`��������ʱ�ϴ������� ExifTool / `pyvips` ���ף����� PSD/PSB �� Pillow �޷���ȡ��������Ϊ���ɰ󶨣�ͬʱ����Ӱʦ����̨�ӽ��� `ready_for_upload` ��չΪ�ɼ����鿴�Լ� `uploaded_pending_validation` ����ָ�ɼ�¼��������������ҳ���½����滻�ϴ����̡�
-- ��֤�����`pytest backend\tests\test_image_records.py -q` ͨ����`10 passed`��`pytest backend\tests\test_iiif_access_phase1.py -q` ͨ����`3 passed`��`npm run build` ͨ����`npx playwright test tests/dashboard.spec.ts` ͨ����`27 passed`��
-- ��ע��Playwright �����ڼ������ִ�� Vite ���� `ECONNREFUSED` ��־����������Ӱ������ͨ���������޸���Ҫ������Ӱ���¼�ϴ���·����Ӱʦ�滻�ջ���
-
-### 2026-04-06 - �ĵ���ϵ�ع�������ڸ���
-- �޸ķ�Χ���� `README.md`��`docs/` Ŀ¼�ṹ����Ŀ״̬�����Բ��ԡ�Ȩ�޾��󡢲˵����󡢹���������������ά����֤�� IIIF��ͼ���¼����̨��API ·�ɡ�ƽ̨����������ά��ϵͳ�������������ű�˵�����ο�����˵�����ĵ�������������־��
-- ������ݣ���ԭ��ƽ�̵� `docs/` ����Ϊ���ķ���Ŀ¼��ͳһ����Ϊ�������ܹ���ơ���Ʒ�����̡�ʵʩ��������������ά���ο����ϡ�ͼʾ���о��˸���������д�� `README.md` ʹ���뵱ǰ��Ŀʵ�ֱ���һ�£����޸�ԭ�л�����ͬʱ�����ǰȱʧ��ר���ĵ������� `API_ROUTE_MAP.md`��`PLATFORM_SOURCE_ADAPTERS.md`��`THREE_D_SUBSYSTEM_ARCHITECTURE.md`��`IMAGE_RECORD_WORKBENCH_GUIDE.md`��`ENVIRONMENT_VARIABLES.md`��`SCRIPT_AND_JOB_GUIDE.md`��`REFERENCE_DATASET_GUIDE.md` �ȣ�ʹ�ĵ����ǵ���ǰ���·�ɡ�ͳһƽ̨����ά��ϵͳ��ͼ���¼����̨�����������Ͳο���Դ������·��
-- ��֤������Բֿ��� Markdown ��������ִ�м�飬���Ϊ `NO_BROKEN_LOCAL_LINKS`������δ���д�����ԣ���Ϊ�޸ķ�Χ�����ĵ�����������д���ݾ��Ѷ��յ�ǰ `backend/app/*`��`frontend/src/*`��`docker-compose.yml` �� `.env.example` ʵ��ʵ�ֺ˶ԡ�
-- ��ע����ǰ�ĵ���ϵ�Ѿ������γɵ�һ��ʽ��ڣ�����Ӧ�� `docs/` ΪΨһ���ĵ�Ŀ¼����Ŀ¼�е���ʷ Markdown �ĵ��Կ�����һ�ּ�������Ϊ��תҳ��鵵˵�����Գ��������ظ���ڡ�
-
-### 2026-04-06 - PostgreSQL ���Ի����̻��뱾��������ͨ
-- �޸ķ�Χ����˲��Լоߡ����������ԡ��ʲ��ɼ��Բ��ԡ��������ű�Ĭ�����ݿ����ӡ����� PostgreSQL �����ű������� compose��README����������ά�ĵ���������־��
-- ������ݣ��� `backend/tests` ͳһ�л�Ϊ PostgreSQL ���Կ⹤���������� `TEST_DATABASE_URL` Լ�������ò�����ȱʧ���ݿ�ʱ������ȷ����ԭ���������Լо��� SQLAlchemy URL ���뱻���뵼�µ���֤ʧ�����⣻�Ѷ�� `backend/scripts/*` ��Ĭ�� `--database-url` �� `backend-dev.db` ��Ϊ PostgreSQL�������ֿ��Ŀ¼ `manage_local_postgres.ps1` �� `docker-compose.local-postgres.yml`�������ڱ���һ���������鿴��ֹͣ�����ö��� PostgreSQL ���Ի�����ͬʱɾ�� `docs/01-����/DEMO_FLOW.md` �� `docs/01-����/DOCUMENTATION_UPDATE_PLAN.md` ���ݾ��ĵ���ʹ���뱾�ֽṹ����һ��������
-- ��֤�����ʹ�� `.\manage_local_postgres.ps1 up` �ڱ������� `mdams-local-postgres`�������� `localhost:5432` ���ã�`meam_db` �� `meam_db_test` �����������ӣ�ִ�� `python -m pytest backend\tests`�����Ϊ `55 passed`��
-- ��ע����ǰ�ֿ��Ѿ��߱��ȶ��ı��� PostgreSQL ���Ի��ߣ�����������ƽ����ݿ���ݽ���������һ������ Alembic Ǩ����������� `Base.metadata.create_all()` ������ʽ������ʽ��
-
-### 2026-04-08 - �о�����㽨�����о��ĵ�����
-- �޸ķ�Χ��`memory/`��`tasks/`���о�����Ŀ�ĵ���������־��
-- ������ݣ������ȶ��� `memory/` �� `tasks/` �㣬���ڳ�����Ŀ������ԭ����ơ������۵㡢ʵ���¼����ƾ��ߺ����﷭�룻ͬʱ��д�о�����Ŀ�еĵ�ǰ��Ŀ��ʵ����׼ӳ�䡢��׼��ʵ��ӳ�䡢����ģ�͡�������ܡ����Ĵ�����о� README��ʹ������� 2026-04-08 �ĵ�ǰ�ֿ�ʵ�ֱ���һ�£����� `����д��ժҪ��PAPER_READY_SUMMARY��.md` �� `�о��ĵ���������嵥��RESEARCH_ALIGNMENT_DIFF_CHECKLIST��.md`���ֱ��������д���ͺ����������롣
-- ��֤��������˹��˶���������д�ĵ����ݣ�ʹ���� `README.md`��`docs/01-����/PROJECT_STATUS.md`��`docs/01-����/WORK_LOG.md`��`backend/app/`��`frontend/src/` ��ǰ�ṹ����һ�£�����δ���д�����ԣ���Ϊ�޸ķ�Χ���� Markdown �ĵ����������㡣
-- ��ע����һ�����ص㲻�����������о����ϣ��������������о��������ʵ���ߡ���Ư�ƣ�Ϊ����ͳһ����ģ�͡�PREMIS �¼�ģ�ͺ� metadata profile ���������ȶ����ߡ�
-
-### 2026-04-08 - ͳһ����ģ�͡�PREMIS ��С�¼�ģ���� metadata/profile ����
-- �޸ķ�Χ���о�����Ŀ�ĵ���`memory/`��`tasks/`��������־��
-- ������ݣ����� `ͳһ����ģ�ͣ�UNIFIED_OBJECT_MODEL��.md`���� `Asset`��`ImageRecord`����ά����/�汾�����ʱ�ʾ��������ʾ��ͳһƽ̨��Ȩ�޷�Χ����Ϊһҳ�����ܣ���д `PREMIS�¼�ӳ�䣨PREMIS_EVENT_MAPPING��.md` Ϊ��С��ʵʩ�¼�ģ�ͣ���ȷ�¼���¼�ṹ��ͳһ�ʱ���P0/P1 �¼����ϺͰ�������ӳ�䣻��д `ͼ����Ԫ����ӳ�䣨IMAGE_METADATA_CROSSWALK��.md`��ʹ��ֱ�Ӷ�Ӧ��ǰ��άԪ���ݷֲ��ֶΣ����� `��άԪ������С����˵����THREE_D_METADATA_MINIMUM_PROFILE��.md`���ѵ�ǰ��ά metadata �ֲ㡢�ļ���ɫ�ʱ�����С profile �տڣ�ͬ�������о� README����Ŀ���������㣬�ѵ�ǰ�����л�Ϊ IIIF / BagIt / OAIS ����֧�Ų��ϡ�
-- ��֤������Ѷ��� `backend/app/models.py`��`backend/app/services/metadata_layers.py`��`backend/app/services/three_d_metadata.py`��`backend/app/services/three_d_storage.py`��`backend/app/services/three_d_detail.py` �˹��˶��ĵ��ֶ����������δ���д�����ԣ���Ϊ�޸ķ�Χ���� Markdown �ĵ����������㡣
-- ��ע����һ�����о��ߴӡ����и�����ϡ��ƽ��������пɸ��õĶ����¼��� metadata/profile ���ߡ���������׼��֤��ʵ�� formalization ����ֱ�ӽ����������ļ��ϡ�
-
-### 2026-04-08 - IIIF��BagIt �� OAIS ֧�Ų����տ�
-- �޸ķ�Χ���о�����Ŀ�ĵ���`memory/`��`tasks/`��������־��
-- ������ݣ���д `IIIF�嵥����˵����IIIF_MANIFEST_PROFILE��.md`��ʹ��ֱ�Ӷ�Ӧ `backend/app/routers/iiif.py`��`iiif_access.py`��Mirador ����·����Ȩ�޲��ԣ���д `���ڱ���SIP���˵����BAGIT_SIP_PROFILE��.md`���� `download-bag` ·�ɵ�ǰ��ʵ���ɵ� bag �ṹ��tag files��payload �ͱ߽�����Ϊ������˵�������� `OAIS��Χ���գ�OAIS_SCOPE_MAP��.md`����������Χͼ��ְ�������˵����ǰϵͳ�� OAIS �ĸ����ϵ��ͬ�������о� README����Ŀ���䡢�����Ͷ�������嵥���ѵ�ǰ�����л�Ϊ����׼����ʾ����·����
-- ��֤������Ѷ��� `backend/app/routers/iiif.py`��`backend/app/routers/downloads.py`��`backend/tests/test_asset_visibility.py`��`frontend/src/MiradorViewer.tsx`��`docs/08-�о�/�����߽�˵����EXPORT_BOUNDARIES��.md` �˹��˶��ĵ����ݣ�����δ���д�����ԣ���Ϊ�޸ķ�Χ���� Markdown �ĵ����������㡣
-- ��ע����һ�����ص��ǰѱ�׼��֤�ӡ��߲�ӳ�䡱�ƽ�������ʵ��ê���֧�Ų��ϡ���Ϊ�������İ���������ʵ����˵������ֱ�����û�����
-
-### 2026-04-08 - ��׼����ʾ����·�����İ���ժҪ
-- �޸ķ�Χ���о�����Ŀ�ĵ���`memory/`��`tasks/`��������־��
-- ������ݣ����� `��׼����ʾ����·��STANDARDIZED_DEMO_CHAINS��.md`������ά�����ʲ�����·��ͼ���¼Э����·����ά������ͳһƽ̨��·�̻�Ϊ 3 ����׼�����������ֱ������ý�ɫ��ǰ����������ʾ���衢Ԥ���������֤����о��������ӣ����� `��ʾ��·���İ���ժҪ��DEMO_CASE_SUMMARY��.md`������ 3 ����·ѹ��Ϊ��ֱ�ӽ������ġ���ǰʵ������ʾ��·���½ڵİ���ժҪ��ͬ�������о� README����Ŀ���䡢������ backlog���ѵ�ǰ�����л�Ϊ IIIF / BagIt ��ʵ���������ϡ�
-- ��֤������Ѷ��� `docs/03-��Ʒ������/WORKFLOW_GUIDE.md`��`docs/03-��Ʒ������/IMAGE_RECORD_WORKBENCH_GUIDE.md`��`frontend/src/App.tsx`��`backend/tests/test_applications.py`��`backend/tests/test_image_records.py`��`backend/tests/test_three_d_subsystem.py` �˹��˶���·��������֤�㣻����δ���д�����ԣ���Ϊ�޸ķ�Χ���� Markdown �ĵ����������㡣
-- ��ע����һ���ѵ�ǰ�о�������һ��ѹ���ɿ���ʾ�������ա���д�����İ������Ĳ��ϣ������ص�Ӧת����ʵ�����ͽṹע�ͣ���ǿ֤���ܶȡ�
-
-### 2026-04-08 - IIIF �� BagIt ������֤�ݲ���
-- �޸ķ�Χ���о�����Ŀ�ĵ���`memory/`��`tasks/`��������־��
-- ������ݣ����� `IIIF�嵥������IIIF_MANIFEST_SAMPLE��.md`�����ڵ�ǰ `iiif.py`��`iiif_access.py` ��Ȩ�޲������������� Manifest �������ֶ�ע�ͣ����� `BagIt�����ṹ��BAGIT_SAMPLE_STRUCTURE��.md`�����ڵ�ǰ `download-bag` ����߼����������� bag Ŀ¼������tag files �͹ؼ��ֶ�˵����ͬ�������о� README����Ŀ���䡢������ backlog���ѵ�ǰ�����л�Ϊ�����о��ĵ��ƽ������ȶ���ʵʩ�߽硱��
-- ��֤������Ѷ��� `backend/app/routers/iiif.py`��`backend/app/services/iiif_access.py`��`backend/tests/test_asset_visibility.py`��`backend/app/routers/downloads.py`��`frontend/src/components/AssetDetail.tsx`��`frontend/src/components/UnifiedResourceDetail.tsx` �˹��˶������ṹ���ֶ�˵��������δ���д�����ԣ���Ϊ�޸ķ�Χ���� Markdown �ĵ����������㡣
-- ��ע����һ�����ص��ǰѱ�׼֧�Ų��ϴӡ���ʵ��ê�㡱��һ���ƽ�������������֤�ݡ���Ϊ���ĺͶ�����ʾ�ṩ��ֱ�ӵĽṹ���ϡ�
-
-### 2026-04-08 - ʵʩ�߽��ƽ��嵥����һ���������л�
-- �޸ķ�Χ���о�����Ŀ�ĵ���`memory/`��`tasks/`��������־��
-- ������ݣ����� `ʵʩ�߽��ƽ��嵥��IMPLEMENTATION_BOUNDARY_CHECKLIST��.md`����ͳһ����ģ�͡�PREMIS ����¼�ģ�͡���ά����ά profile��IIIF �� BagIt �����ֱ�ѹ��Ϊ����ǰê�� / ��ǰ�ϲ� / �Ƽ����� / ���ȼ�����ʵʩ�߽��嵥������ȷ��һ�����Ƽ���������ά profile �������ͳһ���͡�IIIF / BagIt ����� contract tests����ͬ�������о� README����Ŀ���䡢��������嵥����ǰ����� backlog���ѵ�ǰ�����л�Ϊ����ѡ 1 �� 2 �����������ʵ�ֻ���Բ�ǿ����
-- ��֤������Ѷ��� `backend/app/models.py`��`backend/app/services/image_record_validation.py`��`backend/app/services/metadata_layers.py`��`backend/app/services/reference_import.py`��`backend/app/services/three_d_metadata.py`��`backend/tests/test_metadata_layers.py`��`backend/tests/test_reference_import.py`��`backend/tests/test_three_d_dictionary.py`��`backend/tests/test_iiif_access_phase1.py` �˹��˶�ʵʩ�߽��жϣ�����δ���д�����ԣ���Ϊ�޸ķ�Χ���� Markdown �ĵ����������㡣
-- ��ע����һ�����о��ߴӡ��ĵ��Ѿ��롱�����ƽ�������Щ��ֵ�ý������Լ���������Լ���Ĳ㼶����������ٴ�ͣ����ֻ��д˵����������ʵʩ֤�ݵ�״̬��
-
-### 2026-04-08 - ��ά profile ����ͳһ�� IIIF / BagIt ����� contract tests
-- �޸ķ�Χ��`backend/app/services/metadata_layers.py`��`backend/app/services/image_record_validation.py`��`backend/app/services/reference_import.py`����˲��ԡ�`memory/`��`tasks/`��������־��
-- ������ݣ�����ά profile ����С�����ֶ��տڵ� `metadata_layers.py` �еĹ���������Դ������ `image_record_validation.py` �� `reference_import.py` ��ͬ���ã�ͬʱΪ `movable_artifact` �ο����벹�� `object_number / �����` ��ȡ�߼��������ύУ���뵼���������жϵ�����ֲ棻���� `backend/tests/test_output_contracts.py`���ò����� PostgreSQL �ķ�ʽ���� IIIF Manifest ��������� metadata ��Ŀ��BagIt tag files / fixity / ʧ��ģʽ�� unit + contract ���ԣ�ͬ��������Ŀ���������㣬����һ��ǰ�����л�Ϊ������ϵͳ��С�¼��߽硱��
-- ��֤�����ִ�� `pytest backend/tests/test_metadata_layers.py backend/tests/test_reference_import.py -q`����� `13 passed`��ִ�� `pytest backend/tests/test_output_contracts.py -q`����� `3 passed`��ִ�� `pytest backend/tests/test_image_records.py -q`����� `1 passed, 19 skipped`������ԭ���Ǳ��� PostgreSQL `localhost:5432` δ������
-- ��ע������Ϊ�����вֿ���ԣ�ִ���� `python3 -m pip install -r backend/requirements-dev.txt`����װ�ɹ�������ǰȫ�� Python ����������������Ŀ������������������Ҫ���⻷�����ţ�Ӧ���ȸ�����Ŀ���⻷����
-
-### 2026-04-08 - ���� 5 ���ؼ�����������ʽ��
-- �޸ķ�Χ���о�����Ŀ�ĵ���������־��
-- ������ݣ����� `�ؼ��������⣨KEY_DISCUSSION_QUESTIONS��.md`���Ѻ��������ʽ���۵� 5 ������̶�Ϊ������ϵͳ��С�¼��߽硢ͳһ����ģ�͵���㡢��С profile Լ���㼶��IIIF / BagIt ����㳤�ڶ�λ���Լ���һ�׶���ɱ�׼����ÿ�����ⲹ�뵱ǰ��ʵ����ѡ�������Ƽ���������ʵ�ֺ����ĵ�Ӱ�죬�Լ���������˳��ͬ�������о� README���Ѹ��ĵ����뽨���Ķ�˳��͵�ǰ״̬˵����
-- ��֤������Ѷ��� `tasks/current_task.md`��`docs/08-�о�/ʵʩ�߽��ƽ��嵥��IMPLEMENTATION_BOUNDARY_CHECKLIST��.md`��`memory/prototype_design.md`��`memory/decisions.md` �͵�ǰ����߽��˹��˶����������뵱ǰ�ƽ�״̬��һ���ԣ�����δ���д�����ԣ���Ϊ�޸ķ�Χ���� Markdown �ĵ���
-- ��ע����һ�������ò�������ʵ�֣�����Ϊ�������߻ᡢ���ķ������ۺ���һ��ʵʩ���ȼ������ṩ�̶���ܣ�������Ŀ�ٴλص���ɢ����״̬��
-
-### 2026-04-10 - ����ϵͳ��С�¼��߽���ʽ��
-- �޸ķ�Χ���о�����Ŀ�ĵ���`memory/`��`tasks/`��������־��
-- ������ݣ����� `����ϵͳ��С�¼��߽磨CROSS_SYSTEM_EVENT_BOUNDARY��.md`���ѵ�ǰϵͳ�����¼���صı�����ʽ��Ϊ״̬�ֶΡ�detail �� lifecycle / timeline���ֲ���ʽ�¼���������������࣬������ά�ʲ���ͼ���¼����ά���󡢷���/������ʾ�����뽻��������򻮶���С�¼��߽磻ͬʱ��ȷ��ǰ������ֱ������ͳһ�¼�������Ӧ�Ȱ��¼��߽���ʵ�� detail / test �㣻ͬ�������о� README����Ŀ���䡢��ƾ���������㣬�ѵ�ǰ�����л�Ϊ���¼��߽��� detail / test ���������ط�������
-- ��֤������Ѷ��� `docs/08-�о�/PREMIS�¼�ӳ�䣨PREMIS_EVENT_MAPPING��.md`��`backend/app/services/asset_detail.py`��`backend/app/services/three_d_detail.py`��`backend/app/services/three_d_production.py`��`backend/tests/test_three_d_production.py` �� `memory/paper_argument.md` �˹��˶��¼��߽�˵���뵱ǰʵ��ê���һ���ԣ�����δ���д�����ԣ���Ϊ�޸ķ�Χ���� Markdown �ĵ����������㡣
-- ��ע����һ����Ŀ�겻�������¹��ܣ����ǰѡ��¼�������ʲô�����䵽��������������ƽ�Ϊһ�ݿ�ֱ��ָ����һ��ʵ�ֺ����ı������ʽ�߽�˵����
-
-### 2026-04-12 - AI �ٿ� Mirador ���ߵ��ñ�׼���� MCP ��·��
-- �޸ķ�Χ��AI Mirador ���·�ɡ�Mirador AI ǰ����塢ǰ�����Ͷ��塢Mirador AI ���ԡ�ʵʩ�����ĵ���������־��
-- ������ݣ����� `docs/04-ʵʩ����/AI_MIRADOR_CONTROL_ROADMAP.md`������ǰ��REST AI �ƻ��� + ǰ�� Mirador ִ���� + IIIF ���񡱵���·���Ϊ REST ���ݲ��׼��������ע�����Ȩ����ơ������ִ���Žӡ�MCP Server ���͸߼������������׶Σ�ͬʱ�� `/api/ai/mirador/interpret` ��Ӧ�в������� `tool_call` �ṹ��֧�ִӱ�׼���ߵ��÷��Ƽ��� `action`������ǰ�˵�ǰ�ƻ���Ƭ��ʾ���ߵ������ơ�
-- ��֤�����`python -m py_compile backend/app/routers/ai_mirador.py` ͨ����`python -m pytest backend/tests/test_ai_mirador.py -q` ���Ϊ `2 passed, 3 skipped`������ԭ���Ǳ��� PostgreSQL `localhost:5432` δ������`npm run build` ͨ����`npm run test -- mirador-ai.spec.ts` ͨ����`3 passed`��
-- ��ע����ǰ�Ѿ���� Phase 1 �ļ���ʽ��׼�����Ա���ԭ��ǰ�� `action` ִ����·��Docker Desktop ��ǰδ���ӣ���δ������ compose ���񣬴� Docker ���ú��ֱ���������/ǰ�˽������ϲ��ԡ�
-
-### 2026-05-01 - ͬ��ǰ��־������δ�ύ�Ķ��տ�
-- �޸ķ�Χ������ʶ������� Celery ����Ӱ���¼�ϴ�/�ɼ��ԡ�ͳһƽ̨Ŀ¼��������Լ��IIIF/Cantaloupe ���á���ά profile ���������Լ���ԡ��о��ĵ���RepoWiki ��Ŀ֪ʶ�⡢������־��
-- ������ݣ�Ϊҵ����Ӱ���¼����ɿ��ص�����ʶ����·����������/Զ��/�Զ� provider������ʱĿ¼˵����pending/success/failed Ԫ����״̬��ʶ������д `main_person` ��ǰ��չʾ��ͳһƽ̨����Ӹ��� `resource_id` ���ɵ� `source_system/source_id` ·���������ά����ά��Դ actions��source record schema ����ά����չʾ���� Cantaloupe ����Ϊ����ڲ�������ǰ�˴������ʷ��룬������ `CANTALOUPE_INTERNAL_URL`���Ѷ�ά profile �����ֶμ��е� `metadata_layers.py`����Ӱ���¼У��Ͳο����빲��ͬһ����ͬ������ IIIF/BagIt �����Լ���ԡ��о��߲��ϡ�ʵʩ�߽��嵥���ؼ��������⡢RepoWiki �����ĵ����������㡣
-- ��֤������Ѽ�� `WORK_LOG.md` δ�ύ diff ����Ҫ���� diff��ȷ������/�޸����������־���ǣ�ִ��������Ϣɨ�裬δ������ʵ token ��˽Կ��̬��������ʾ�����롢�� API key �ֶκ����в���Ĭ�����롣����ͬ��ǰδ��������ȫ�����ԣ����ø�����־�м�¼��ר����֤�����
-- ��ע���������ڰѽϳ�ʱ���ۻ��ı���δ�ύ����ͳһ���뵽��־��`backend/runtime/face_recognition/README.md` ֻ�ύ����ʱ�ṹ˵����ģ�͡�������ʶ����������� `.gitignore` �ų���
-
-### 2026-06-23 - �汾�������ĵ��������߽���
-- �޸ķ�Χ��`VERSION`����������`CHANGELOG.md`����������`docs/DOCUMENT_REGISTRY.md`����������`docs/DOCUMENT_GOVERNANCE.md`�����£���`frontend/package.json`������ version����`memory/MDAMS_������������_2026-06-23.md`�������������棩
-- ������ݣ����� git log �ṹ������ CHANGELOG��4 ���汾��0.0.1��0.3.0�������� `VERSION` �ļ����汾�Ŷ������������� `docs/DOCUMENT_REGISTRY.md` ���и��������ĵ�״̬�����������ڣ����� `DOCUMENT_GOVERNANCE.md` ����汾�������ĵ����¹��򣻽� `frontend/package.json` �汾�Ŵ� `0.0.0` ͬ��Ϊ `0.3.0`��
-- ��֤�����`VERSION`��`CHANGELOG.md`��`DOCUMENT_REGISTRY.md` �ļ�������ɣ�`DOCUMENT_GOVERNANCE.md` �� `frontend/package.json` ������ɣ�skill `mdams-doc-update` ��ע�ᵽ skill ϵͳ��
-- ��ע������ÿ�δ������������� `mdams-doc-update` skill ��ִ�����е� 7 ������������������ͬ������ `memory/`��
-
-### 2026-06-23 - Docker healthcheck + deploy.sh �Ľ� + Cantaloupe URL ����
-- �޸ķ�Χ��`docker-compose.yml`��3 ��������� + 2 �� depends_on ��������`deploy.sh`��health polling ��� sleep 10����`.env.example`��CANTALOUPE_INTERNAL_URL Ĭ��ֵ��Ϊ�����ڲ���ַ����`CHANGELOG.md`���ϲ� 0.3.1 ��Ŀ����`VERSION`��0.3.0 �� 0.3.1��
-- ������ݣ�Ϊ db��pg_isready����redis��redis-cli ping����cantaloupe��curl health������ Docker healthcheck��backend �� celery_worker �� depends_on �Ӽ�������Ϊ `condition: service_healthy`��deploy.sh �� 90s ��ѯ����ä�� 10 �룻.env.example �е� CANTALOUPE_INTERNAL_URL Ĭ��ֵ�� `localhost:8182` ��Ϊ `cantaloupe:8182`�����������������������
-- ��֤�����`docker compose config` �﷨���ͨ������Ĭ�ޱ�������`python -m py_compile backend/app/permissions.py backend/app/config.py` ͨ����
-- ��ע����Ӧ�������� Phase 1 �е� #2��healthcheck���� #3��Cantaloupe URL������ȫ���ţ�#1������һ�� agent ������ɡ�
-
-### 2026-05-16 - ��������밲ȫ�޸�
-- �޸ķ�Χ����� CORS ����֤���񡢶�ά/��ά�ļ��ϴ����ء�BagIt �����ǰ���������ļ�����˰�ȫ��Լ���ԡ���������ʾ����
-- ������ݣ��� CORS ��ͨ���Ϊ `CORS_ALLOWED_ORIGINS` ���ã���Ĭ����֤�����Ϊ `AUTH_DEFAULT_PASSWORD` ���ã����ѿ����ϣ����Ϊ������ε� PBKDF2 ��ʽ��ͬʱ���ݲ��Զ�Ǩ�ƾɹ̶��ι�ϣ��Ϊ��ά�ϴ��ļ������� basename ��һ������ֹ·����Խ��Ϊ��ά�ļ������� BagIt ����������֤��ɼ���ΧУ�飻Ϊ��ά���ļ����ء��ļ��������� ZIP ���������ԴĿ¼�߽���͹鵵�ļ�����ϴ���̶� BagIt tag files �� Windows �µĻ������������ `npm audit fix --legacy-peer-deps` �����ɰ�ȫ���µ�ǰ��������
-- ��֤�����`python -m py_compile backend\\app\\config.py backend\\app\\main.py backend\\app\\services\\auth.py backend\\app\\routers\\assets.py backend\\app\\routers\\downloads.py backend\\app\\routers\\three_d.py backend\\app\\services\\three_d_storage.py` ͨ����`python -m pytest backend\\tests\\test_auth_service.py backend\\tests\\test_output_contracts.py -q` ���Ϊ `7 passed, 2 skipped`������ԭ���Ǳ��� PostgreSQL `localhost:5432` δ������`npm run build` ͨ����`npm audit --audit-level=moderate` �� 17 ��©������ 4 ����Σ������
-- ��ע������ npm audit ��ֱ����� Mirador 3.x ������� DOMPurify �� Vite/esbuild dev server ���գ��Զ��޸���Ҫ `mirador@4` �� `vite@8` �ƻ��Դ�汾����������δʹ�� `--force`���������鵥������ Mirador 4 Ǩ�ƺ� Vite ��汾������
-
-### 2026-06-23 - ��ȫ�޸���X-MDAMS-User Header ��֤���Źر�
-- �޸ķ�Χ��`backend/app/config.py`��`backend/app/permissions.py`��`backend/tests/conftest.py`��`.env.example`��`docs/05-��������ά/ENVIRONMENT_VARIABLES.md`��`VERSION`��`CHANGELOG.md`��`frontend/package.json`
-- ������ݣ��������������棨#6 �����ȼ������������� `MDAMS_DEMO_MODE` ����������Ĭ�� `0`����`permissions.py` �� `get_current_user()` �� `X-MDAMS-User` ��֧���ڽ��� `MDAMS_DEMO_MODE=1` ʱ��Ч������ȫ���ű��رա����� demo ģʽʱ��־��� `WARNING` ����ȫ��ʾ������ conftest �Զ���Ϊ `1` ���ּ��ݡ�
-- ��֤�����`python -m py_compile backend/app/config.py backend/app/permissions.py` ͨ����`python -m pytest backend/tests/test_permissions.py backend/tests/test_asset_visibility.py backend/tests/test_image_records.py -q` �������֤���� PostgreSQL����
-- ��ע�������������� ��Phase 3 �� �����������������İ�ȫ�����Ӧ����������·�ߴ��� models.py ��֡�Docker healthchecks �ȡ�
-
-### 2026-06-23 - Alembic Ǩ��ϵͳ + ��Ŀ¼�����ĵ��鵵
-- �޸ķ�Χ��`backend/app/main.py`���滻 schema ���ݺ���Ϊ Alembic �Զ�Ǩ�ƣ���`backend/alembic/`��Alembic ��ʼ�� + ��ʼ migration ���� 15 �ű�����`backend/requirements.txt`��+alembic����`backend/requirements-dev.txt`��+alembic����`backend/Dockerfile`������ʱ�Զ� alembic upgrade head����`backend/start.sh`������Ǩ��ִ�нű�����`CHANGELOG.md`��׷�� 0.3.1 ��Ŀ����`VERSION`��0.3.1����`frontend/package.json`��ͬ�� 0.3.1����`docs/00-�鵵/`�������鵵Ŀ¼ + README����`docs/DOCUMENT_GOVERNANCE.md`�����»���˵������`docs/DOCUMENT_REGISTRY.md`�������鵵��¼ + ������Ŀ¼������`docs/README.md`������ 00-�鵵 Ŀ¼˵����
-- ������ݣ���ʼ�� Alembic Ǩ�ƿ�ܣ����ɰ���ȫ�� 15 �ű��� 12 ��Ψһ�����ĳ�ʼ migration��docker-compose ����ʱ�Զ�ִ�� `alembic upgrade head`������ `Base.metadata.create_all()` ��Ϊ Alembic ������ʱ�ĺ�·������ 7 ���ѹ�ʱ�ĸ������ĵ����� `docs/00-�鵵/` ���������н������á�
-- ��֤�����`alembic revision --autogenerate -m "initial schema"` �ɹ���SQLite ����ģʽ�������� migration �ļ���379 �У�15 ��ȫ������`python -m py_compile backend/app/main.py` ͨ����`git mv` ������ɣ���Ŀ¼���ڽ����� 4 �������ļ���README/CHANGELOG/VERSION/cubox/FORCodex����
-- ��ע����Ӧ�������� Phase 1 �е� #4��Alembic���� #5����Ŀ¼��������Phase 1�����̻�����ʩ��ȫ�� 5 ������ɡ�
-
-### 2026-06-23 - Ӱ���������뽻����������Ȩ˵��
-- �޸ķ�Χ��`backend/app/services/application_delivery.py`������ `_build_authorization_notice` �������滻 README.txt��`application.json` ׷�� `reviewed_at`����`backend/tests/test_applications.py`����չ����������֤�����������ԣ���Ȩ˵�����ݡ�application.json �ֶΡ������ļ���README.txt����`CHANGELOG.md`��׷�� 0.3.1 ��Ŀ��
-- ������ݣ���������������Ȩ˵��.md����������Ȩ���/������;/ʹ�÷�Χ/��Ч����/����Ҫ��/��Ȩ����/ʹ�����ƣ�application.json ���� `reviewed_at` ʱ�����README.txt ָ���û�������Ȩ˵������Ԫ��֤ͨ����8 �����ݼ��ȫ��ͨ������Ȩ��š������ˡ�������;����Ȩ����������Ҫ����Ч���ޡ�����ת����������ţ������ɲ�����չ���ǽ����� 4 ���ļ������Լ�顣
-- ��֤�����`python -m py_compile backend/app/services/application_delivery.py` ͨ����������֤�ű� 8/8 ���ݼ��ͨ����682 �ַ�֪ͨ�ı��������ɲ��Դ� PostgreSQL ���ú����У���ǰ�����ݿ⣩��
-- ��ע����Ӧ��������Ӱ��������������� P0 �� #3����������Ȩ˵���������� P0 �� #1����������ϵͳ�û��������� #2�����������־���ɼ����ƽ���
-
-### 2026-06-23 - �����뵼������׷�Ӳ����˼�¼
-- �޸ķ�Χ��`backend/app/models.py`��Application ������ reviewed_by_user_id + exported_by_user_id FK����`backend/app/schemas.py`��ApplicationListItem + ApplicationDetailResponse ���� reviewed_by / exported_by �ֶΣ���`backend/app/routers/applications.py`��approve/reject/export д������û����б���ѯԤ���� user ��ϵ����`backend/tests/test_applications.py`������ CurrentUser������ mock reviewer������ test_reject_application����`backend/alembic/versions/c7f0f77cf2a2_*.py`���ֶ�Ǩ�� 2 �� + 2 ���� + 2 FK����`CHANGELOG.md`
-- ������ݣ�����/�ܾ�������¼ `reviewed_by_user_id`������������¼ `exported_by_user_id`����Ӧ�з��ض�Ӧ `display_name`���б��������ѯԤ���� user ��ϵ���� N+1�����Ը����ʴ� 3 ������չ�� 4 ������ȫ������ mock CurrentUser��
-- ��֤�����`python -m py_compile` ͨ����6 ���ļ�ȫ������ɹ�����
-- ��ע����Ӧ�������� P0 �� #1��������׷�ݣ���P0 ʣ�� #2�����������־�����ƽ���
-
-### 2026-06-23 - ���������־ϵͳ
-- �޸ķ�Χ��`backend/app/models.py`������ ApplicationAuditLog ģ�ͱ� + Application.audit_logs ��ϵ����`backend/app/schemas.py`������ ApplicationAuditLogEntry schema����`backend/app/routers/applications.py`������ `_write_audit_log` �������� + �� create/approve/reject/export 4 ���˵�д����Ƽ�¼ + �����ѯԤ���� audit_logs����`backend/tests/test_applications.py`������ CREATOR mock user + 4 ������ȫ����֤ audit_logs ���������ݣ���`backend/alembic/versions/e4a8b3c1d2f0_add_application_audit_logs_table.py`���½��� 9 �� + 5 ���� + 2 FK����`CHANGELOG.md`
-- ������ݣ������־��������¼ÿ�����뵥״̬����������ˡ��������͡�״̬Ǩ�ơ�������ע��ʱ�������֧�� SQL ��ѯ�����·������ API ����ʱ���� audit_logs �б������Ը���ȫ���� 4 ��״̬����㡣
-- ��֤�����`python -m py_compile` ͨ����6 ���ļ�ȫ������ɹ�����
-- ��ע����Ӧ�������� P0 �� #2�����������־���������������桸Ӱ���������롹P0 �����������Ȩ˵�� + ������׷�� + �����־��ȫ����ɡ�
-
-### 2026-06-24 - ���복 API������B����� Session ���ﳵ��
-- �޸ķ�Χ��`backend/app/routers/cart.py`��������6 �� Cart API �˵� + �ڴ�洢 + �ύת���뵥����`backend/app/main.py`��ע�� cart_router����`CHANGELOG.md`��`memory/���복API�Խӷ���.html`���������ⲿϵͳ�Խ�˵����
-- ������ݣ����� Cart API��֧���ⲿϵͳ������ϵͳ�ȣ�ͨ�� HTTP ����Դ���� MDAMS ���복���������ǰ�����ʵ�֣�3 �������ֶΣ�source_system/source_id/title�������û� session ���룬�ύʱ�Զ�תΪ Application ���뵥���������������̣�ͬ����������Խ�˵�� HTML��
-- ��֤�����`python -m py_compile backend/app/routers/cart.py backend/app/main.py` ͨ����
-- ��ע����ǰΪ�ڴ�洢������ B��������Ͽ��޸�����Ϊ���ݿ�־û������� C����
-
-### 2026-06-25 - ͳһ����ƽ̨�Ż� P0+P1
-- �޸ķ�Χ��
-  - `backend/app/routers/platform.py`��GET /platform/resources ���� sort_by/sort_order �����������߼���
-  - `backend/app/models.py`������ SearchSubscription ģ�ͣ�
-  - `backend/app/schemas.py`������ 3 ���������� schema��
-  - `backend/app/routers/subscriptions.py`�������������� CRUD + CHECK API��
-  - `backend/app/routers/cart.py`���޸� Lock��RLock �������ӹ��ﳵ���޼�飩
-  - `backend/app/main.py`��ע�� subscriptions_router��
-  - `backend/alembic/versions/f5a6b7c8d9e0_add_search_subscriptions_table.py`���½�Ǩ�ƣ�
-  - `frontend/src/components/PlatformDirectory.tsx`�������ѡ Checkbox + ������������
-  - `frontend/src/components/UnifiedResourceDetail.tsx`��Collapse ����չʾ 4 ��Ԫ���ݣ�
-- ��֤����� py_compile ?��ǰ�� tsc --noEmit ?
-- ��ȫ��ƣ����Ĳ���������У�顢���ﳵ���� 413��RLock �޸�����
-
-### 2026-06-24 - ���복�������� + ����Ų�ѯ + ǰ�� ImportDialog
-- �޸ķ�Χ��`backend/app/routers/cart.py`������ POST /import �������� + GET /lookup ����Ų�ѯ + 4 ������ schema����`frontend/src/components/ImportDialog.tsx`������ 1011 �������������Ŷ�ͼ / �ı�ճ�� / �ļ��ϴ��� Tab����`frontend/src/types/assets.ts`������ 4 �����ͽӿڣ���`CHANGELOG.md`
-- ������ݣ���������˵�����У�� + ȥ�� + ͳ�Ʒ��أ�����Ų�ѯ�˵��Ȳ����ݿ��ٻ���ģ�����ݣ�֧����������/ʱ��/��Ӱ��ɸѡ��ǰ�� ImportDialog ֧�������չ����ͼ����ѡ��CSV/Excel/�ı�ճ��������Ԥ��ȷ�Ϻ������ӳ���
-- ��֤�����`python -m py_compile backend/app/routers/cart.py` ͨ����`npx tsc --noEmit` ��������Vite build ͨ����5152 modules����
-- ��ע����������ʵ�������ܽ�������������ͼƬID��ȷƥ�� / ֻ�������չ����ͼ / ���ޱ�Ǵ��󣩡�
-
-### 2026-07-04 - P0 ��ȫ������ingest / video / ����״̬��
-- �޸ķ�Χ��
-  - `backend/app/routers/ingest.py`��`POST /ingest/sip` ���� `current_user: CurrentUser = Depends(require_permission("image.upload"))`���ر�δ��֤�����ύ SIP ��©����
-  - `backend/app/routers/video.py`����Ƶ�б������顢���߲��š�ɾ�� 4 ���˵����� `require_permission("video.view")` �� `require_permission("video.delete")`��
-  - `backend/app/routers/applications.py`��`approve_application` / `reject_application` / `export_application` ����״̬��ǰ��У�飬��ֹ����׼���Ѿܾ����ѽ������뱻�ظ��������ظ�������
-  - `backend/app/permissions.py`������ `video.view`��`video.delete` Ȩ�������ռ䣬������ɫ������Ƶ�鿴/ɾ��Ȩ�ޡ�
-  - `frontend/src/auth/permissions.ts`��ͬ������ `video.view`��`video.delete` ���͡�
-  - `backend/tests/test_ingest.py`��SIP ������ʽ���� `current_user` mock��
-  - `backend/tests/test_p0_security.py`������ P0 ��ȫ�ع���ԣ����� ingest δ��Ȩ��video δ��Ȩ������״̬�������롣
-  - `frontend/src/auth/permissions.spec.ts`��`frontend/src/utils/appLabels.spec.ts`������ǰ��Ȩ�����ǩ�ع���ԡ�
-- ������ݣ��ر� 3 �� P0 ��ȫ©������ingest/sip ��Ȩ��У�顢video ·����Ȩ��У�顢����״̬����У�顣������·�ɼ�Ȩ�޺�״̬��ǰ������Ϊ�������ı���֤�����߼���
-- ��֤�����`./.venv/bin/python -m pytest tests/test_p0_security.py tests/test_applications.py tests/test_ingest.py -q --tb=short` ͨ����`npm test -- --run` ͨ����ǰ�� Vitest 11/11����
-- ��ȫ��ƣ�δ����������������Կ���ⲿ����������ʧ��·��������С������Ϣ����й¶�ڲ�����ϸ�ڡ�
+## 工作记录
+
+### 2026-03-27 - 统一资源目录 profile 过滤
+- 修改范围：平台统一资源目录、前端目录页、统一资源摘要、回归测试。
+- 变更内容：补充 `profile_key/profile_label`，后端增加 `profile_key` 查询参数并按 profile 过滤；前端增加 Profile 下拉筛选，并在列表中显示 profile 标签。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`11 passed`；`npm run lint` 通过；`npm run build` 通过；`npm run test` 通过，`15 passed`。
+- 备注：统一目录从“按关键字检索”推进到“可按对象 profile 检索”。
+
+### 2026-03-27 - 平台来源接入模板与注册表
+- 修改范围：平台来源抽象、来源注册表、二级来源适配器、平台路由。
+- 变更内容：新增 `PlatformSourceAdapter`、`PlatformSourceRegistry` 和模板来源适配器；二维影像来源改为注册式适配器，平台路由改为通过注册表汇总来源和资源。
+- 验证结果：`python -m py_compile` 通过；`python -m pytest backend\tests -q` 通过，`11 passed`。
+- 备注：后续新增来源时，只需实现适配器并注册即可接入统一目录和统一详情。
+
+### 2026-03-27 - 三维数据管理子系统
+- 修改范围：三维数据模型、三维上传与详情、三维管理页、统一平台接入、回归测试。
+- 变更内容：新增三维资源表和三维管理路由，支持上传、列表、详情、下载和删除；新增三维元数据分层构建和详情响应；前端增加 3D Data 管理入口。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`12 passed`；`python -m py_compile` 通过；`npm run lint` 通过；`npm run build` 通过；`npm run test` 通过，`15 passed`。
+- 备注：MDAMS 的第二个真实来源子系统开始成型。
+
+### 2026-03-27 - 三维资源包化
+- 修改范围：三维资源模型、三维上传接口、三维详情服务、三维管理页、回归测试。
+- 变更内容：将三维资源从单文件扩展为“资源记录 + 多文件记录”结构，支持模型、点云、倾斜摄影图像分别保存；详情页与下载接口同步展示文件构成并支持资源包下载。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`13 passed`；`python -m py_compile` 通过；`npm run lint` 通过；`npm run build` 通过；`npm run test` 通过，`15 passed`。
+- 备注：三维子系统开始支持真正的资源包管理语义。
+
+### 2026-03-27 - 三维文件预览
+- 修改范围：三维详情接口、三维文件访问接口、前端三维详情页、三维子系统回归测试。
+- 变更内容：为三维资源包新增文件级访问接口，详情响应补充每个文件的 `download_url/preview_url`；前端详情页新增图像预览区，倾斜摄影图像可直接缩略预览。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`13 passed`；`python -m py_compile` 通过；`npm run lint` 通过；`npm run build` 通过；`npm run test` 通过，`15 passed`。
+- 备注：三维资源已具备基础“可查看”能力。
+
+### 2026-03-27 - 三维版本与 Web 展示状态
+- 修改范围：三维数据模型、三维详情响应、三维上传接口、前端三维管理页、平台适配器、三维子系统回归测试。
+- 变更内容：为三维资源新增 `resource_group`、`version_label`、`version_order`、`is_current`、`is_web_preview`、`web_preview_status`、`web_preview_reason` 等字段；上传时可录入版本号和 Web 展示状态。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`13 passed`；`python -m py_compile` 通过；`npm run lint` 通过；`npm run build` 通过；`npm run test` 通过，`15 passed`。
+- 备注：三维资源开始按“原始版 / 版本号 / 可展示状态”管理。
+
+### 2026-03-27 - 三维数字对象聚合视图
+- 修改范围：三维管理页、工作日志。
+- 变更内容：三维资源列表改为按 `resource_group` 聚合展示，把一个数字对象视为一组版本资源；组内展开后可查看原始版、v1、v2 等版本记录。
+- 验证结果：`npm run lint` 通过。
+- 备注：管理视角从单条版本记录切换为“数字对象 + 版本列表”。
+
+### 2026-03-27 - 三维数字对象概览卡
+- 修改范围：三维管理页、工作日志。
+- 变更内容：在对象级聚合视图上方增加概览卡，展示数字对象数、版本总数、可展示对象数和文件总数，并补充最近对象快捷入口。
+- 验证结果：前端构建与测试通过。
+- 备注：让管理页先看总览，再进入版本明细。
+
+### 2026-03-27 - 三维 PRD 对照表
+- 修改范围：三维 PRD 对照文档、工作日志。
+- 变更内容：新增 `docs/THREE_D_PRD_ALIGNMENT.md`，将 PRD 的三层对象、元数据分层、生产链路、展示与保存分层、系统接口与分阶段建设要求，与当前三维子系统实现逐项对照。
+- 验证结果：文档整理完成，未涉及代码变更。
+- 备注：该文档用于后续三维子系统排期与缺口追踪。
+
+### 2026-03-27 - 同步 GitHub
+- 修改范围：工作日志、仓库同步流程。
+- 变更内容：整理三维 PRD 对照表并补充工作日志，然后同步当前分支到 GitHub；同时更新 `.gitignore`，避免 Playwright 报告、测试缓存和本地参考材料误入仓库。
+- 验证结果：仓库已同步到远端分支。
+- 备注：同步内容以源码、文档和三维子系统最新实现为主，不包含本地生成物。
+
+### 2026-03-27 - 三维 PRD 对齐与生产链路补强
+- 修改范围：三维数据模型、藏品对象关联、标准元数据字典、生产链路记录、保存层与展示层分离、回归测试。
+- 变更内容：为三维资源补充藏品对象关联和标准元数据字典；把采集、处理、发布、保存串入生产链路记录；把 Web 展示状态与长期保存状态分开管理。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`13 passed`；`python -m py_compile` 通过。
+- 备注：三维子系统开始从“版本化资源包”推进到“对象关联 + 生产链路 + 保存层”结构。
+
+### 2026-03-27 - 测试分层与契约测试
+- 修改范围：pytest 配置、后端测试分层、三维字典契约、三维生产链路、测试策略文档、README 入口。
+- 变更内容：新增 `pytest.ini`，按 `unit / contract / integration / smoke / system` 分层，并启用严格 marker；新增三维元数据字典契约测试和三维生产链路测试。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`15 passed`；`python -m py_compile` 通过。
+- 备注：后续功能开发要求至少补一条契约测试或集成测试。
+
+### 2026-03-27 - 三维查看器契约
+- 修改范围：三维详情响应、三维查看器路由、前端 3D 类型定义、三维子系统回归测试。
+- 变更内容：为三维详情新增 `viewer` 契约，统一描述是否可 Web 展示、预览文件、预览 URL 和渲染器类型；新增 `/api/three-d/resources/{id}/viewer` 路由。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`15 passed`；`python -m py_compile` 通过；`npm run build` 通过。
+- 备注：三维“可展示”从状态字段推进为明确契约。
+
+### 2026-03-27 - 三维 Web 查看器与测试模型
+- 修改范围：前端三维查看器组件、三维管理页、前端依赖、测试模型资源、工作日志。
+- 变更内容：新增基于 `@google/model-viewer` 的三维 Web 查看器组件，并接入三维管理页；补充本地 `glTF` 测试模型资源，便于浏览器端预览验证。
+- 验证结果：`npm run build` 通过；`npm run test` 通过，`15 passed`；`python -m pytest backend\tests -q` 通过，`15 passed`。
+- 备注：三维资源开始具备可交互的浏览器端查看能力。
+
+### 2026-03-27 - 三维测试模型样例包扩充
+- 修改范围：前端测试模型资源、三维管理页测试入口、工作日志。
+- 变更内容：将测试模型扩展为更接近真实业务的样例包，覆盖外部依赖的 glTF、单文件 GLB 和高细节 GLB 三种常见输入形态。
+- 验证结果：`npm run build` 通过；`npm run test` 通过，`15 passed`。
+- 备注：样例包可用于后续兼容性测试和性能测试。
+
+### 2026-03-27 - 三维子系统原型收口
+- 修改范围：三维对象管理、查看器契约、版本管理、生产链路、测试样例、统一平台接入。
+- 变更内容：将三维子系统收束为对象聚合、版本管理、Web 展示状态、查看器契约和样例包管理的原型形态；并明确后续要继续补展示治理、藏品对象强关联和长期保存体系。
+- 验证结果：关键后端和前端测试持续通过。
+- 备注：三维子系统已从“能管理”推进到“可持续验证的原型”。
+
+### 2026-03-27 - 资源申请功能
+- 修改范围：IIIF manifest、MiradorViewer、申请车页面、申请管理页面、申请单模型、申请导出、回归测试。
+- 变更内容：在 Mirador 中增加“加入申请单”入口，形成申请车草稿；补充申请单与申请项模型、申请提交、审批、导出交付包和申请管理页。
+- 验证结果：`python -m pytest backend\tests\test_applications.py -q` 通过；`python -m pytest backend\tests\test_routes_smoke.py -q` 通过；`npm run build` 通过；`npm run test` 通过，`15 passed`。
+- 备注：二维影像申请流程已形成“加入申请车 -> 提交申请 -> 审批 -> 导出交付包”的闭环。
+
+### 2026-03-28 - 导入 DigicolPhotoScan 生活用具样本
+- 修改范围：本地开发库、导入脚本、工作日志。
+- 变更内容：新增 `backend/scripts/import_2d_images.py` 导入脚本，并从 `DigicolPhotoScan/data/images/生活用具` 目录批量导入二维图片资源。
+- 验证结果：导入 12 条样本资源，数据库中 `assets` 记录数为 12。
+- 备注：为后续 Mirador 预览和申请功能提供样本数据。
+
+### 2026-03-28 - 本地启动 Cantaloupe 并恢复 Mirador 预览
+- 修改范围：Cantaloupe 本地配置、运行时目录、前后端服务、工作日志。
+- 变更内容：下载并解压 Cantaloupe 5.0.6，生成本地专用配置文件，修正 `base_uri` 和图片目录，移除 UTF-8 BOM，解决启动时报错；恢复前端、后端和 Cantaloupe 服务联调。
+- 验证结果：`/health` 正常；IIIF `info.json` 正常返回；Mirador 可正常从 Cantaloupe 获取图像。
+- 备注：解决了本地 IIIF 服务链路的启动问题。
+
+### 2026-03-28 - 生活用具资源全量导入
+- 修改范围：二维资源库、导入脚本、工作日志。
+- 变更内容：使用导入脚本将 `DigicolPhotoScan/data/images/生活用具` 目录中的全部 JPG 样本导入二维资源库。
+- 验证结果：新增导入 292 条，连同前一次的 12 条，共计 304 条二维资源；`uploads` 目录也同步为 304 个文件。
+- 备注：这批样本可直接用于浏览、预览和申请流程测试。
+
+### 2026-03-29 - 用户类型与权限矩阵
+- 修改范围：用户角色设计文档、README 入口、工作日志。
+- 变更内容：整理形成第一版 `docs/USER_ROLE_PERMISSION_MATRIX.md`，明确数字化流程人员与业务人员两大类用户，定义二维与三维分别授权、藏品责任范围控制、资源可见范围与业务状态分离，以及第一版 `RBAC + scope` 落地建议。
+- 验证结果：文档变更，未涉及代码运行与测试。
+- 备注：后续前端菜单裁剪、后端接口权限保护和藏品责任范围建模都以此为基线。
+
+### 2026-03-29 - 前端菜单可见矩阵与权限骨架
+- 修改范围：角色权限文档、前端主入口、前端权限定义、后端权限依赖、认证上下文路由、关键接口保护、权限单元测试、README 入口、工作日志。
+- 变更内容：新增 `docs/FRONTEND_MENU_VISIBILITY_MATRIX.md`，将角色矩阵细化为菜单可见矩阵；前端接入权限定义、示例用户切换、菜单裁剪、动作级权限控制和请求头透传；后端新增权限模块和认证上下文接口，并把二维资源、三维资源、申请审批等关键接口挂接到权限依赖上。
+- 验证结果：`python -m pytest backend\tests\test_permissions.py backend\tests\test_applications.py -q` 通过，`6 passed`；`npm run build` 通过。
+- 备注：当前仍是演示态权限框架，但已经能体现不同角色看到不同内容。
+
+### 2026-03-29 - 真实用户与登录上下文
+- 修改范围：用户/角色/会话数据模型、认证服务、认证路由、权限解析、前端登录入口、前端主应用认证上下文、认证与权限单元测试、工作日志。
+- 变更内容：新增 users / roles / user_roles / user_sessions 数据模型和认证服务；补充 `/api/auth/users`、`/api/auth/login`、`/api/auth/logout`、`/api/auth/context`；前端主入口从演示用户切换为真实登录上下文，登录后通过 Bearer token 获取角色与权限。
+- 验证结果：`python -m pytest backend\tests\test_auth_service.py backend\tests\test_permissions.py backend\tests\test_applications.py -q` 通过，`8 passed`；`python -m py_compile` 通过；`npm run build` 通过。
+- 备注：默认种子账号的统一测试密码为 `mdams123`。
+
+### 2026-03-29 - IIIF 认证与应用认证统一
+- 修改范围：认证方案文档、IIIF 访问控制、资源可见范围、前端资源详情、工作日志。
+- 变更内容：明确 MDAMS 应用认证作为主认证，IIIF 访问控制挂在同一身份体系之下；二维资源增加 `visibility_scope` 和 `collection_object_id`，`collection_owner` 的责任范围过滤接入资源列表、详情和 IIIF 入口。
+- 验证结果：后端目标测试通过；`npm run build` 通过。
+- 备注：后续 Mirador 取图也将统一走 MDAMS 的权限入口。
+
+### 2026-03-29 - 登录后的权限回归测试
+- 修改范围：前端 Playwright 测试、前端主应用、统一资源目录、统一资源详情。
+- 变更内容：补充登录态测试，使用 token 和模拟 auth context 验证不同角色的菜单可见性与资源可见性；覆盖 `system_admin`、`resource_user` 和 `collection_owner` 的访问差异。
+- 验证结果：`npm run test` 通过，`15 passed`。
+- 备注：登录后的测试用于直接验证权限关系是否正确。
+
+### 2026-03-29 - collection_owner 范围回归测试
+- 修改范围：前端 Playwright 测试、统一资源目录、统一资源详情、工作日志。
+- 变更内容：补充 `collection_owner` 的范围权限回归，验证其能看到自己责任范围内的资源，但看不到其他责任范围的 `owner_only` 资源。
+- 验证结果：`npm run build` 通过；`npm run test` 通过，`21 passed`。
+- 备注：这条测试将责任范围权限真正落到前端回归里。
+
+### 2026-03-29 - 工作日志编码统一
+- 修改范围：工作日志文件本身。
+- 变更内容：将旧的乱码日志重写为统一中文版本，并改用 UTF-8 编码保存，避免 Windows 下再出现不可读字符。
+- 验证结果：已完成重写，后续可直接用中文继续追加。
+- 备注：这是一次基础设施整理，确保后续所有工作记录都能正常阅读。
+### 2026-03-29 - README 重新整理
+- 修改范围：README 文档。
+- 变更内容：根据当前项目实际状态，重写 README 为统一中文版本，补充二维影像子系统、三维数据管理子系统、统一平台、权限登录、测试与工作日志说明，并整理快速开始、开发命令和主要文档入口。
+- 验证结果：文档已重写，内容已人工核对；无需运行代码测试。
+- 备注：README 现已与当前仓库实现保持一致，避免旧版乱码和过时描述。
+
+### 2026-03-29 - 首页与相关文档整理
+- 修改范围：README、项目状态、部署与配置、下一阶段计划、认证与 IIIF 整合文档。
+- 变更内容：根据当前仓库实现重写 README 首页说明，并将项目状态、部署说明、下一阶段计划、认证与 IIIF 整合方案同步到当前状态，补充二维影像、三维数据管理、统一平台、权限登录、申请流程和测试分层的最新内容。
+- 验证结果：文档已重写并人工核对，可正常阅读；无需运行代码测试。
+- 备注：这次整理重点是把仓库首页和关键入口文档统一到当前实现，避免读到过时或乱码内容。
+
+### 2026-03-29 - 文档收口与首页对齐
+- 修改范围：ARCHITECTURE、DEMO_FLOW、DATA_INGEST_ARCHITECTURE、WORKFLOW_GUIDE、DEPLOYMENT、INSTALL_DOCKER_WINDOWS、CONFIG_REFACTOR_PLAN、TROUBLESHOOTING。
+- 变更内容：将多份历史文档重写为统一中文版本，并按当前实现更新为二维影像子系统、三维数据管理子系统、统一平台、登录权限、申请流程、部署配置和工作流的当前状态；同时保留旧文档的跳转或归档说明，避免继续使用过时描述。
+- 验证结果：文档已重写并人工核对，可正常阅读；无需运行代码测试。
+- 备注：这次收口完成后，仓库首页与相关辅助文档已经基本对齐当前实现。
+
+### 2026-03-30 - 角色 - 页面 - 动作对照表
+- 修改范围：角色权限文档、前端/后端权限说明的补充文档。
+- 变更内容：新增 `docs/ROLE_PAGE_ACTION_MATRIX.md`，将当前系统中不同角色可见的页面与可执行动作整理为统一对照表，覆盖 system_admin、resource_user、collection_owner、application_reviewer 和三维管理角色。
+- 验证结果：文档新增完成，内容已人工核对。
+- 备注：这份表可直接作为后续权限测试和功能验收的基线。
+
+### 2026-03-30 - 缩略图待办项
+- 修改范围：下一阶段计划文档。
+- 变更内容：在 `docs/NEXT_PHASE_PLAN.md` 中新增二维影像缩略图规格与生成策略待办项，明确后续需要定义缩略图尺寸、格式、预生成策略、即时切片边界和失败降级规则。
+- 验证结果：文档已更新，内容已人工核对。
+- 备注：该项暂不进入主链路实现，后续作为独立优化任务推进。
+
+### 2026-04-02 - Mirador AI 控制面板与日志链路
+- 修改范围：Mirador 前端视图、AI 控制面板、后端 AI 解析路由、OpenAI 配置、前端类型定义、环境变量示例、工作日志。
+- 变更内容：为 Mirador 浏览页增加右侧 AI 控制面板，支持自然语言控制缩放、平移、重置、适配窗口，以及关键词检索和对比图打开确认；后端新增 AI 解析与资源搜索接口，并接入 OpenAI 作为意图解析层；同时补充前后端操作日志，记录用户输入、AI 计划、候选图选择、确认和执行结果，便于后续回溯。
+- 验证结果：`python -m py_compile backend/app/config.py backend/app/main.py backend/app/routers/ai_mirador.py` 通过；`npm run build` 通过；`npx eslint src/MiradorViewer.tsx src/MiradorAiPanel.tsx src/types/assets.ts src/types/mirador.d.ts --max-warnings 0` 通过。
+- 备注：本次变更重点是把 AI 控制做成可追踪、可确认、可回放的交互链路，后续可继续扩展为数据库审计日志。
+
+### 2026-04-02 - Mirador 比较模式与动作日志补全
+- 修改范围：Mirador AI 面板、后端 AI 意图解析、工作日志。
+- 变更内容：补全比较模式的真实状态切换逻辑，新增“进入/退出比较模式”和“关闭对比”控制，按照 Mirador 的 `mosaic` / `elastic` 工作区状态切换并保持窗口日志可见；后端对“比较模式”“单图模式”“退出对比”等指令做了更明确的意图识别，避免被误判为普通找图。
+- 验证结果：`python -m py_compile backend/app/config.py backend/app/main.py backend/app/routers/ai_mirador.py` 通过；`npm run build` 通过；`npx eslint src/MiradorViewer.tsx src/MiradorAiPanel.tsx src/types/assets.ts src/types/mirador.d.ts --max-warnings 0` 通过。
+- 备注：现在比较模式不仅能开关，而且能在面板中看到当前模式、窗口数和完整动作日志。
+
+### 2026-04-02 - Moonshot 模型接入
+- 修改范围：后端 AI 配置、环境变量示例、工作日志。
+- 变更内容：将 AI 接入默认切换为 Moonshot 的 OpenAI 兼容服务地址，新增 `MOONSHOT_API_KEY`、`MOONSHOT_BASE_URL` 和 `MOONSHOT_MODEL` 配置，并保留 `OPENAI_*` 作为兼容覆盖；默认服务地址指向 `https://api.moonshot.cn/v1`，默认模型改为 `kimi-k2.5`。
+- 验证结果：配置文件和环境变量示例已更新，尚未做真实 API 调用验证，因为当前环境未设置有效 key。
+- 备注：Moonshot 文档的 Chat API 使用 OpenAI 兼容方式接入，后端现有调用逻辑可以直接复用。
+
+### 2026-04-02 - Moonshot 联通性验证
+- 修改范围：本地 `.env`、Moonshot API 连通性、工作日志。
+- 变更内容：在本地 `C:\Users\bighe\OneDrive\AI\Codex\.env` 填入 Moonshot 配置后，直接向 `POST /v1/chat/completions` 发送最小 JSON 请求，验证模型服务、Key 和返回格式是否可用。
+- 验证结果：请求返回 `200`，模型 `kimi-k2.5` 可正常返回 JSON，响应内容为 `{"ping":"pong"}`。
+- 备注：这次验证说明 Moonshot 链路已经可用；后续若手动启动后端，需要确保进程实际加载了同样的环境变量。
+
+### 2026-04-02 - 后端自动读取 .env
+- 修改范围：后端配置加载、工作日志。
+- 变更内容：在 `backend/app/config.py` 增加轻量 `.env` 自动加载逻辑，启动后端时会优先读取项目父目录中的本地 `.env` 文件，再解析数据库、Moonshot 和其他运行配置。
+- 验证结果：配置文件已更新，随后可通过启动后端或运行配置导入来验证环境变量是否自动生效。
+- 备注：这样本地改 `.env` 后无需手动导出环境变量，启动体验更顺手。
+
+### 2026-04-02 - .env 加载顺序修正
+- 修改范围：后端配置加载、工作日志。
+- 变更内容：修正 `.env` 搜索顺序，改为先读取更上层目录中的配置，再读取更接近仓库的配置，避免仓库根目录里空的 `.env` 抢先占位导致父目录配置未生效。
+- 验证结果：重新导入 `backend.app.config` 后，能够正确读到 `C:\Users\bighe\OneDrive\AI\Codex\.env` 里的 `MOONSHOT_API_KEY`，`has_key` 验证为 `True`。
+- 备注：这一步把本地配置加载路径彻底理顺了，后端启动时就能直接吃到你填好的环境变量。
+
+### 2026-04-02 - Mirador AI 后端回归测试补充
+- 修改范围：Mirador AI 后端测试、工作日志。
+- 变更内容：新增 `backend/tests/test_ai_mirador.py`，覆盖 OpenAI / Moonshot 计划注入后的对比搜索、无候选图时回退到普通搜索、以及 `search_assets` 的可见性过滤；测试直接调用 AI 路由函数，验证返回计划、候选图、权限边界和 manifest 生成路径。
+- 验证结果：`python -m pytest backend\tests\test_ai_mirador.py -q` 通过，`3 passed`；`python -m pytest backend\tests -q` 通过，`37 passed`。
+- 备注：后续继续扩展 Mirador AI 时，可以先补这里的回归，再改功能逻辑。
+
+### 2026-04-02 - Mirador AI 前端回归测试补充
+- 修改范围：Mirador AI 前端测试、Mirador AI 面板锚点、资产列表预览按钮、dashboard 回归测试、工作日志。
+- 变更内容：新增 `frontend/tests/mirador-ai.spec.ts`，覆盖打开资产预览、唤出 AI 面板、提交自然语言指令、展示候选图与确认态、切换候选目标；同时为 AI 面板补充稳定的 `data-testid`，为资产列表预览按钮补充测试锚点，并修正 dashboard 回归里对重复单元格文本的严格定位问题。
+- 验证结果：`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；`npm run test` 通过，`24 passed`；`npm run build` 通过。
+- 备注：这次把前端 AI 交互和既有 dashboard 回归一起收紧了，后面继续加 AI 功能时可以直接沿用这套测试入口。
+
+### 2026-04-03 - 代码审计与数据恢复
+- 修改范围：后端配置、Mirador 前端、三维管理页、参考资源导入、工作日志、测试回归、忽略规则。
+- 变更内容：审计并修正 `.env` 自动加载顺序、清理前端 lint 警告、恢复 Mirador 和 AI 面板中文文案；同时把 `reference/资源包` 重新导入当前 SQLite 库，恢复 12 条二维影像资源索引，并将测试产物与临时数据库加入 `.gitignore`。
+- 验证结果：`python -m pytest backend\tests -q` 通过，`38 passed`；`npm run lint` 通过；`npm run build` 通过；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；参考资源导入脚本 dry-run 与正式导入均可执行。
+- 备注：当前前端“no data”问题的根因是数据库资产记录为空，不是图片文件缺失；已恢复索引，后续如需继续扩容可重复运行参考导入脚本。
+
+### 2026-04-04 - Mirador IIIF 直连 Cantaloupe
+- 修改范围：IIIF 路由、配置默认值、单测、环境变量示例、工作日志。
+- 变更内容：把 manifest 中的 image service 从后端代理路径改为直接指向 Cantaloupe 公共地址，保持旧的 proxy 路由作为兼容入口；同时把本地默认 `CANTALOUPE_PUBLIC_URL` 调整为 `http://localhost:8182/iiif/2`，并同步更新测试断言与 `.env.example`。
+- 验证结果：当前只修复了 `backend/tests/test_asset_visibility.py` 的旧路径断言，后续需要重新跑 `python -m pytest backend\\tests -q` 以确认全量后端测试通过。
+- 备注：这是对照 `mirador-compare` 的第一步优化，目标是减少浏览器到首图之间的请求绕行，让 Mirador 更快拿到 IIIF service。
+
+### 2026-04-04 - Mirador 直连 Cantaloupe 预检修复
+- 修改范围：Mirador 前端请求拦截、工作日志。
+- 变更内容：给 Mirador 的统一请求预处理器加了白名单，只对后端 `api/auth` 请求附加 `Authorization` 头，不再把这个头带到 Cantaloupe 的 IIIF 请求上，避免跨域预检卡住图片加载。
+- 验证结果：`npm run build` 通过；前端构建后可热更新到当前运行中的 Vite 开发服务。
+- 备注：这一步对应你截图里“预览一直白屏”的现象，根因是直接 Cantaloupe 请求被额外鉴权头触发了预检，但浏览器侧不需要也不应该给图片服务带 token。
+
+### 2026-04-04 - 列表缩略图缓存失效修复
+- 修改范围：缩略图缓存生成逻辑、回归测试、工作日志。
+- 变更内容：把列表页缩略图的缓存键从固定的 `asset-{id}.preview.jpg` 改成带源文件指纹的路径，改为按 `asset id + 源文件 mtime/size` 匹配；同一个资产一旦源文件变化，就会自动生成新的缩略图文件，避免继续复用旧错图。
+- 验证结果：新增 `backend/tests/test_preview_images.py`，`python -m pytest backend\\tests\\test_preview_images.py -q` 通过，`1 passed`；`python -m pytest backend\\tests -q` 通过，`39 passed`。
+- 备注：这能修正你看到的“列表缩略图和大图不一致”的问题，本质是旧预览缓存没有失效，而不是 Mirador 主图加载慢。
+
+### 2026-04-04 - 缩略图浏览器缓存切断
+- 修改范围：资产列表前端、缩略图接口缓存头、工作日志。
+- 变更内容：列表页缩略图 URL 追加 `created_at + file_size` 版本标识，并给 `/assets/{id}/preview` 响应加上 `Cache-Control: no-store`，确保浏览器不会继续复用旧的缩略图响应。
+- 验证结果：前端代码已更新，后端需要重启后才能生效；下一轮刷新页面时会强制取新图。
+- 备注：这一步是专门针对“我改了缩略图逻辑但页面还是看见旧图”的情况，避免浏览器或中间缓存把旧响应留住。
+
+### 2026-04-04 - Mirador AI 执行层加固
+- 修改范围：Mirador AI 面板、Mirador Viewer、前端回归测试、工作日志。
+- 变更内容：重写 `frontend/src/MiradorAiPanel.tsx` 的执行层，给 `zoom/pan/reset/fit` 增加真实视口变更校验，优先直连 OSD viewer 执行动作，并在 `viewerApiRef.current.actions` 不可用时回退到 Mirador 官方 action creator；同时让 AI 面板显式感知 `MiradorViewer` 的 ready 状态，在 viewer 未完成初始化前禁用快捷控制和确认按钮，避免“按钮可点但实际未就绪”的假执行。
+- 验证结果：`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`；`npm run build` 通过。
+- 备注：这一步先把现有动作的执行可靠性补扎实了；Playwright 仍主要覆盖计划流和候选图确认，后续如果要把“真实缩放/平移成功”也做成稳定 E2E，需要再补更贴近 Mirador 运行态的 viewport 测试桩。
+
+### 2026-04-06 - 影像记录拆分与 IIIF 访问层 Phase 1 基线
+- 修改范围：影像记录模型与权限、影像记录路由与验证服务、IIIF 访问副本服务、资产/入库/详情/IIIF 路由、前端录入工作台与权限菜单、类型定义、回归测试、阶段方案文档、工作日志。
+- 变更内容：围绕“录入人员先建记录、摄影师后传图匹配”的新流程，新增 `ImageRecord` 相关后端与前端骨架，包括记录列表/表单/详情/工作台、记录提交与退回、待上传记录池、临时上传分析、显式确认绑定/替换；同时补充 `image_record_validation` 和 `iiif_access` 服务，把校验拆成提交校验与绑定后校验两阶段，并把 PSB / 大 TIFF 的 IIIF 访问策略收敛到“原件保留、访问副本独立、Mirador 只读访问副本”的方向。另新增 4 份阶段基线文档，分别固定角色拆分、匹配机制、验证规则和 IIIF 访问格式策略。
+- 验证结果：`python -m pytest backend\tests\test_image_records.py backend\tests\test_iiif_access_phase1.py backend\tests\test_ingest.py backend\tests\test_derivative_policy.py backend\tests\test_metadata_layers.py -q` 通过，`25 passed`；`npm run build` 通过。
+- 备注：这次提交的重点是把 Phase 1 的业务边界和实现骨架一起推到仓库里，后续新线程可以直接以 4 份 `IMAGE_*_PHASE1_PLAN.md` 文档为固定实施基线继续推进。
+
+### 2026-04-06 - 影像记录上传链路修复与摄影师替换入口恢复
+- 修改范围：影像记录绑定/替换路由、IIIF 访问副本衍生触发、PSB/PSD 探测兜底、摄影师工作台与详情页、后端与前端回归测试、工作日志。
+- 变更内容：修正 `ImageRecord` 的确认绑定与替换流程，使其复用统一的 IIIF 访问策略判断，必要时将新资产置为 `processing` 并触发 `generate_iiif_access_derivative`；补充临时上传分析的 ExifTool / `pyvips` 兜底，避免 PSD/PSB 因 Pillow 无法读取而被误判为不可绑定；同时将摄影师工作台从仅看 `ready_for_upload` 扩展为可继续查看自己 `uploaded_pending_validation` 的已指派记录，并允许在详情页重新进入替换上传流程。
+- 验证结果：`pytest backend\tests\test_image_records.py -q` 通过，`10 passed`；`pytest backend\tests\test_iiif_access_phase1.py -q` 通过，`3 passed`；`npm run build` 通过；`npx playwright test tests/dashboard.spec.ts` 通过，`27 passed`。
+- 备注：Playwright 运行期间仍有现存的 Vite 代理 `ECONNREFUSED` 日志噪音，但不影响用例通过；本次修复主要收敛了影像记录上传链路与摄影师替换闭环。
+
+### 2026-04-06 - 文档体系重构与总入口更新
+- 修改范围：根 `README.md`、`docs/` 目录结构、项目状态、测试策略、权限矩阵、菜单矩阵、工作流、部署与运维、认证与 IIIF、图像记录工作台、API 路由、平台适配器、三维子系统、环境变量、脚本说明、参考数据说明、文档索引、工作日志。
+- 变更内容：将原本平铺的 `docs/` 重组为中文分类目录，统一整理为总览、架构设计、产品与流程、实施方案、部署与运维、参考资料、图示、研究八个分区；重写根 `README.md` 使其与当前项目实现保持一致，并修复原有坏链；同时补齐此前缺失的专题文档，包括 `API_ROUTE_MAP.md`、`PLATFORM_SOURCE_ADAPTERS.md`、`THREE_D_SUBSYSTEM_ARCHITECTURE.md`、`IMAGE_RECORD_WORKBENCH_GUIDE.md`、`ENVIRONMENT_VARIABLES.md`、`SCRIPT_AND_JOB_GUIDE.md`、`REFERENCE_DATASET_GUIDE.md` 等，使文档覆盖到当前后端路由、统一平台、三维子系统、图像记录工作台、环境变量和参考资源导入链路。
+- 验证结果：对仓库内 Markdown 本地链接执行检查，结果为 `NO_BROKEN_LOCAL_LINKS`；本轮未运行代码测试，因为修改范围仅限文档，但所有重写内容均已对照当前 `backend/app/*`、`frontend/src/*`、`docker-compose.yml` 和 `.env.example` 实际实现核对。
+- 备注：当前文档体系已经基本形成单一正式入口，后续应以 `docs/` 为唯一主文档目录；根目录中的历史 Markdown 文档仍可在下一轮继续收敛为跳转页或归档说明，以彻底消除重复入口。
+
+### 2026-04-06 - PostgreSQL 测试环境固化与本机联调打通
+- 修改范围：后端测试夹具、健康检查测试、资产可见性测试、批处理脚本默认数据库连接、本地 PostgreSQL 管理脚本、本地 compose、README、部署与运维文档、工作日志。
+- 变更内容：将 `backend/tests` 统一切换为 PostgreSQL 测试库工作流，新增 `TEST_DATABASE_URL` 约定，并让测试在缺失数据库时给出明确跳过原因；修正测试夹具中 SQLAlchemy URL 密码被掩码导致的认证失败问题；把多个 `backend/scripts/*` 的默认 `--database-url` 从 `backend-dev.db` 改为 PostgreSQL；新增仓库根目录 `manage_local_postgres.ps1` 与 `docker-compose.local-postgres.yml`，用于在本机一键启动、查看、停止、重置独立 PostgreSQL 测试环境；同时删除 `docs/01-总览/DEMO_FLOW.md` 和 `docs/01-总览/DOCUMENTATION_UPDATE_PLAN.md` 两份旧文档，使其与本轮结构调整一并收敛。
+- 验证结果：使用 `.\manage_local_postgres.ps1 up` 在本机拉起 `mdams-local-postgres`，主机侧 `localhost:5432` 可用，`meam_db` 与 `meam_db_test` 均可正常连接；执行 `python -m pytest backend\tests`，结果为 `55 passed`。
+- 备注：当前仓库已经具备稳定的本机 PostgreSQL 测试基线；后续如继续推进数据库侧演进，建议下一步补齐 Alembic 迁移链，逐步替代 `Base.metadata.create_all()` 的启动式建表方式。
+
+### 2026-04-08 - 研究记忆层建立与研究文档对齐
+- 修改范围：`memory/`、`tasks/`、研究子项目文档、工作日志。
+- 变更内容：新增稳定的 `memory/` 与 `tasks/` 层，用于沉淀项目简述、原型设计、论文论点、实验记录、设计决策和术语翻译；同时重写研究子项目中的当前项目事实、标准映射、标准到实现映射、概念模型、评估框架、论文大纲与研究 README，使其与截至 2026-04-08 的当前仓库实现保持一致；新增 `论文写作摘要（PAPER_READY_SUMMARY）.md` 和 `研究文档对齐差异清单（RESEARCH_ALIGNMENT_DIFF_CHECKLIST）.md`，分别服务论文写作和后续持续对齐。
+- 验证结果：已人工核对新增与重写文档内容，使其与 `README.md`、`docs/01-总览/PROJECT_STATUS.md`、`docs/01-总览/WORK_LOG.md`、`backend/app/`、`frontend/src/` 当前结构保持一致；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步的重点不是新增更多研究材料，而是先消除“研究线落后于实现线”的漂移，为后续统一对象模型、PREMIS 事件模型和 metadata profile 工作建立稳定基线。
+
+### 2026-04-08 - 统一对象模型、PREMIS 最小事件模型与 metadata/profile 基线
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `统一对象模型（UNIFIED_OBJECT_MODEL）.md`，把 `Asset`、`ImageRecord`、三维对象/版本、访问表示、导出表示、统一平台与权限范围收敛为一页对象框架；重写 `PREMIS事件映射（PREMIS_EVENT_MAPPING）.md` 为最小可实施事件模型，明确事件记录结构、统一词表、P0/P1 事件集合和按工作流映射；重写 `图像技术元数据映射（IMAGE_METADATA_CROSSWALK）.md`，使其直接对应当前二维元数据分层字段；新增 `三维元数据最小配置说明（THREE_D_METADATA_MINIMUM_PROFILE）.md`，把当前三维 metadata 分层、文件角色词表与最小 profile 收口；同步更新研究 README、项目记忆和任务层，把当前任务切换为 IIIF / BagIt / OAIS 三项支撑材料。
+- 验证结果：已对照 `backend/app/models.py`、`backend/app/services/metadata_layers.py`、`backend/app/services/three_d_metadata.py`、`backend/app/services/three_d_storage.py`、`backend/app/services/three_d_detail.py` 人工核对文档字段与术语；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步把研究线从“已有概念材料”推进到“已有可复用的对象、事件和 metadata/profile 基线”，后续标准论证与实现 formalization 可以直接建立在这组文件上。
+
+### 2026-04-08 - IIIF、BagIt 与 OAIS 支撑材料收口
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：重写 `IIIF清单配置说明（IIIF_MANIFEST_PROFILE）.md`，使其直接对应 `backend/app/routers/iiif.py`、`iiif_access.py`、Mirador 消费路径和权限测试；重写 `长期保存SIP打包说明（BAGIT_SIP_PROFILE）.md`，把 `download-bag` 路由当前真实生成的 bag 结构、tag files、payload 和边界收敛为可引用说明；新增 `OAIS范围对照（OAIS_SCOPE_MAP）.md`，以轻量范围图和职能域对照说明当前系统与 OAIS 的概念关系；同步更新研究 README、项目记忆、任务层和对齐差异清单，把当前任务切换为“标准化演示主链路”。
+- 验证结果：已对照 `backend/app/routers/iiif.py`、`backend/app/routers/downloads.py`、`backend/tests/test_asset_visibility.py`、`frontend/src/MiradorViewer.tsx`、`docs/08-研究/输出层边界说明（EXPORT_BOUNDARIES）.md` 人工核对文档内容；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步的重点是把标准论证从“高层映射”推进到“带实现锚点的支撑材料”，为后续论文案例链和真实样本说明建立直接引用基础。
+
+### 2026-04-08 - 标准化演示主链路与论文案例摘要
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `标准化演示主链路（STANDARDIZED_DEMO_CHAINS）.md`，将二维数字资产主链路、图像记录协作链路和三维对象与统一平台链路固化为 3 条标准化案例链，分别补入适用角色、前提条件、演示步骤、预期输出、验证点和研究材料链接；新增 `演示链路论文案例摘要（DEMO_CASE_SUMMARY）.md`，把这 3 条链路压缩为可直接进入论文“当前实现与演示链路”章节的案例摘要；同步更新研究 README、项目记忆、任务层和 backlog，把当前任务切换为 IIIF / BagIt 真实样本级材料。
+- 验证结果：已对照 `docs/03-产品与流程/WORKFLOW_GUIDE.md`、`docs/03-产品与流程/IMAGE_RECORD_WORKBENCH_GUIDE.md`、`frontend/src/App.tsx`、`backend/tests/test_applications.py`、`backend/tests/test_image_records.py`、`backend/tests/test_three_d_subsystem.py` 人工核对链路步骤与验证点；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步把当前研究底座进一步压缩成可演示、可验收、可写入论文案例链的材料，后续重点应转向真实样本和结构注释，增强证据密度。
+
+### 2026-04-08 - IIIF 与 BagIt 样本级证据补充
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `IIIF清单样本（IIIF_MANIFEST_SAMPLE）.md`，基于当前 `iiif.py`、`iiif_access.py` 和权限测试整理代表性 Manifest 样本与字段注释；新增 `BagIt样本结构（BAGIT_SAMPLE_STRUCTURE）.md`，基于当前 `download-bag` 打包逻辑整理代表性 bag 目录样本、tag files 和关键字段说明；同步更新研究 README、项目记忆、任务层和 backlog，把当前任务切换为“将研究文档推进到更稳定的实施边界”。
+- 验证结果：已对照 `backend/app/routers/iiif.py`、`backend/app/services/iiif_access.py`、`backend/tests/test_asset_visibility.py`、`backend/app/routers/downloads.py`、`frontend/src/components/AssetDetail.tsx`、`frontend/src/components/UnifiedResourceDetail.tsx` 人工核对样本结构和字段说明；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步的重点是把标准支撑材料从“有实现锚点”进一步推进到“有样本级证据”，为论文和对外演示提供更直接的结构材料。
+
+### 2026-04-08 - 实施边界推进清单与下一轮优先项切换
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `实施边界推进清单（IMPLEMENTATION_BOUNDARY_CHECKLIST）.md`，把统一对象模型、PREMIS 风格事件模型、二维与三维 profile、IIIF 与 BagIt 输出层分别压缩为“当前锚点 / 当前断层 / 推荐动作 / 优先级”的实施边界清单，并明确下一轮最推荐先做“二维 profile 必填规则统一”和“IIIF / BagIt 输出层 contract tests”；同步更新研究 README、项目记忆、对齐差异清单、当前任务和 backlog，把当前任务切换为“挑选 1 到 2 个优先项进入实现或测试补强”。
+- 验证结果：已对照 `backend/app/models.py`、`backend/app/services/image_record_validation.py`、`backend/app/services/metadata_layers.py`、`backend/app/services/reference_import.py`、`backend/app/services/three_d_metadata.py`、`backend/tests/test_metadata_layers.py`、`backend/tests/test_reference_import.py`、`backend/tests/test_three_d_dictionary.py`、`backend/tests/test_iiif_access_phase1.py` 人工核对实施边界判断；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步把研究线从“文档已经齐”继续推进到“哪些项值得进入代码约束或测试契约”的层级，避免后续再次停留在只增写说明而不增加实施证据的状态。
+
+### 2026-04-08 - 二维 profile 规则统一与 IIIF / BagIt 输出层 contract tests
+- 修改范围：`backend/app/services/metadata_layers.py`、`backend/app/services/image_record_validation.py`、`backend/app/services/reference_import.py`、后端测试、`memory/`、`tasks/`、工作日志。
+- 变更内容：将二维 profile 的最小必填字段收口到 `metadata_layers.py` 中的共享规则来源，并让 `image_record_validation.py` 与 `reference_import.py` 共同引用；同时为 `movable_artifact` 参考导入补充 `object_number / 文物号` 提取逻辑，消除提交校验与导入完整性判断的语义分叉；新增 `backend/tests/test_output_contracts.py`，用不依赖 PostgreSQL 的方式补齐 IIIF Manifest 输出编码与 metadata 条目、BagIt tag files / fixity / 失败模式的 unit + contract 测试；同步更新项目记忆和任务层，把下一当前任务切换为“跨子系统最小事件边界”。
+- 验证结果：执行 `pytest backend/tests/test_metadata_layers.py backend/tests/test_reference_import.py -q`，结果 `13 passed`；执行 `pytest backend/tests/test_output_contracts.py -q`，结果 `3 passed`；执行 `pytest backend/tests/test_image_records.py -q`，结果 `1 passed, 19 skipped`，跳过原因是本地 PostgreSQL `localhost:5432` 未启动。
+- 备注：本轮为了运行仓库测试，执行了 `python3 -m pip install -r backend/requirements-dev.txt`；安装成功，但当前全局 Python 环境中已有其他项目依赖被降级，后续若要避免环境串扰，应优先改用项目虚拟环境。
+
+### 2026-04-08 - 后续 5 个关键讨论问题正式化
+- 修改范围：研究子项目文档、工作日志。
+- 变更内容：新增 `关键讨论问题（KEY_DISCUSSION_QUESTIONS）.md`，把后续最该正式讨论的 5 个问题固定为：跨子系统最小事件边界、统一对象模型的落点、最小 profile 约束层级、IIIF / BagIt 输出层长期定位、以及下一阶段完成标准；对每个问题补入当前事实、可选方案、推荐立场、对实现和论文的影响，以及建议讨论顺序；同步更新研究 README，把该文档纳入建议阅读顺序和当前状态说明。
+- 验证结果：已对照 `tasks/current_task.md`、`docs/08-研究/实施边界推进清单（IMPLEMENTATION_BOUNDARY_CHECKLIST）.md`、`memory/prototype_design.md`、`memory/decisions.md` 和当前代码边界人工核对讨论问题与当前推进状态的一致性；本轮未运行代码测试，因为修改范围仅限 Markdown 文档。
+- 备注：这一步的作用不是新增实现，而是为后续决策会、论文方法讨论和下一轮实施优先级排序提供固定框架，避免项目再次回到分散讨论状态。
+
+### 2026-04-10 - 跨子系统最小事件边界正式化
+- 修改范围：研究子项目文档、`memory/`、`tasks/`、工作日志。
+- 变更内容：新增 `跨子系统最小事件边界（CROSS_SYSTEM_EVENT_BOUNDARY）.md`，把当前系统中与事件相关的表达正式分为状态字段、detail 层 lifecycle / timeline、局部正式事件对象、输出层结果四类，并按二维资产、图像记录、三维对象、访问/导出表示、申请交付五个子域划定最小事件边界；同时明确当前不建议直接引入统一事件表，而应先把事件边界落实到 detail / test 层；同步更新研究 README、项目记忆、设计决策与任务层，把当前任务切换为“事件边界在 detail / test 层的优先落地方案”。
+- 验证结果：已对照 `docs/08-研究/PREMIS事件映射（PREMIS_EVENT_MAPPING）.md`、`backend/app/services/asset_detail.py`、`backend/app/services/three_d_detail.py`、`backend/app/services/three_d_production.py`、`backend/tests/test_three_d_production.py` 和 `memory/paper_argument.md` 人工核对事件边界说明与当前实现锚点的一致性；本轮未运行代码测试，因为修改范围仅限 Markdown 文档与任务记忆层。
+- 备注：这一步的目标不是增加新功能，而是把“事件到底是什么、先落到哪里”从讨论问题推进为一份可直接指导下一轮实现和论文表达的正式边界说明。
+
+### 2026-04-12 - AI 操控 Mirador 工具调用标准化与 MCP 化路线
+- 修改范围：AI Mirador 后端路由、Mirador AI 前端面板、前端类型定义、Mirador AI 测试、实施方案文档、工作日志。
+- 变更内容：新增 `docs/04-实施方案/AI_MIRADOR_CONTROL_ROADMAP.md`，将当前“REST AI 计划器 + 前端 Mirador 执行器 + IIIF 服务”的链路拆解为 REST 兼容层标准化、工具注册表与权限审计、浏览器执行桥接、MCP Server 化和高级任务编排五个阶段；同时在 `/api/ai/mirador/interpret` 响应中并行增加 `tool_call` 结构，支持从标准工具调用反推既有 `action`，并让前端当前计划卡片显示工具调用名称。
+- 验证结果：`python -m py_compile backend/app/routers/ai_mirador.py` 通过；`python -m pytest backend/tests/test_ai_mirador.py -q` 结果为 `2 passed, 3 skipped`，跳过原因是本机 PostgreSQL `localhost:5432` 未启动；`npm run build` 通过；`npm run test -- mirador-ai.spec.ts` 通过，`3 passed`。
+- 备注：当前已经完成 Phase 1 的兼容式标准化，仍保留原有前端 `action` 执行链路；Docker Desktop 当前未连接，暂未能重启 compose 服务，待 Docker 可用后可直接重启后端/前端进行线上测试。
+
+### 2026-05-01 - 同步前日志补齐与未提交改动收口
+- 修改范围：人脸识别服务与 Celery 任务、影像记录上传/可见性、统一平台目录与详情契约、IIIF/Cantaloupe 配置、二维 profile 规则、输出契约测试、研究文档、RepoWiki 项目知识库、工作日志。
+- 变更内容：为业务活动类影像记录接入可开关的人脸识别链路，新增本地/远程/自动 provider、运行时目录说明、pending/success/failed 元数据状态、识别结果回写 `main_person` 与前端展示；统一平台详情从复合 `resource_id` 过渡到 `source_system/source_id` 路径，补充二维与三维资源 actions、source record schema 和三维详情展示；将 Cantaloupe 调整为后端内部访问与前端代理访问分离，并补齐 `CANTALOUPE_INTERNAL_URL`；把二维 profile 必填字段集中到 `metadata_layers.py`，让影像记录校验和参考导入共用同一规则；同步补充 IIIF/BagIt 输出契约测试、研究线材料、实施边界清单、关键讨论问题、RepoWiki 生成文档和任务记忆层。
+- 验证结果：已检查 `WORK_LOG.md` 未提交 diff 与主要代码 diff，确认新增/修改主题均有日志覆盖；执行敏感信息扫描，未发现真实 token 或私钥形态，仅命中示例密码、空 API key 字段和已有测试默认密码。本轮同步前未重新运行全量测试，沿用各条日志中记录的专项验证结果。
+- 备注：本条用于把较长时间累积的本地未提交内容统一对齐到日志；`backend/runtime/face_recognition/README.md` 只提交运行时结构说明，模型、索引和识别库数据仍由 `.gitignore` 排除。
+
+### 2026-06-23 - 版本管理与文档治理基线建立
+- 修改范围：`VERSION`（新增）、`CHANGELOG.md`（新增）、`docs/DOCUMENT_REGISTRY.md`（新增）、`docs/DOCUMENT_GOVERNANCE.md`（更新）、`frontend/package.json`（更新 version）、`memory/MDAMS_联合评估报告_2026-06-23.md`（新增评估报告）
+- 变更内容：基于 git log 结构化整理 CHANGELOG（4 个版本：0.0.1～0.3.0）；创建 `VERSION` 文件将版本号独立管理；创建 `docs/DOCUMENT_REGISTRY.md` 集中跟踪所有文档状态和最后更新日期；更新 `DOCUMENT_GOVERNANCE.md` 补充版本管理和文档更新规则；将 `frontend/package.json` 版本号从 `0.0.0` 同步为 `0.3.0`。
+- 验证结果：`VERSION`、`CHANGELOG.md`、`DOCUMENT_REGISTRY.md` 文件创建完成；`DOCUMENT_GOVERNANCE.md` 和 `frontend/package.json` 更新完成；skill `mdams-doc-update` 已注册到 skill 系统。
+- 备注：后续每次代码变更后必须加载 `mdams-doc-update` skill 并执行其中的 7 步工作流。评估报告同步存于 `memory/`。
+
+### 2026-06-23 - Docker healthcheck + deploy.sh 改进 + Cantaloupe URL 修正
+- 修改范围：`docker-compose.yml`（3 个健康检查 + 2 个 depends_on 条件）、`deploy.sh`（health polling 替代 sleep 10）、`.env.example`（CANTALOUPE_INTERNAL_URL 默认值改为容器内部地址）、`CHANGELOG.md`（合并 0.3.1 条目）、`VERSION`（0.3.0 → 0.3.1）
+- 变更内容：为 db（pg_isready）、redis（redis-cli ping）、cantaloupe（curl health）添加 Docker healthcheck；backend 和 celery_worker 的 depends_on 从简单依赖改为 `condition: service_healthy`；deploy.sh 用 90s 轮询代替盲等 10 秒；.env.example 中的 CANTALOUPE_INTERNAL_URL 默认值从 `localhost:8182` 改为 `cantaloupe:8182`，消除容器内外网络混淆。
+- 验证结果：`docker compose config` 语法检查通过（静默无报错）；`python -m py_compile backend/app/permissions.py backend/app/config.py` 通过。
+- 备注：对应评估报告 Phase 1 中的 #2（healthcheck）和 #3（Cantaloupe URL）。安全后门（#1）由另一子 agent 并行完成。
+
+### 2026-05-16 - 代码审计与安全修复
+- 修改范围：后端 CORS 与认证服务、二维/三维文件上传下载、BagIt 输出、前端依赖锁文件、后端安全契约测试、环境变量示例。
+- 变更内容：将 CORS 从通配改为 `CORS_ALLOWED_ORIGINS` 配置；将默认认证密码改为 `AUTH_DEFAULT_PASSWORD` 配置，并把口令哈希升级为带随机盐的 PBKDF2 格式，同时兼容并自动迁移旧固定盐哈希；为二维上传文件名增加 basename 归一化，防止路径穿越；为二维文件下载与 BagIt 导出补充认证与可见范围校验；为三维单文件下载、文件级下载与 ZIP 打包增加资源目录边界检查和归档文件名清洗；固定 BagIt tag files 在 Windows 下的换行输出；运行 `npm audit fix --legacy-peer-deps` 升级可安全更新的前端依赖。
+- 验证结果：`python -m py_compile backend\\app\\config.py backend\\app\\main.py backend\\app\\services\\auth.py backend\\app\\routers\\assets.py backend\\app\\routers\\downloads.py backend\\app\\routers\\three_d.py backend\\app\\services\\three_d_storage.py` 通过；`python -m pytest backend\\tests\\test_auth_service.py backend\\tests\\test_output_contracts.py -q` 结果为 `7 passed, 2 skipped`，跳过原因是本地 PostgreSQL `localhost:5432` 未启动；`npm run build` 通过；`npm audit --audit-level=moderate` 从 17 个漏洞降到 4 个中危残留。
+- 备注：残留 npm audit 项分别来自 Mirador 3.x 间接依赖 DOMPurify 与 Vite/esbuild dev server 风险，自动修复需要 `mirador@4` 或 `vite@8` 破坏性大版本升级，本轮未使用 `--force`；后续建议单独评估 Mirador 4 迁移和 Vite 大版本升级。
+
+### 2026-06-23 - 安全修复：X-MDAMS-User Header 认证后门关闭
+- 修改范围：`backend/app/config.py`、`backend/app/permissions.py`、`backend/tests/conftest.py`、`.env.example`、`docs/05-部署与运维/ENVIRONMENT_VARIABLES.md`、`VERSION`、`CHANGELOG.md`、`frontend/package.json`
+- 变更内容：由联合评估报告（#6 高优先级）驱动。新增 `MDAMS_DEMO_MODE` 环境变量（默认 `0`），`permissions.py` 中 `get_current_user()` 的 `X-MDAMS-User` 分支现在仅当 `MDAMS_DEMO_MODE=1` 时生效，否则安全后门被关闭。启动 demo 模式时日志输出 `WARNING` 级安全提示。测试 conftest 自动设为 `1` 保持兼容。
+- 验证结果：`python -m py_compile backend/app/config.py backend/app/permissions.py` 通过；`python -m pytest backend/tests/test_permissions.py backend/tests/test_asset_visibility.py backend/tests/test_image_records.py -q` 结果待验证（需 PostgreSQL）。
+- 备注：这是评估报告 「Phase 3 — 后端清理」中最紧急的安全项。后续应继续按评估路线处理 models.py 拆分、Docker healthchecks 等。
+
+### 2026-06-23 - Alembic 迁移系统 + 根目录遗留文档归档
+- 修改范围：`backend/app/main.py`（替换 schema 兼容函数为 Alembic 自动迁移）、`backend/alembic/`（Alembic 初始化 + 初始 migration 捕获 15 张表）、`backend/requirements.txt`（+alembic）、`backend/requirements-dev.txt`（+alembic）、`backend/Dockerfile`（启动时自动 alembic upgrade head）、`backend/start.sh`（新增迁移执行脚本）、`CHANGELOG.md`（追加 0.3.1 条目）、`VERSION`（0.3.1）、`frontend/package.json`（同步 0.3.1）、`docs/00-归档/`（新增归档目录 + README）、`docs/DOCUMENT_GOVERNANCE.md`（更新混淆说明）、`docs/DOCUMENT_REGISTRY.md`（新增归档记录 + 清理根目录表）、`docs/README.md`（增加 00-归档 目录说明）
+- 变更内容：初始化 Alembic 迁移框架，生成包含全部 15 张表和 12 个唯一索引的初始 migration；docker-compose 启动时自动执行 `alembic upgrade head`；保留 `Base.metadata.create_all()` 作为 Alembic 不可用时的后备路径；将 7 个已过时的根级别文档移入 `docs/00-归档/` 并更新所有交叉引用。
+- 验证结果：`alembic revision --autogenerate -m "initial schema"` 成功（SQLite 离线模式），生成 migration 文件（379 行，15 表全量）；`python -m py_compile backend/app/main.py` 通过；`git mv` 操作完成，根目录现在仅保留 4 个必需文件（README/CHANGELOG/VERSION/cubox/FORCodex）。
+- 备注：对应评估报告 Phase 1 中的 #4（Alembic）和 #5（根目录清理）。Phase 1（工程基础设施）全部 5 项已完成。
+
+### 2026-06-23 - 影像利用申请交付包增加授权说明
+- 修改范围：`backend/app/services/application_delivery.py`（新增 `_build_authorization_notice` 函数、替换 README.txt、`application.json` 追加 `reviewed_at`）、`backend/tests/test_applications.py`（扩展导出测试验证交付包完整性：授权说明内容、application.json 字段、数据文件、README.txt）、`CHANGELOG.md`（追加 0.3.1 条目）
+- 变更内容：交付包新增「授权说明.md」，包含授权编号/获批用途/使用范围/有效期限/署名要求/版权声明/使用限制；application.json 新增 `reviewed_at` 时间戳；README.txt 指引用户查阅授权说明；单元验证通过（8 项内容检查全部通过：授权编号、申请人、获批用途、版权归属、署名要求、有效期限、不可转让条款、文物编号）；集成测试扩展覆盖交付包 4 类文件完整性检查。
+- 验证结果：`python -m py_compile backend/app/services/application_delivery.py` 通过；独立验证脚本 8/8 内容检查通过（682 字符通知文本）；集成测试待 PostgreSQL 可用后运行（当前无数据库）。
+- 备注：对应评估报告影像利用申请分析中 P0 项 #3（交付包授权说明）。后续 P0 项 #1（申请人与系统用户关联）和 #2（审批审计日志）可继续推进。
+
+### 2026-06-23 - 审批与导出操作追加操作人记录
+- 修改范围：`backend/app/models.py`（Application 表新增 reviewed_by_user_id + exported_by_user_id FK）、`backend/app/schemas.py`（ApplicationListItem + ApplicationDetailResponse 新增 reviewed_by / exported_by 字段）、`backend/app/routers/applications.py`（approve/reject/export 写入操作用户、列表查询预加载 user 关系）、`backend/tests/test_applications.py`（导入 CurrentUser、传递 mock reviewer、新增 test_reject_application）、`backend/alembic/versions/c7f0f77cf2a2_*.py`（手动迁移 2 列 + 2 索引 + 2 FK）、`CHANGELOG.md`
+- 变更内容：审批/拒绝操作记录 `reviewed_by_user_id`，导出操作记录 `exported_by_user_id`，响应中返回对应 `display_name`；列表和详情查询预加载 user 关系避免 N+1；测试覆盖率从 3 用例扩展到 4 用例，全部传递 mock CurrentUser。
+- 验证结果：`python -m py_compile` 通过（6 个文件全部编译成功）。
+- 备注：对应评估报告 P0 项 #1（操作人追溯）。P0 剩余 #2（审批审计日志）待推进。
+
+### 2026-06-23 - 审批审计日志系统
+- 修改范围：`backend/app/models.py`（新增 ApplicationAuditLog 模型表 + Application.audit_logs 关系）、`backend/app/schemas.py`（新增 ApplicationAuditLogEntry schema）、`backend/app/routers/applications.py`（新增 `_write_audit_log` 辅助函数 + 在 create/approve/reject/export 4 个端点写入审计记录 + 详情查询预加载 audit_logs）、`backend/tests/test_applications.py`（新增 CREATOR mock user + 4 个测试全部验证 audit_logs 条数和内容）、`backend/alembic/versions/e4a8b3c1d2f0_add_application_audit_logs_table.py`（新建表 9 列 + 5 索引 + 2 FK）、`CHANGELOG.md`
+- 变更内容：审计日志表独立记录每次申请单状态变更（操作人、操作类型、状态迁移、审批备注、时间戳），支持 SQL 查询审计链路；详情 API 返回时间序 audit_logs 列表。测试覆盖全流程 4 个状态变更点。
+- 验证结果：`python -m py_compile` 通过（6 个文件全部编译成功）。
+- 备注：对应评估报告 P0 项 #2（审批审计日志）。至此评估报告「影像利用申请」P0 三项（交付包授权说明 + 操作人追溯 + 审计日志）全部完成。
+
+### 2026-06-24 - 申请车 API（方案B：后端 Session 购物车）
+- 修改范围：`backend/app/routers/cart.py`（新增：6 个 Cart API 端点 + 内存存储 + 提交转申请单）、`backend/app/main.py`（注册 cart_router）、`CHANGELOG.md`、`memory/申请车API对接方案.html`（新增：外部系统对接说明）
+- 变更内容：新增 Cart API，支持外部系统（文物系统等）通过 HTTP 将资源加入 MDAMS 申请车，无需关心前端组件实现；3 个必填字段（source_system/source_id/title），按用户 session 隔离，提交时自动转为 Application 申请单复用现有审批流程；同步创建对外对接说明 HTML。
+- 验证结果：`python -m py_compile backend/app/routers/cart.py backend/app/main.py` 通过。
+- 备注：当前为内存存储（方案 B），设计上可无感升级为数据库持久化（方案 C）。
+
+### 2026-06-25 - 统一检索平台优化 P0+P1
+- 修改范围：
+  - `backend/app/routers/platform.py`（GET /platform/resources 新增 sort_by/sort_order 参数，排序逻辑）
+  - `backend/app/models.py`（新增 SearchSubscription 模型）
+  - `backend/app/schemas.py`（新增 3 个搜索订阅 schema）
+  - `backend/app/routers/subscriptions.py`（新增——订阅 CRUD + CHECK API）
+  - `backend/app/routers/cart.py`（修复 Lock→RLock 死锁，加购物车上限检查）
+  - `backend/app/main.py`（注册 subscriptions_router）
+  - `backend/alembic/versions/f5a6b7c8d9e0_add_search_subscriptions_table.py`（新建迁移）
+  - `frontend/src/components/PlatformDirectory.tsx`（卡面多选 Checkbox + 批量操作栏）
+  - `frontend/src/components/UnifiedResourceDetail.tsx`（Collapse 分组展示 4 层元数据）
+- 验证：后端 py_compile ?、前端 tsc --noEmit ?
+- 安全审计：订阅参数白名单校验、购物车上限 413、RLock 修复死锁
+
+### 2026-06-24 - 申请车批量导入 + 文物号查询 + 前端 ImportDialog
+- 修改范围：`backend/app/routers/cart.py`（新增 POST /import 批量导入 + GET /lookup 文物号查询 + 4 个新增 schema）、`frontend/src/components/ImportDialog.tsx`（新增 1011 行组件：查文物号多图 / 文本粘贴 / 文件上传三 Tab）、`frontend/src/types/assets.ts`（新增 4 个类型接口）、`CHANGELOG.md`
+- 变更内容：批量导入端点逐条校验 + 去重 + 统计返回；文物号查询端点先查数据库再回退模拟数据，支持拍摄内容/时间/摄影者筛选；前端 ImportDialog 支持文物号展开多图网格勾选、CSV/Excel/文本粘贴解析、预览确认后批量加车。
+- 验证结果：`python -m py_compile backend/app/routers/cart.py` 通过；`npx tsc --noEmit` 组件零错误；Vite build 通过（5152 modules）。
+- 备注：导入流程实现了智能解析决策树（有图片ID精确匹配 / 只有文物号展开多图 / 都无标记错误）。
+
+### 2026-07-04 - P0 安全补丁：ingest / video / 审批状态机
+- 修改范围：
+  - `backend/app/routers/ingest.py`：`POST /ingest/sip` 新增 `current_user: CurrentUser = Depends(require_permission("image.upload"))`，关闭未认证即可提交 SIP 的漏洞。
+  - `backend/app/routers/video.py`：视频列表、详情、在线播放、删除 4 个端点新增 `require_permission("video.view")` 或 `require_permission("video.delete")`。
+  - `backend/app/routers/applications.py`：`approve_application` / `reject_application` / `export_application` 增加状态机前置校验，禁止已批准、已拒绝、已交付申请被重复审批或重复导出。
+  - `backend/app/permissions.py`：新增 `video.view`、`video.delete` 权限命名空间，并按角色补齐视频查看/删除权限。
+  - `frontend/src/auth/permissions.ts`：同步新增 `video.view`、`video.delete` 类型。
+  - `backend/tests/test_ingest.py`：SIP 测试显式传入 `current_user` mock。
+  - `backend/tests/test_p0_security.py`：新增 P0 安全回归测试，覆盖 ingest 未授权、video 未授权、审批状态机防重入。
+  - `frontend/src/auth/permissions.spec.ts`、`frontend/src/utils/appLabels.spec.ts`：新增前端权限与标签回归测试。
+- 变更内容：关闭 3 个 P0 安全漏洞——ingest/sip 无权限校验、video 路由无权限校验、审批状态机无校验。补丁以路由级权限和状态级前置条件为主，不改变认证核心逻辑。
+- 验证结果：`./.venv/bin/python -m pytest tests/test_p0_security.py tests/test_applications.py tests/test_ingest.py -q --tb=short` 通过；`npm test -- --run` 通过（前端 Vitest 11/11）。
+- 安全审计：未新增环境变量、密钥或外部服务依赖；失败路径返回最小错误信息，不泄露内部对象细节。
 
 
 ### 2026-07-06 - M6 UI 原型与真实前端融合完成
@@ -484,3 +484,12 @@ YYYY-MM-DD
 - 变更内容：将 HTML 原型中的侧边栏深色渐变、统计卡圆角阴影、表格紧凑密度、工具栏间距落地为可维护的 CSS token 体系，覆盖 Dashboard 统计卡、二维资源表和统一平台目录三个高频页面。
 - 验证结果：M6 触碰文件定向 lint 通过（`npx eslint src/main.tsx src/App.tsx src/components/PlatformDirectory.tsx src/__tests__/mdamsTheme.spec.ts --max-warnings 0`）；前端全量 vitest `71 passed`；`npm run build` 生产构建通过；后端 sanity `137 passed, 73 skipped`（PostgreSQL 未运行，相关集成测试跳过）。
 - 备注：全仓库 `npm run lint` 仍有 30 条历史 warning，集中在 `ApplicationCart.tsx`、`AssetDetail.tsx`、`ImportDialog.tsx`、`fileCheck.spec.ts` 等非 M6 触碰文件，留待技术债清理；设计 token 提取自 `/opt/data/designs/mdams-ui/MDAMS_UI_Prototype.html`。M0–M6 阶段已全部执行完毕。
+
+### 2026-08-01 - 建立操作记录约定与 git 功能确认
+- 修改范围：`docs/01-总览/WORK_LOG.md`（工作日志，即本项目唯一操作记录文档），未改动任何代码。
+- 变更内容：
+  - 确认以 `docs/01-总览/WORK_LOG.md` 作为每次操作的唯一记录文档，按文档头部规则追加，只追加不改写历史。
+  - 修复文档历史编码问题：394 行 GBK 编码内容转为 UTF-8（内容未变，仅编码统一）。
+  - git 功能确认：`git status`/`git log` 正常；`git ls-remote origin` SSH 连通远程；提交身份 `Jing Sun <bigheadhenry@gmail.com>` 已配置。
+- 验证结果：修复后全文件逐行校验均为合法 UTF-8；抽查规则区与历史条目内容可读；`git diff` 确认本次改动仅涉及本文件编码修复与新增条目。
+- 备注：当前分支 `框架搭建-汇报领导版` 领先远程 `codex/sync-mdams-project` 1 个提交（c65af1a，The Met 2D 真实数据与 NASA 视频接入），未推送、未设置 upstream；工作区仅 1 个 vite 临时文件未跟踪。
