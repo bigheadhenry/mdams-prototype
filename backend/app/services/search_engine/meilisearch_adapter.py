@@ -107,9 +107,12 @@ class MeilisearchAdapter(SearchEngineAdapter):
             return
         payload = [_doc_to_dict(d) for d in docs]
         resp = self._client.index(INDEX_NAME).add_documents(payload)
+        task = self._client.wait_for_task(resp.task_uid, timeout_in_ms=30_000)
+        if task.status != "succeeded":
+            raise RuntimeError(f"Meilisearch indexing failed: {task.error}")
         logger.debug(
             "Indexed %d docs (task uid=%s, status=%s)",
-            len(docs), resp.task_uid, resp.status,
+            len(docs), task.uid, task.status,
         )
 
     def delete_document(self, doc_id: str) -> None:
@@ -130,11 +133,7 @@ class MeilisearchAdapter(SearchEngineAdapter):
             "limit": query.limit,
             "offset": query.skip,
         }
-
-        if query.q:
-            meili_params["q"] = query.q
-        else:
-            meili_params["q"] = ""  # match all
+        search_text = query.q or ""  # empty query matches all documents
 
         if query.sort_by:
             direction = "asc" if query.sort_order == "asc" else "desc"
@@ -148,7 +147,9 @@ class MeilisearchAdapter(SearchEngineAdapter):
         if query.facets:
             meili_params["facets"] = query.facets
 
-        result = index.search(**meili_params)
+        # meilisearch-python 0.37 uses search(query, opt_params), not keyword
+        # arguments for limit/offset/filter/sort.
+        result = index.search(search_text, meili_params)
 
         items = [
             SearchResult(
@@ -165,7 +166,7 @@ class MeilisearchAdapter(SearchEngineAdapter):
 
         return SearchResponse(
             items=items,
-            total=result.get("total", 0),
+            total=result.get("estimatedTotalHits", result.get("totalHits", result.get("total", 0))),
             facet_distribution=facet_dist,
         )
 

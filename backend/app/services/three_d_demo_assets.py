@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import shutil
+import struct
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -64,6 +66,60 @@ class DemoThreeDAsset:
     preservation_status: str = "preserved"
     preservation_note: str | None = None
     extra_metadata: dict[str, Any] = field(default_factory=dict)
+
+
+def _khronos_sample(
+    filename_stem: str,
+    title: str,
+    *,
+    credit: str,
+    license_label: str,
+    license_url: str,
+    features: str,
+) -> DemoThreeDAsset:
+    slug = "".join(character.lower() if character.isalnum() else "-" for character in filename_stem).strip("-")
+    return DemoThreeDAsset(
+        resource_group=f"demo-khronos-{slug}",
+        title=f"{title} · Khronos glTF 标准样本",
+        object_number=f"DEMO-3D-KHRONOS-{filename_stem.upper()}",
+        object_name=title,
+        files=(DemoThreeDFile(f"{filename_stem}.glb", is_primary=True),),
+        source_url=f"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/{filename_stem}",
+        license_label=license_label,
+        credit=credit,
+        coordinate_system="local",
+        unit="unit",
+        material_count=None,
+        texture_count=None,
+        object_type="glTF 标准测试模型",
+        collection_unit="Khronos glTF Sample Assets",
+        object_summary=f"Khronos 官方 glTF 2.0 样本；用于验证 {features} 的入库、检索、预览、下载和完整性校验。",
+        object_keywords=f"{title}, Khronos, glTF 2.0, GLB, {features}, 真实标准样本",
+        creator_org="Khronos glTF Sample Assets contributors",
+        project_name="MDAMS Khronos glTF 真实标准测试集",
+        creator=credit,
+        storage_tier="delivery",
+        preservation_status="preserved",
+        preservation_note="官方 GLB 原文件与 SHA256 校验值随系统启动种子一并保存。",
+        extra_metadata={
+            "dataset": "MDAMS 3D real-data test dataset",
+            "dataset_version": "2026.07",
+            "source_repository": "KhronosGroup/glTF-Sample-Assets",
+            "source_model": filename_stem,
+            "official_readme_url": f"https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/{filename_stem}/README.md",
+            "test_features": features,
+            "copyright_status": "开放许可测试资源",
+            "copyright_owner": credit,
+            "access_scope": "公开",
+            "allowed_usage": "系统功能测试、研究与演示；遵循源模型许可",
+            "license": license_label,
+            "license_url": license_url,
+            "allow_derivatives": True,
+            "usage_restrictions": "须遵循上游模型 README 所列许可及商标限制。",
+            "rights_holder": credit,
+            "permission_notes": "完整来源、作者和许可链接已随资源登记。",
+        },
+    )
 
 
 DEMO_THREE_D_ASSETS = (
@@ -289,6 +345,129 @@ DEMO_THREE_D_ASSETS = (
     ),
 )
 
+DEMO_THREE_D_ASSETS += (
+    _khronos_sample(
+        "AnimatedMorphCube",
+        "Animated Morph Cube",
+        credit="Microsoft",
+        license_label="CC0 1.0",
+        license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+        features="形变目标与动画",
+    ),
+    _khronos_sample(
+        "BoxAnimated",
+        "Box Animated",
+        credit="Cesium",
+        license_label="CC BY 4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="节点动画",
+    ),
+    _khronos_sample(
+        "BoxInterleaved",
+        "Box Interleaved",
+        credit="Cesium",
+        license_label="CC BY 4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="交错缓冲区",
+    ),
+    _khronos_sample(
+        "BoxTextured",
+        "Box Textured",
+        credit="Cesium",
+        license_label="CC BY 4.0（含商标限制）",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="2 次幂纹理与材质",
+    ),
+    _khronos_sample(
+        "BoxTexturedNonPowerOfTwo",
+        "Box Textured Non-Power-of-Two",
+        credit="Cesium",
+        license_label="CC BY 4.0（含商标限制）",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="非 2 次幂纹理与重复采样",
+    ),
+    _khronos_sample(
+        "BoxVertexColors",
+        "Box Vertex Colors",
+        credit="Marco Hutter",
+        license_label="CC0 1.0",
+        license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+        features="顶点颜色",
+    ),
+    _khronos_sample(
+        "CesiumMan",
+        "Cesium Man",
+        credit="Cesium",
+        license_label="CC BY 4.0（含商标限制）",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="蒙皮、骨骼、纹理与动画",
+    ),
+    _khronos_sample(
+        "CesiumMilkTruck",
+        "Cesium Milk Truck",
+        credit="Cesium",
+        license_label="CC BY 4.0（含商标限制）",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="多节点、多网格、纹理与动画",
+    ),
+    _khronos_sample(
+        "Duck",
+        "Duck",
+        credit="Sony Computer Entertainment",
+        license_label="SCEA Shared Source License 1.0",
+        license_url="https://spdx.org/licenses/SCEA.html",
+        features="经典带纹理 glTF 模型",
+    ),
+    _khronos_sample(
+        "AlphaBlendModeTest",
+        "Alpha Blend Mode Test",
+        credit="Analytical Graphics, Inc.",
+        license_label="CC BY 4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="Alpha 混合模式与材质排序",
+    ),
+    _khronos_sample(
+        "MorphPrimitivesTest",
+        "Morph Primitives Test",
+        credit="ft-lab / Frank Galligan",
+        license_label="CC BY 4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="多图元形变目标",
+    ),
+    _khronos_sample(
+        "MultiUVTest",
+        "Multi UV Test",
+        credit="Hilo 3D",
+        license_label="CC BY 4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="多 UV 通道与纹理坐标",
+    ),
+    _khronos_sample(
+        "NegativeScaleTest",
+        "Negative Scale Test",
+        credit="Analytical Graphics, Inc.",
+        license_label="CC BY 4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="负缩放与法线方向",
+    ),
+    _khronos_sample(
+        "RiggedFigure",
+        "Rigged Figure",
+        credit="Cesium",
+        license_label="CC BY 4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="骨骼绑定与蒙皮",
+    ),
+    _khronos_sample(
+        "RiggedSimple",
+        "Rigged Simple",
+        credit="Cesium",
+        license_label="CC BY 4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        features="简化骨骼绑定与动画",
+    ),
+)
+
 
 def _asset_source_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "demo_assets" / "three_d"
@@ -319,6 +498,69 @@ def _mime_type_for_filename(filename: str) -> str:
 
 def _format_name_for_filename(filename: str) -> str:
     return filename.rsplit(".", 1)[-1].lower() if "." in filename else "unknown"
+
+
+def _read_gltf_document(file_path: Path) -> dict[str, Any]:
+    if file_path.suffix.lower() == ".gltf":
+        return json.loads(file_path.read_text(encoding="utf-8-sig"))
+    if file_path.suffix.lower() != ".glb":
+        return {}
+
+    payload = file_path.read_bytes()
+    if len(payload) < 20 or payload[:4] != b"glTF":
+        return {}
+    _magic, version, total_length = struct.unpack_from("<4sII", payload, 0)
+    if version != 2 or total_length > len(payload):
+        return {}
+    chunk_length, chunk_type = struct.unpack_from("<II", payload, 12)
+    if chunk_type != 0x4E4F534A or 20 + chunk_length > len(payload):
+        return {}
+    return json.loads(payload[20 : 20 + chunk_length].decode("utf-8").rstrip("\x00 \t\r\n"))
+
+
+def _inspect_gltf_file(file_path: Path) -> dict[str, int]:
+    """Extract stable technical counts from a bundled glTF/GLB source."""
+    try:
+        document = _read_gltf_document(file_path)
+    except (OSError, ValueError, json.JSONDecodeError, struct.error):
+        return {}
+    accessors = document.get("accessors") or []
+
+    def accessor_count(index: object) -> int:
+        if not isinstance(index, int) or index < 0 or index >= len(accessors):
+            return 0
+        accessor = accessors[index]
+        return int(accessor.get("count") or 0) if isinstance(accessor, dict) else 0
+
+    vertex_count = 0
+    face_count = 0
+    for mesh in document.get("meshes") or []:
+        if not isinstance(mesh, dict):
+            continue
+        for primitive in mesh.get("primitives") or []:
+            if not isinstance(primitive, dict):
+                continue
+            attributes = primitive.get("attributes") or {}
+            position_count = accessor_count(attributes.get("POSITION")) if isinstance(attributes, dict) else 0
+            vertex_count += position_count
+            element_count = accessor_count(primitive.get("indices")) or position_count
+            mode = int(primitive.get("mode", 4))
+            if mode == 4:
+                face_count += element_count // 3
+            elif mode in {5, 6}:
+                face_count += max(element_count - 2, 0)
+
+    return {
+        "vertex_count": vertex_count,
+        "face_count": face_count,
+        "material_count": len(document.get("materials") or []),
+        "texture_count": len(document.get("textures") or []),
+        "animation_count": len(document.get("animations") or []),
+        "mesh_count": len(document.get("meshes") or []),
+        "node_count": len(document.get("nodes") or []),
+        "scene_count": len(document.get("scenes") or []),
+        "skin_count": len(document.get("skins") or []),
+    }
 
 
 def _get_or_create_collection_object(db: Session, sample: DemoThreeDAsset) -> ThreeDCollectionObject:
@@ -389,8 +631,11 @@ def _metadata_for_sample(
     preview_data: dict[str, Any],
 ) -> dict[str, Any]:
     primary_file = next((record for record in file_records if record.get("is_primary")), file_records[0])
+    primary_path = Path(str(primary_file["file_path"]))
+    inspected = _inspect_gltf_file(primary_path)
     total_file_size = sum(int(record.get("file_size") or 0) for record in file_records)
     preservation_note = sample.preservation_note or f"Online sample source: {sample.source_url}; license: {sample.license_label}."
+    checksum = calculate_sha256(str(primary_path))
     metadata = {
         "title": sample.title,
         "three_d_profile": sample.profile_key,
@@ -415,12 +660,17 @@ def _metadata_for_sample(
         "object_keywords": sample.object_keywords or f"3D, demo, {sample.license_label}",
         "format_name": _format_name_for_filename(str(primary_file["actual_filename"])),
         "format_version": "2.0",
-        "vertex_count": sample.vertex_count,
-        "face_count": sample.face_count,
+        "vertex_count": sample.vertex_count if sample.vertex_count is not None else inspected.get("vertex_count"),
+        "face_count": sample.face_count if sample.face_count is not None else inspected.get("face_count"),
         "point_count": sample.point_count,
-        "material_count": sample.material_count,
-        "texture_count": sample.texture_count,
+        "material_count": sample.material_count if sample.material_count is not None else inspected.get("material_count"),
+        "texture_count": sample.texture_count if sample.texture_count is not None else inspected.get("texture_count"),
         "lod_count": sample.lod_count,
+        "animation_count": inspected.get("animation_count", 0),
+        "mesh_count": inspected.get("mesh_count", 0),
+        "node_count": inspected.get("node_count", 0),
+        "scene_count": inspected.get("scene_count", 0),
+        "skin_count": inspected.get("skin_count", 0),
         "coordinate_system": sample.coordinate_system,
         "unit": sample.unit,
         "capture_time": sample.capture_time,
@@ -430,6 +680,18 @@ def _metadata_for_sample(
         "ingest_method": "startup_demo_seed",
         "file_name": primary_file["actual_filename"],
         "file_size": total_file_size,
+        "checksum_algorithm": "SHA256",
+        "checksum": checksum,
+        "copyright_status": sample.extra_metadata.get("copyright_status", "测试资源"),
+        "copyright_owner": sample.extra_metadata.get("copyright_owner", sample.credit),
+        "access_scope": sample.extra_metadata.get("access_scope", "公开"),
+        "allowed_usage": sample.extra_metadata.get("allowed_usage", "系统功能测试与演示"),
+        "license": sample.license_label,
+        "license_url": sample.extra_metadata.get("license_url"),
+        "allow_derivatives": sample.extra_metadata.get("allow_derivatives", True),
+        "usage_restrictions": sample.extra_metadata.get("usage_restrictions", "遵循来源许可。"),
+        "rights_holder": sample.extra_metadata.get("rights_holder", sample.credit),
+        "permission_notes": sample.extra_metadata.get("permission_notes", "来源与许可已登记。"),
         "preview_data": preview_data,
         **sample.extra_metadata,
     }

@@ -5,6 +5,7 @@ import {
   Checkbox,
   Col,
   Image,
+  Input,
   Pagination,
   Row,
   Select,
@@ -16,11 +17,17 @@ import {
   Typography,
 } from 'antd';
 import {
+  AppstoreOutlined,
+  ArrowRightOutlined,
   CloseCircleOutlined,
+  DatabaseOutlined,
   EyeOutlined,
   LinkOutlined,
+  PictureOutlined,
   PlayCircleOutlined,
+  SearchOutlined,
   ShoppingCartOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import AdvancedSearchPanel from './AdvancedSearchPanel';
@@ -35,6 +42,7 @@ import type {
 } from '../types/assets';
 
 const { Paragraph, Text, Title } = Typography;
+const { Search } = Input;
 
 interface PlatformDirectoryProps {
   onPreview: (resource: UnifiedResourceSummary) => void;
@@ -54,6 +62,7 @@ const RESOURCE_TYPE_LABELS: Record<string, string> = {
 };
 
 const TAB_SOURCE_MAP: Record<string, string> = {
+  all: '',
   '2d': 'image_2d',
   '3d': 'three_d',
   video: 'video',
@@ -66,6 +75,7 @@ const SOURCE_TAB_MAP: Record<string, string> = {
 };
 
 const SOURCE_LABELS: Record<string, string> = {
+  all: '全部模态',
   image_2d: '二维资源',
   three_d: '三维数字对象',
   video: '视频资源',
@@ -145,8 +155,10 @@ const sortResources = (items: UnifiedResourceSummary[], sortKey: SortKey): Unifi
 // 目录上下文持久化：进入详情页后返回时还原 Tab/页码/排序/筛选/视图
 const DIRECTORY_STATE_KEY = 'platform_directory_state';
 const DIRECTORY_TAB_HINT_KEY = 'platform_directory_active_tab';
+const DIRECTORY_STATE_VERSION = 2;
 
 interface PersistedDirectoryState {
+  version?: number;
   activeTab?: string;
   currentPage?: number;
   pageSize?: number;
@@ -159,7 +171,8 @@ const loadPersistedDirectoryState = (): PersistedDirectoryState => {
   if (typeof window === 'undefined') return {};
   try {
     const raw = window.sessionStorage.getItem(DIRECTORY_STATE_KEY);
-    return raw ? (JSON.parse(raw) as PersistedDirectoryState) : {};
+    const parsed = raw ? (JSON.parse(raw) as PersistedDirectoryState) : {};
+    return parsed.version === DIRECTORY_STATE_VERSION ? parsed : {};
   } catch {
     return {};
   }
@@ -206,12 +219,16 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
     }
     if (
       persistedSnapshot.activeTab &&
-      ['2d', '3d', 'video'].includes(persistedSnapshot.activeTab)
+      ['all', '2d', '3d', 'video'].includes(persistedSnapshot.activeTab)
     ) {
       return persistedSnapshot.activeTab;
     }
-    return '2d';
+    return 'all';
   });
+  const [hasSearched, setHasSearched] = useState(
+    () => Boolean(persistedSnapshot.advancedParams && Object.keys(persistedSnapshot.advancedParams).length > 0)
+      || (persistedSnapshot.activeTab != null && persistedSnapshot.activeTab !== 'all'),
+  );
   const [sortKey, setSortKey] = useState<SortKey>(
     () => persistedSnapshot.sortKey ?? 'updated_desc',
   );
@@ -251,7 +268,8 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
         if (params.preview_enabled) queryParams.preview_enabled = params.preview_enabled === 'true';
         if (params.resource_type) queryParams.resource_type = params.resource_type;
         if (params.profile_key) queryParams.profile_key = params.profile_key;
-        queryParams.source_system = TAB_SOURCE_MAP[activeTab];
+        const sourceSystem = TAB_SOURCE_MAP[activeTab];
+        if (sourceSystem) queryParams.source_system = sourceSystem;
         if (params.field && params.field_value) {
           queryParams.q = queryParams.q
             ? `${String(queryParams.q)} ${params.field_value}`
@@ -299,6 +317,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
     if (typeof window === 'undefined') return;
     try {
       const snapshot: PersistedDirectoryState = {
+        version: DIRECTORY_STATE_VERSION,
         activeTab,
         currentPage,
         pageSize,
@@ -314,6 +333,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
 
   const handleSearch = useCallback(
     (params: AdvancedSearchParams) => {
+      setHasSearched(true);
       setAdvancedParams(params);
       void fetchDirectory(params, 1, pageSize);
     },
@@ -322,8 +342,9 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
 
   const handleRefresh = useCallback(() => {
     setAdvancedParams({});
+    if (activeTab === 'all') setHasSearched(false);
     void fetchDirectory({}, 1, pageSize);
-  }, [fetchDirectory, pageSize]);
+  }, [activeTab, fetchDirectory, pageSize]);
 
   const handlePageChange = useCallback(
     (page: number, size: number) => {
@@ -335,12 +356,30 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
 
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
+    setHasSearched(tabKey !== 'all');
+    if (tabKey === 'all') setAdvancedParams({});
   }, []);
 
   const handleSwitchSource = useCallback((sourceSystem: string) => {
     const tabKey = SOURCE_TAB_MAP[sourceSystem];
-    if (tabKey) setActiveTab(tabKey);
+    if (tabKey) {
+      setActiveTab(tabKey);
+      setHasSearched(true);
+    }
   }, []);
+
+  const handleOmniSearch = useCallback(
+    (rawQuery: string) => {
+      const query = rawQuery.trim();
+      if (!query) return;
+      const next: AdvancedSearchParams = { q: query };
+      setActiveTab('all');
+      setHasSearched(true);
+      setAdvancedParams(next);
+      void fetchDirectory(next, 1, pageSize);
+    },
+    [fetchDirectory, pageSize],
+  );
 
   const handleRemoveFilter = useCallback(
     (filterKey: keyof AdvancedSearchParams) => {
@@ -362,7 +401,13 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
   }, [onAddToApplication, resources, selectedRowKeys]);
 
   const activeSourceSystem = TAB_SOURCE_MAP[activeTab];
-  const activeSourceLabel = SOURCE_LABELS[activeSourceSystem] || '资源';
+  const activeSourceLabel = activeTab === 'all'
+    ? SOURCE_LABELS.all
+    : SOURCE_LABELS[activeSourceSystem] || '资源';
+  const totalAcrossSources = useMemo(
+    () => sources.reduce((sum, source) => sum + source.resource_count, 0),
+    [sources],
+  );
   const previewResourceCount = useMemo(
     () => resources.filter((resource) => resource.preview_enabled).length,
     [resources],
@@ -384,6 +429,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
         return { key, label: FILTER_LABELS[key] || String(key), value: display };
       });
   }, [advancedParams]);
+  const showSearchLanding = activeTab === 'all' && !hasSearched;
 
   // 初次挂载：使用还原的页码/筛选拉取；后续切换 Tab：重置到第一页
   useEffect(() => {
@@ -526,6 +572,118 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
     [selectedRowKeys],
   );
 
+  if (showSearchLanding) {
+    const sourceCards = [
+      {
+        key: '2d',
+        sourceSystem: 'image_2d',
+        label: '二维影像',
+        description: '高清图像、文物摄影与业务影像',
+        icon: <PictureOutlined />,
+        accent: '#2563eb',
+        tint: '#eff6ff',
+      },
+      {
+        key: '3d',
+        sourceSystem: 'three_d',
+        label: '三维数字对象',
+        description: '三维模型、点云与数字化成果',
+        icon: <AppstoreOutlined />,
+        accent: '#7c3aed',
+        tint: '#f5f3ff',
+      },
+      {
+        key: 'video',
+        sourceSystem: 'video',
+        label: '视频资源',
+        description: '纪实影像、科普与专题视频',
+        icon: <VideoCameraOutlined />,
+        accent: '#ea580c',
+        tint: '#fff7ed',
+      },
+    ];
+
+    return (
+      <section className="mdams-search-landing" data-testid="platform-directory">
+        <div className="mdams-search-orbit mdams-search-orbit-one" />
+        <div className="mdams-search-orbit mdams-search-orbit-two" />
+        <div className="mdams-search-landing-inner">
+          <div className="mdams-search-brand">
+            <span className="mdams-search-brand-mark"><DatabaseOutlined /></span>
+            <span>MDAMS DISCOVERY</span>
+          </div>
+          <Title className="mdams-search-title">
+            一次检索，发现所有数字资源
+          </Title>
+          <Paragraph className="mdams-search-subtitle">
+            跨二维影像、三维数字对象与视频资源统一发现，直接进入预览、详情和申请流程。
+          </Paragraph>
+
+          <Search
+            data-testid="platform-omni-search"
+            className="mdams-omni-search"
+            size="large"
+            allowClear
+            autoFocus
+            placeholder="搜索标题、资源标识、人物、地点或主题…"
+            enterButton={(
+              <span className="mdams-search-button-label">
+                <SearchOutlined />
+                统一检索
+              </span>
+            )}
+            onSearch={handleOmniSearch}
+            loading={loading}
+          />
+
+          <div className="mdams-search-suggestions">
+            <Text type="secondary">试试：</Text>
+            {['Gateway', 'Ganymede', 'Rigged Figure'].map((keyword) => (
+              <Button key={keyword} type="text" size="small" onClick={() => handleOmniSearch(keyword)}>
+                {keyword}
+              </Button>
+            ))}
+          </div>
+
+          <div className="mdams-search-source-grid">
+            {sourceCards.map((source) => {
+              const count = sources.find((item) => item.source_system === source.sourceSystem)?.resource_count ?? 0;
+              return (
+                <button
+                  key={source.key}
+                  type="button"
+                  className="mdams-search-source-card"
+                  onClick={() => handleTabChange(source.key)}
+                >
+                  <span
+                    className="mdams-search-source-icon"
+                    style={{ color: source.accent, background: source.tint }}
+                  >
+                    {source.icon}
+                  </span>
+                  <span className="mdams-search-source-copy">
+                    <strong>{source.label}</strong>
+                    <small>{source.description}</small>
+                  </span>
+                  <span className="mdams-search-source-count">
+                    <strong>{count}</strong>
+                    <small>条资源</small>
+                  </span>
+                  <ArrowRightOutlined className="mdams-search-source-arrow" />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mdams-search-footnote">
+            <span className="mdams-search-live-dot" />
+            {loading ? '正在连接资源来源…' : `已连接 3 个资源来源，共收录 ${totalAcrossSources} 条可管理资源`}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <Row
       gutter={[16, 16]}
@@ -533,30 +691,54 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
       className="mdams-content"
       style={{ minHeight: 400, width: '100%', margin: 0 }}
     >
-      <Col
-        xs={24}
-        xl={statsBarCollapsed ? 2 : 6}
-        xxl={statsBarCollapsed ? 1 : 5}
-        style={{ transition: 'all 0.2s ease' }}
-      >
-        <PlatformStatsBar
-          sources={sources}
-          totalResources={total}
-          activeSourceSystem={activeSourceSystem}
-          previewResourceCount={previewResourceCount}
-          onSwitchSource={handleSwitchSource}
-          collapsed={statsBarCollapsed}
-          onToggleCollapsed={toggleStatsBarCollapsed}
-        />
-      </Col>
+      {activeTab !== 'all' && (
+        <Col
+          xs={24}
+          xl={statsBarCollapsed ? 2 : 6}
+          xxl={statsBarCollapsed ? 1 : 5}
+          style={{ transition: 'all 0.2s ease' }}
+        >
+          <PlatformStatsBar
+            sources={sources}
+            totalResources={total}
+            activeSourceSystem={activeSourceSystem}
+            previewResourceCount={previewResourceCount}
+            onSwitchSource={handleSwitchSource}
+            collapsed={statsBarCollapsed}
+            onToggleCollapsed={toggleStatsBarCollapsed}
+          />
+        </Col>
+      )}
 
       <Col
         xs={24}
-        xl={statsBarCollapsed ? 22 : 18}
-        xxl={statsBarCollapsed ? 23 : 19}
+        xl={activeTab === 'all' ? 24 : statsBarCollapsed ? 22 : 18}
+        xxl={activeTab === 'all' ? 24 : statsBarCollapsed ? 23 : 19}
         style={{ minWidth: 0, transition: 'all 0.2s ease' }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          {activeTab === 'all' && (
+            <div className="mdams-search-results-header">
+              <div>
+                <Text className="mdams-search-results-kicker">跨模态统一检索</Text>
+                <Title level={3} style={{ margin: '2px 0 0' }}>
+                  发现数字资源
+                </Title>
+              </div>
+              <Search
+                key={advancedParams.q || 'all-search'}
+                data-testid="platform-omni-search-results"
+                className="mdams-omni-search mdams-omni-search-compact"
+                size="large"
+                allowClear
+                defaultValue={advancedParams.q}
+                placeholder="在全部模态中继续搜索…"
+                enterButton={<SearchOutlined />}
+                onSearch={handleOmniSearch}
+                loading={loading}
+              />
+            </div>
+          )}
           <div className="mdams-toolbar">
             <Title level={4} style={{ margin: 0 }}>
               统一资源目录
@@ -585,6 +767,7 @@ const PlatformDirectory: React.FC<PlatformDirectoryProps> = ({
             onChange={(key) => handleTabChange(key)}
             size="large"
             items={[
+              { key: 'all', label: `全部 ${totalAcrossSources}` },
               { key: '2d', label: '二维' },
               { key: '3d', label: '三维' },
               { key: 'video', label: '视频' },

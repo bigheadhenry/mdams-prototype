@@ -22,6 +22,7 @@ from .routers.video import router as video_router
 from .routers.cart import router as cart_router
 from .routers.subscriptions import router as subscriptions_router
 from .services.auth import seed_auth_data
+from .services.two_d_demo_assets import seed_demo_two_d_assets
 from .services.three_d_demo_assets import seed_demo_three_d_assets
 from .services.video_seed import seed_demo_video_asset
 
@@ -65,6 +66,7 @@ _migrate_if_new()
 
 with SessionLocal() as session:
     seed_auth_data(session)
+    seed_demo_two_d_assets(session)
     seed_demo_three_d_assets(session)
     seed_demo_video_asset(session)
 

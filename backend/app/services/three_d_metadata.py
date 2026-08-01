@@ -7,7 +7,7 @@ from typing import Any, Mapping, Sequence
 from .three_d_storage import normalize_three_d_role, summarize_three_d_files, three_d_role_label
 
 
-METADATA_SCHEMA_VERSION = '1.1'
+METADATA_SCHEMA_VERSION = '1.2'
 SOURCE_SYSTEM = 'three_d'
 SOURCE_LABEL = '三维数据子系统'
 
@@ -103,6 +103,19 @@ PRESERVATION_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
     ('preservation_note', '保存说明', ('preservation_note',)),
 ]
 
+RIGHTS_FIELDS: list[tuple[str, str, tuple[str, ...]]] = [
+    ('copyright_status', '版权状态', ('copyright_status',)),
+    ('copyright_owner', '版权所属', ('copyright_owner',)),
+    ('access_scope', '访问范围', ('access_scope',)),
+    ('allowed_usage', '允许用途', ('allowed_usage',)),
+    ('license', '授权协议', ('license',)),
+    ('license_url', '许可协议链接', ('license_url',)),
+    ('allow_derivatives', '允许衍生', ('allow_derivatives',)),
+    ('usage_restrictions', '使用限制', ('usage_restrictions',)),
+    ('rights_holder', '权利持有人', ('rights_holder',)),
+    ('permission_notes', '权限说明', ('permission_notes',)),
+]
+
 
 def _as_dict(value: Mapping[str, Any] | None) -> dict[str, Any]:
     if not value:
@@ -156,6 +169,13 @@ def _lookup_value(metadata: Mapping[str, Any], *keys: str) -> Any:
         for key in keys:
             if key in preservation and _is_present(preservation[key]):
                 return preservation[key]
+
+    for section_key in ('management', 'technical', 'rights'):
+        section = metadata.get(section_key)
+        if isinstance(section, Mapping):
+            for key in keys:
+                if key in section and _is_present(section[key]):
+                    return section[key]
 
     return None
 
@@ -295,6 +315,7 @@ def build_three_d_metadata_layers(
 
     collection = _build_field_section(source, COLLECTION_FIELDS)
     preservation = _build_field_section(source, PRESERVATION_FIELDS)
+    rights = _build_field_section(source, RIGHTS_FIELDS)
 
     technical = _build_field_section(
         source,
@@ -310,6 +331,11 @@ def build_three_d_metadata_layers(
             ('texture_count', '贴图数', ('texture_count',)),
             ('point_count', '点数', ('point_count',)),
             ('lod_count', 'LOD 层级', ('lod_count',)),
+            ('animation_count', '动画数', ('animation_count',)),
+            ('mesh_count', '网格数', ('mesh_count',)),
+            ('node_count', '节点数', ('node_count',)),
+            ('scene_count', '场景数', ('scene_count',)),
+            ('skin_count', '蒙皮数', ('skin_count',)),
             ('coordinate_system', '坐标系', ('coordinate_system',)),
             ('unit', '单位', ('unit',)),
             ('scale', '比例', ('scale',)),
@@ -358,5 +384,6 @@ def build_three_d_metadata_layers(
         'technical': technical,
         'profile': profile,
         'preservation': preservation,
+        'rights': rights,
         'raw_metadata': raw_metadata,
     }

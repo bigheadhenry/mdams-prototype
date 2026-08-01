@@ -12,7 +12,6 @@ import {
   Menu,
   Modal,
   Row,
-  Select,
   Space,
   Statistic,
   Table,
@@ -80,6 +79,23 @@ const App: React.FC = () => {
   const [availableUsers, setAvailableUsers] = useState<AuthUserSummary[]>([]);
   const [authLoading, setAuthLoading] = useState(true);
   const [loginSubmitting, setLoginSubmitting] = useState(false);
+  const [form] = Form.useForm();
+
+  // Seed users seeded by the backend on startup. Hardcoded here so the login
+  // screen can show them without requiring an authenticated /api/auth/users call.
+  const SEED_USERS: { username: string; displayName: string; roleLabel: string }[] = [
+    { username: 'system_admin', displayName: '系统管理员', roleLabel: 'system_admin' },
+    { username: 'image_editor', displayName: '二维结构化编辑员', roleLabel: 'image_structured_editor' },
+    { username: 'image_ingest', displayName: '二维入库操作员', roleLabel: 'image_ingest_operator' },
+    { username: 'image_review', displayName: '二维入库审核员', roleLabel: 'image_ingest_reviewer' },
+    { username: 'image_manager', displayName: '二维资源管理员', roleLabel: 'image_resource_manager' },
+    { username: 'image_metadata_entry', displayName: '影像元数据录入员', roleLabel: 'image_metadata_entry' },
+    { username: 'image_photographer', displayName: '摄影上传人员', roleLabel: 'image_photographer_upload' },
+    { username: 'three_d_operator', displayName: '三维操作员', roleLabel: 'three_d_operator' },
+    { username: 'application_review', displayName: '申请审核员', roleLabel: 'application_reviewer' },
+    { username: 'collection_owner', displayName: '馆藏责任人', roleLabel: 'collection_owner' },
+    { username: 'resource_user', displayName: '资源使用者', roleLabel: 'resource_user' },
+  ];
 
   const visibleMenuKeys = useMemo(
     () => (authContext ? getVisibleMenuKeys(authContext) : []),
@@ -658,16 +674,13 @@ const App: React.FC = () => {
                 <Text type="secondary">当前已接入真实用户、角色关系和登录上下文。默认测试密码为 `mdams123`。</Text>
               </Space>
 
-              <Form layout="vertical" onFinish={(values) => void handleLogin(values)}>
-                <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请选择或输入用户名' }]}>
-                  <Select
-                    showSearch
-                    placeholder="选择测试用户"
-                    suffixIcon={<UserOutlined />}
-                    options={availableUsers.map((user) => ({
-                      label: `${user.display_name} (${user.username})`,
-                      value: user.username,
-                    }))}
+              <Form form={form} layout="vertical" onFinish={(values) => void handleLogin(values)}>
+                <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>
+                  <Input
+                    prefix={<UserOutlined />}
+                    placeholder="输入用户名，如 system_admin"
+                    autoComplete="username"
+                    allowClear
                   />
                 </Form.Item>
                 <Form.Item name="password" label="密码" rules={[{ required: true, message: '请输入密码' }]}>
@@ -680,19 +693,20 @@ const App: React.FC = () => {
 
               <Divider style={{ margin: 0 }} />
 
-              <Card size="small" title="可用测试账号" bordered={false}>
+              <Card size="small" title="可用测试账号（点击填入用户名）" bordered={false}>
                 <Space direction="vertical" style={{ width: '100%' }}>
-                  {availableUsers.map((user) => (
-                    <Space key={user.username} align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
+                  {SEED_USERS.map((user) => (
+                    <Space
+                      key={user.username}
+                      align="start"
+                      style={{ width: '100%', justifyContent: 'space-between', cursor: 'pointer' }}
+                      onClick={() => form.setFieldsValue({ username: user.username })}
+                    >
                       <Space direction="vertical" size={0}>
-                        <Text strong>{user.display_name}</Text>
+                        <Text strong>{user.displayName}</Text>
                         <Text type="secondary">{user.username}</Text>
                       </Space>
-                      <Space wrap>
-                        {user.roles.map((role) => (
-                          <Tag key={`${user.username}-${role.key}`}>{role.label}</Tag>
-                        ))}
-                      </Space>
+                      <Tag>{user.roleLabel}</Tag>
                     </Space>
                   ))}
                 </Space>

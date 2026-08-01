@@ -758,6 +758,7 @@ class VideoAssetOut(BaseModel):
     profile_key: str | None = None
     profile_label: str | None = None
     process_message: str | None = None
+    metadata_info: dict[str, Any] | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

@@ -48,7 +48,7 @@ def seed_index_from_adapters(db_session) -> None:
         logger.warning("Cannot seed index — engine unavailable")
         return
 
-    from ..platform.registry import registry
+    from ...platform.registry import registry
     from . import SearchDocument
 
     total = 0
@@ -75,7 +75,10 @@ def seed_index_from_adapters(db_session) -> None:
             search_text = " ".join(p for p in search_parts if p)
 
             doc = SearchDocument(
-                id=f"{r.source_system}:{r.source_id}",
+                # Meilisearch primary keys cannot contain ':'. Keep its
+                # internal ID safe and preserve the public platform ID in the
+                # document payload for API responses.
+                id=f"{r.source_system}__{r.source_id}",
                 source_system=r.source_system,
                 source_id=r.source_id,
                 source_label=r.source_label,
@@ -97,6 +100,7 @@ def seed_index_from_adapters(db_session) -> None:
                 detail_url=r.detail_url,
                 object_number=None,  # TODO: fetch from resource detail during reindex
                 search_text=search_text,
+                extra={"platform_id": r.id},
             )
             docs.append(doc)
 

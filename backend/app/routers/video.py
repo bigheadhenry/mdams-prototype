@@ -74,6 +74,7 @@ def get_video_asset(
         profile_key=str(core.get("profile_key") or "other"),
         profile_label=str(core.get("profile_label") or "其他"),
         process_message=asset.process_message,
+        metadata_info=asset.metadata_info,
         created_at=asset.created_at,
     )
 
@@ -97,6 +98,30 @@ def stream_video(
         str(file_path),
         media_type=asset.mime_type or "video/mp4",
         filename=asset.filename,
+        content_disposition_type="inline",
+    )
+
+
+@router.get("/resources/{asset_id}/poster")
+def get_video_poster(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    _user: CurrentUser = Depends(require_permission("video.view")),
+):
+    asset = db.query(VideoAsset).filter(VideoAsset.id == asset_id).first()
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Video asset not found")
+    technical = ((asset.metadata_info or {}).get("technical") or {})
+    poster_path_value = technical.get("poster_file_path")
+    if not poster_path_value:
+        raise HTTPException(status_code=404, detail="Video poster not found")
+    poster_path = Path(str(poster_path_value))
+    if not poster_path.is_file():
+        raise HTTPException(status_code=404, detail="Video poster not found on disk")
+    return FileResponse(
+        str(poster_path),
+        media_type=str(technical.get("poster_mime_type") or "image/jpeg"),
+        filename=str(technical.get("poster_filename") or poster_path.name),
         content_disposition_type="inline",
     )
 

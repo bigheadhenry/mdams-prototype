@@ -313,7 +313,7 @@ def _preview_data_from_layers(layers: dict[str, object]) -> dict[str, object] | 
 
 
 def _build_rights_display_from_layers(layers: dict[str, object]) -> dict[str, object] | None:
-    """Build minimal rights_display from 3D metadata layers."""
+    """Build the user-facing rights summary from 3D metadata layers."""
     rights = layers.get("rights") if isinstance(layers, dict) else {}
     if not isinstance(rights, dict):
         return None
@@ -328,6 +328,9 @@ def _build_rights_display_from_layers(layers: dict[str, object]) -> dict[str, ob
         "credit_line": copyright_owner,
         "copyright_status": copyright_status or None,
         "license": license_val or None,
+        "license_url": rights.get("license_url") or None,
+        "usage_restrictions": rights.get("usage_restrictions") or None,
+        "allow_derivatives": rights.get("allow_derivatives"),
     }
 
 

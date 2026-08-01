@@ -282,7 +282,7 @@ def get_resource(
 
 def _summary_from_search_document(d: dict) -> UnifiedResourceSummary:
     return UnifiedResourceSummary(
-        id=d.get("id", ""),
+        id=d.get("platform_id") or f"{d.get('source_system', '')}:{d.get('source_id', '')}",
         source_system=d.get("source_system", ""),
         source_id=d.get("source_id", ""),
         source_label=d.get("source_label", ""),

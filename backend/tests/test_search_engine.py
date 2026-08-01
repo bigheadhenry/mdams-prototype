@@ -51,6 +51,52 @@ class TestFilterExpression:
         assert " AND " in expr
 
 
+def test_meilisearch_adapter_uses_client_037_search_signature():
+    class FakeIndex:
+        def __init__(self):
+            self.calls = []
+
+        def search(self, query, options):
+            self.calls.append((query, options))
+            return {
+                "hits": [{"id": "image_2d:1", "title": "Ganymede jewelry"}],
+                "estimatedTotalHits": 1,
+            }
+
+    class FakeClient:
+        def __init__(self, index):
+            self._index = index
+
+        def index(self, _name):
+            return self._index
+
+    fake_index = FakeIndex()
+    adapter = MeilisearchAdapter.__new__(MeilisearchAdapter)
+    adapter._client = FakeClient(fake_index)
+
+    response = adapter.search(
+        SearchQuery(
+            q="Ganymede",
+            filter={"source_system": "image_2d"},
+            skip=5,
+            limit=10,
+        )
+    )
+
+    assert response.total == 1
+    assert response.items[0].id == "image_2d:1"
+    assert fake_index.calls == [
+        (
+            "Ganymede",
+            {
+                "limit": 10,
+                "offset": 5,
+                "filter": "(source_system = 'image_2d')",
+            },
+        )
+    ]
+
+
 # ── Unit: SearchDocument → dict conversion ───────────────────────────
 
 

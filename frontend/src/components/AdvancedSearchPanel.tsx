@@ -19,6 +19,9 @@ const PROFILE_OPTIONS = [
   { value: 'point_cloud', label: '点云' },
   { value: 'oblique_photo', label: '倾斜摄影' },
   { value: 'package', label: '三维包' },
+  { value: 'mission_documentary', label: '航天任务纪实' },
+  { value: 'science_education', label: '科普教育' },
+  { value: 'human_spaceflight', label: '载人航天' },
 ];
 
 export type ViewMode = 'card' | 'table';
@@ -46,16 +49,23 @@ const AdvancedSearchPanel: React.FC<AdvancedSearchPanelProps> = ({
   const [resourceType, setResourceType] = useState<string | undefined>();
   const [profileKey, setProfileKey] = useState<string | undefined>();
 
-  const resourceTypeOptions = sourceSystem === 'three_d'
+  const resourceTypeOptions = sourceSystem === ''
+    ? [
+        { value: 'image_2d_cultural_object', label: '二维影像' },
+        { value: 'three_d_digital_object', label: '三维数字对象' },
+        { value: 'video_cultural_object', label: '文博视频' },
+      ]
+    : sourceSystem === 'three_d'
     ? [{ value: 'three_d_digital_object', label: '三维数字对象' }]
     : sourceSystem === 'video'
       ? [{ value: 'video_cultural_object', label: '文博视频' }]
       : [{ value: 'image_2d_cultural_object', label: '二维影像' }];
 
   const profileOptions = PROFILE_OPTIONS.filter((option) => {
+    if (sourceSystem === '') return true;
     if (sourceSystem === 'three_d') return ['model', 'point_cloud', 'oblique_photo', 'package'].includes(option.value);
-    if (sourceSystem === 'video') return option.value === 'other';
-    return !['model', 'point_cloud', 'oblique_photo', 'package'].includes(option.value);
+    if (sourceSystem === 'video') return ['mission_documentary', 'science_education', 'human_spaceflight', 'other'].includes(option.value);
+    return !['model', 'point_cloud', 'oblique_photo', 'package', 'mission_documentary', 'science_education', 'human_spaceflight'].includes(option.value);
   });
 
   const handleSearch = () => {

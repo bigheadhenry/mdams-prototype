@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDAMS 未提交改动说明 · 2026-08-01</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1f2937;
+    --ink-2: #64748b;
+    --line: #e5e9f0;
+    --primary: #2563eb;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --code-bg: #f1f5f9;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 980px; margin: 0 auto; padding: 36px 20px 60px; }
+
+  /* Header */
+  header.card {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2f6f9f 100%);
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 32px 36px;
+    margin-bottom: 24px;
+  }
+  header.card h1 { font-size: 26px; font-weight: 700; letter-spacing: .5px; }
+  header.card .sub { margin-top: 8px; color: #dbe7f3; font-size: 14px; }
+  header.card .meta { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 12.5px;
+  }
+  .chip code { font-size: 12px; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat { background: var(--card); border-radius: var(--radius); padding: 18px 20px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+  .stat .num { font-size: 30px; font-weight: 800; line-height: 1.1; }
+  .stat .num.up { color: var(--ok); }
+  .stat .num.down { color: #dc2626; }
+  .stat .num.neutral { color: var(--primary); }
+  .stat .lbl { margin-top: 6px; font-size: 13px; color: var(--ink-2); }
+
+  /* Cards / sections */
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(15,23,42,.06); padding: 26px 30px; margin-bottom: 22px; }
+  h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+  h2 .no {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 8px;
+    background: var(--primary); color: #fff; font-size: 14px; flex: 0 0 auto;
+  }
+  .sec-desc { color: var(--ink-2); font-size: 13.5px; margin-bottom: 18px; }
+  .tagline {
+    display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px;
+  }
+  .tag {
+    background: #eef2ff; color: #3730a3; border-radius: 6px;
+    padding: 3px 10px; font-size: 12.5px;
+  }
+
+  /* Module grid */
+  .mod-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .mod-grid, .stats { grid-template-columns: 1fr 1fr; } }
+  .mod {
+    border: 1px solid var(--line); border-left: 4px solid var(--primary);
+    border-radius: 10px; padding: 16px 18px; background: #fbfcfe;
+  }
+  .mod.ok { border-left-color: var(--ok); }
+  .mod.amber { border-left-color: var(--warn); }
+  .mod h3 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .mod .files { margin-top: 8px; font-size: 12px; color: var(--ink-2); }
+  .mod .files code { background: var(--code-bg); border-radius: 4px; padding: 1px 5px; font-size: 11.5px; }
+  .mod ul { margin: 10px 0 0 0; padding-left: 18px; font-size: 13px; color: #334155; }
+  .mod ul li { margin-bottom: 3px; }
+  .b-sz {
+    display: inline-block; background: #eef2ff; color: #4338ca;
+    font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 1px 8px; margin-left: 4px;
+  }
+
+  /* Untracked table */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #f8fafc; color: var(--ink-2); font-weight: 600; font-size: 12.5px; white-space: nowrap; }
+  td code { background: var(--code-bg); border-radius: 4px; padding: 1px 5px; font-size: 12px; word-break: break-all; }
+  .st-ok { color: var(--ok); font-weight: 600; white-space: nowrap; }
+  .st-warn { color: var(--warn); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+
+  /* Steps */
+  ol.steps { margin: 0; padding-left: 0; list-style: none; counter-reset: step; }
+  ol.steps li {
+    counter-increment: step; position: relative; padding: 0 0 16px 46px; font-size: 14px;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
+  }
+  ol.steps li:last-child { padding-bottom: 0; }
+  ol.steps .t { font-weight: 700; }
+  pre {
+    background: #0f172a; color: #e2e8f0; border-radius: 8px;
+    padding: 12px 16px; margin: 10px 0 0 0; overflow-x: auto;
+    font-size: 12.5px; line-height: 1.7;
+  }
+  pre code { background: none; color: inherit; padding: 0; font-size: 12.5px; }
+  .note { font-size: 12.5px; color: var(--ink-2); margin-top: 10px; }
+
+  footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 26px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header class="card">
+    <h1>MDAMS 未提交改动说明</h1>
+    <div class="sub">多模态资源（2D / 3D / 视频）+ 统一检索能力集中增强 · 改动审查报告</div>
+    <div class="meta">
+      <span class="chip">📂 仓库 <code>mdams-prototype</code></span>
+      <span class="chip">🌿 分支 <code>codex/sync-mdams-project</code></span>
+      <span class="chip">🕐 日期 2026-08-01</span>
+      <span class="chip">🔗 GitHub SSH 已连通 ✓</span>
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="num neutral">18</div><div class="lbl">修改文件</div></div>
+    <div class="stat"><div class="num up">+1,435</div><div class="lbl">新增行数</div></div>
+    <div class="stat"><div class="num down">−173</div><div class="lbl">删除行数</div></div>
+    <div class="stat"><div class="num neutral">≈20</div><div class="lbl">未跟踪文件/目录</div></div>
+  </div>
+
+  <!-- Overview -->
+  <section class="card">
+    <h2><span class="no">1</span>改动主题总览</h2>
+    <p class="sec-desc">本次未提交内容围绕「让 MDAMS 真正承载 2D / 3D / 视频三类真实或标准化的演示资源，并纳入统一检索与前端目录」展开，与上一提交 <code>feat: complete 2D and 3D resource workflows</code> 形成连续迭代。</p>
+    <div class="tagline">
+      <span class="tag">2D · The Met 真实公共领域数据</span>
+      <span class="tag">视频 · NASA 多视频数据集</span>
+      <span class="tag">3D · glTF 标准测试模型</span>
+      <span class="tag">检索 · 统一资源 ID 优化</span>
+      <span class="tag">前端 · 平台目录大改版</span>
+    </div>
+  </section>
+
+  <!-- Modules -->
+  <section class="card">
+    <h2><span class="no">2</span>改动分类明细（按模块）</h2>
+    <p class="sec-desc">六个功能模块，改动量从 1 行到 351 行不等，覆盖后端服务、API 路由、数据模型与前端组件。</p>
+    <div class="mod-grid">
+
+      <div class="mod ok">
+        <h3>✓ 2D 真实资源接入 <span class="b-sz">新增 ~307 行</span></h3>
+        <div class="files">
+          <code>services/two_d_demo_assets.py</code>（新增）· <code>main.py</code>（+2）
+        </div>
+        <ul>
+          <li>接入 <b>The Metropolitan Museum of Art Open Access</b>，20 条 CC0 1.0 真实公共领域文物图像</li>
+          <li>生成完整元数据层（业务元数据 + metadata layers）：版权、SHA256 完整性校验、IIIF 访问路径等</li>
+          <li>服务启动时自动 seed，登记 <code>ImageRecord</code> / <code>Asset</code></li>
+        </ul>
+      </div>
+
+      <div class="mod ok">
+        <h3>✓ 视频资源数据集化 <span class="b-sz">+533</span></h3>
+        <div class="files">
+          <code>video_seed.py</code>（+338）· <code>video_metadata.py</code>（+169）· <code>routers/video.py</code>（+25）· <code>schemas.py</code>（+1）
+        </div>
+        <ul>
+          <li>由单条本地视频改为 <b>NASA 多视频数据集</b>（Gateway 月球站 / How Big is Space / Olympics ISS 等）</li>
+          <li>新增海报端点 <code>GET /resources/{id}/poster</code>（FileResponse 输出）</li>
+          <li><code>VideoAssetOut</code> 新增 <code>metadata_info</code> 字段透出技术信息</li>
+        </ul>
+      </div>
+
+      <div class="mod ok">
+        <h3>✓ 3D demo 资源增强 <span class="b-sz">+302</span></h3>
+        <div class="files">
+          <code>three_d_demo_assets.py</code>（+270）· <code>three_d_metadata.py</code>（+29）· <code>three_d/README.md</code>（+3）
+        </div>
+        <ul>
+          <li>3D demo 服务与元数据逻辑增强</li>
+          <li>新增约 15 个 Khronos glTF 标准测试模型（Duck、CesiumMan、RiggedFigure、Box* 等 .glb）</li>
+        </ul>
+      </div>
+
+      <div class="mod ok">
+        <h3>✓ 统一检索与资源目录 <span class="b-sz">+73</span></h3>
+        <div class="files">
+          <code>routers/platform.py</code> · <code>search_engine/engine.py</code>（+8）· <code>meilisearch_adapter.py</code>（+17）· <code>test_search_engine.py</code>（+46）
+        </div>
+        <ul>
+          <li>统一资源摘要 ID 改用 <code>platform_id</code> 或 <code>source_system:source_id</code> 组合（更稳健）</li>
+          <li>Meilisearch 适配与检索引擎小幅调整，补充检索测试</li>
+        </ul>
+      </div>
+
+      <div class="mod ok">
+        <h3>✓ 前端平台目录与主题 <span class="b-sz">+654</span></h3>
+        <div class="files">
+          <code>PlatformDirectory.tsx</code>（+233）· <code>mdams-theme.css</code>（+351）· <code>App.tsx</code>（+54）· <code>AdvancedSearchPanel.tsx</code>���+16）
+        </div>
+        <ul>
+          <li>平台目录新增：搜索框、全部模态 Tab、资源类型图标、视图切换</li>
+          <li>目录状态持久化升级至 v2（返回时还原 Tab / 页码 / 排序 / 筛选）</li>
+          <li>主题样式大幅扩充（+351 行）</li>
+        </ul>
+      </div>
+
+      <div class="mod amber">
+        <h3>⚠ 测试补充 <span class="b-sz">新增</span></h3>
+        <div class="files">
+          <code>tests/test_demo_datasets.py</code> · <code>tests/test_video_demo_dataset.py</code>（新增）
+        </div>
+        <ul>
+          <li>新增 2D demo 数据集与视频 demo 数据集测试</li>
+          <li>配合 <code>test_search_engine.py</code> 的增强，覆盖数据登记与检索链路</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Untracked -->
+  <section class="card">
+    <h2><span class="no">3</span>未跟踪文件处理建议</h2>
+    <p class="sec-desc">除 18 个修改文件外，还有一批新增文件/目录待决定是否纳入版本库。</p>
+    <table>
+      <thead>
+        <tr><th style="width:120px">处理</th><th style="width:230px">文件 / 目录</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="st-ok">✓ 提交</td>
+          <td><code>services/two_d_demo_assets.py</code><br><code>tests/test_demo_datasets.py</code><br><code>tests/test_video_demo_dataset.py</code></td>
+          <td>新代码：2D 真实数据种子服务 + 两个数据集测试</td>
+        </tr>
+        <tr>
+          <td class="st-ok">✓ 提交</td>
+          <td><code>demo_assets/two_d/</code><br><code>demo_assets/video/</code><br><code>demo_assets/three_d/*.glb</code> ×15</td>
+          <td>演示资源：The Met 图像 + 源元数据；NASA 视频 + 海报；Khronos glTF 标准测试模型</td>
+        </tr>
+        <tr>
+          <td class="st-warn">⚠ 忽略</td>
+          <td><code>.pnpm-store/</code></td>
+          <td>pnpm 依赖缓存（约 48K），应加入 <code>.gitignore</code>，不纳入版本库</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Next steps -->
+  <section class="card">
+    <h2><span class="no">4</span>可操作下一步</h2>
+    <p class="sec-desc">GitHub 推送通道已修复（SSH 22 端口直连，绕过被墙的 443），认证测试通过，可随时提交推送。</p>
+    <ol class="steps">
+      <li>
+        <span class="t">防止误提交依赖缓存</span> — 将 <code>.pnpm-store/</code> 加入忽略列表：
+        <pre><code>echo ".pnpm-store/" &gt;&gt; .gitignore</code></pre>
+      </li>
+      <li>
+        <span class="t">提交改动</span> — 可一次性提交，或按主题拆分（推荐）：
+        <pre><code>git add -A
+git commit -m "feat: 接入 The Met 2D 真实数据与 NASA 视频集，增强多模态资源与统一检索"</code></pre>
+        <div class="note">按主题拆分示例：① 2D The Met 真实数据接入 ② NASA 视频数据集 + 海报端点 ③ 前端平台目录与主题增强</div>
+      </li>
+      <li>
+        <span class="t">推送到远端</span>（走已验证的 SSH 通道）：
+        <pre><code>git push origin codex/sync-mdams-project</code></pre>
+      </li>
+    </ol>
+  </section>
+
+  <footer>MDAMS Prototype · 未提交改动审查报告 · 生成于 2026-08-01 · 由 WorkBuddy 自动生成</footer>
+</div>
+</body>
+</html>

@@ -165,7 +165,7 @@ def list_unified_resources(
                 status=asset.status,
                 preview_enabled=video_preview_enabled,
                 manifest_url=f"/api/video/resources/{asset.id}/stream",
-                thumbnail_url=f"/api/video/resources/{asset.id}/stream",
+                thumbnail_url=f"/api/video/resources/{asset.id}/poster",
                 detail_url=_resource_detail_url(asset.id),
                 updated_at=asset.created_at,
                 actions=_resource_actions(asset.id),
@@ -175,23 +175,11 @@ def list_unified_resources(
 
 
 def _build_video_rights_display(layers: dict[str, object], metadata_info: dict[str, object] | None) -> dict[str, object] | None:
-    """Build minimal rights_display for video from metadata layers or metadata_info."""
-    rights = layers.get("rights") if isinstance(layers, dict) else {}
-    if isinstance(rights, dict):
-        owner = rights.get("copyright_owner") or ""
-        status = rights.get("copyright_status") or ""
-        license_val = rights.get("license") or ""
-        if owner or status or license_val:
-            statement = f"© {owner}" if owner else ""
-            return {
-                "statement": statement,
-                "credit_line": owner,
-                "copyright_status": status or None,
-                "license": license_val or None,
-            }
-    # Fallback: check metadata_info for rights_label
+    rights_display = layers.get("rights_display") if isinstance(layers, dict) else None
+    if isinstance(rights_display, dict) and any(value not in (None, "", []) for value in rights_display.values()):
+        return rights_display
     if metadata_info:
-        label = metadata_info.get("rights_label") or metadata_info.get("license_label") or ""
+        label = metadata_info.get("rights_label") or metadata_info.get("license_label")
         if label:
             return {"statement": label, "credit_line": ""}
     return None
@@ -229,7 +217,7 @@ def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
         status=asset.status,
         preview_enabled=asset.status == "ready",
         manifest_url=f"/api/video/resources/{asset.id}/stream",
-        thumbnail_url=f"/api/video/resources/{asset.id}/stream",
+        thumbnail_url=f"/api/video/resources/{asset.id}/poster",
         detail_url=_resource_detail_url(asset.id),
         updated_at=asset.created_at,
         actions=_resource_actions(asset.id),
@@ -249,6 +237,15 @@ def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
             "resource_type": asset.resource_type,
             "created_at": asset.created_at.isoformat() if asset.created_at else None,
             "title": layers["core"].get("title"),
+            "rights_label": (layers.get("rights") or {}).get("license"),
+            "license_label": (layers.get("rights") or {}).get("license"),
+            "metadata_layers": layers,
+            "core": layers.get("core"),
+            "management": layers.get("management"),
+            "technical": layers.get("technical"),
+            "profile": layers.get("profile"),
+            "rights": layers.get("rights"),
+            "raw_metadata": layers.get("raw_metadata"),
             "structure": {
                 "summary": f"视频文件 · {asset.mime_type or 'video/mp4'} · {asset.file_size} bytes",
                 "primary_file": {
@@ -256,6 +253,12 @@ def get_unified_resource(asset_id: int, db: Session) -> UnifiedResourceDetail:
                     "file_path": asset.file_path,
                     "file_size": asset.file_size,
                     "mime_type": asset.mime_type,
+                },
+                "poster": {
+                    "filename": (layers.get("technical") or {}).get("poster_filename"),
+                    "file_path": (layers.get("technical") or {}).get("poster_file_path"),
+                    "mime_type": (layers.get("technical") or {}).get("poster_mime_type"),
+                    "url": f"/api/video/resources/{asset.id}/poster",
                 },
             },
         },

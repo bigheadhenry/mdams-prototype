@@ -68,3 +68,4 @@ reference/
 frontend/coverage/
 .hermes/
 memory/
+.pnpm-store/
